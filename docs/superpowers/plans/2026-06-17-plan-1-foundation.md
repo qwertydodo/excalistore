@@ -40,26 +40,41 @@ excalistore/
 │   ├── background.ts          (stub)
 │   ├── content.ts             (stub)
 │   └── popup/                 (stub: index.html, main.tsx, App.tsx)
-├── src/shared/
-│   ├── messages.ts            (typed contracts)
-│   ├── excalidraw-format.ts   (pure build/parse/validate/hash)
-│   ├── theme.ts               (design tokens)
-│   └── ui/
-│       ├── Button.tsx
-│       ├── IconButton.tsx
-│       ├── Dialog.tsx
-│       ├── ConfirmDialog.tsx
-│       ├── TextField.tsx
-│       ├── ListItem.tsx
-│       ├── Badge.tsx
-│       ├── Spinner.tsx
-│       └── index.ts
-└── tests/
-    ├── excalidraw-format.test.ts
-    ├── messages.test.ts
-    ├── theme.test.ts
-    └── ui/*.test.tsx
+├── src/                       (Feature-Sliced Design — simplified; see Task 19)
+│   ├── test-setup.ts          (vitest setup: jest-dom matchers)
+│   ├── shared/                (business-agnostic, reused everywhere)
+│   │   ├── ui/                (primitives; PascalCase components, CSS Modules, colocated tests)
+│   │   │   ├── Button/{Button.tsx, Button.module.css, Button.test.tsx, index.ts}
+│   │   │   ├── IconButton/{IconButton.tsx, IconButton.module.css, index.ts}
+│   │   │   ├── Dialog/{Dialog.tsx, Dialog.module.css, index.ts}
+│   │   │   ├── ConfirmDialog/{ConfirmDialog.tsx, ConfirmDialog.module.css, ConfirmDialog.test.tsx, index.ts}
+│   │   │   ├── TextField/{TextField.tsx, TextField.module.css, index.ts}
+│   │   │   ├── ListItem/{ListItem.tsx, ListItem.module.css, index.ts}
+│   │   │   ├── Badge/{Badge.tsx, Badge.module.css, index.ts}
+│   │   │   ├── Spinner/{Spinner.tsx, Spinner.module.css, index.ts}
+│   │   │   └── index.ts       (barrel)
+│   │   ├── api/               (cross-process RPC contracts)
+│   │   │   ├── messages.ts + messages.test.ts
+│   │   │   └── index.ts
+│   │   └── config/            (design tokens / constants)
+│   │       ├── theme.css      (--es-* vars via :root/:host + data-theme)
+│   │       ├── theme.ts       (ThemeMode type + THEME_ATTR const)
+│   │       └── index.ts
+│   └── entities/
+│       └── diagram/           (the .excalidraw business entity)
+│           ├── lib/
+│           │   ├── excalidrawFormat.ts + excalidrawFormat.test.ts  (build/parse/validate/hash + types)
+│           │   └── index.ts
+│           └── index.ts       (entity public API)
+│  (Plans 2-3 add: entities/{driveFile,scene}, features/{auth,autosave,openDiagram,
+│   createDiagram,renameDiagram}, widgets/{diagramPanel,popupConnect})
 ```
+
+**Architecture conventions (FSD, simplified):** layers import only from layers strictly
+below (`shared → entities → features → widgets`; `entrypoints/` is the app/composition
+root). Slices on the same layer don't import each other. Segments: `ui` (components),
+`api` (transport/contracts), `model` (types/state), `lib` (pure helpers), `config`
+(tokens/constants). Module files are **camelCase**; React components **PascalCase**.
 
 ---
 
@@ -1319,6 +1334,13 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - OAuth scope `drive.file` only. All Drive/auth calls happen in the background
   service worker — never in the content script or panel.
 - Validate every `.excalidraw` payload before writing it into page storage.
+- **UI components:** one folder per component
+  (`ui/<Name>/<Name>.tsx` + `<Name>.module.css` + `index.ts`). Styling lives in
+  **CSS Modules** referencing theme vars `var(--es-*)`. No inline `style` props
+  except genuinely dynamic values that can't be a class (document the exception).
+- **Tests are colocated** next to the code they test (`Button/Button.test.tsx`,
+  `excalidraw-format.test.ts` beside `excalidraw-format.ts`). No top-level
+  `tests/` directory.
 
 ## Docs discipline
 - After any change, update the corresponding doc: architecture change →
@@ -1476,6 +1498,284 @@ console.
 - [ ] **Step 3: Confirm completion**
 
 Foundation complete. Plan 2 (Drive core) can begin.
+
+---
+
+## Task 17: Refactor UI primitives to CSS Modules + per-component folders
+
+**Why:** Task 12 first shipped the 8 primitives as flat files with inline
+`style={{}}` props. That is not the project convention. This task restructures
+them to one folder per component with styles in CSS Modules, preserving identical
+appearance and behavior. CSS in content scripts is injected into the Shadow DOM
+root by WXT's `createShadowRootUi` (Plan 3), so CSS Modules scope correctly there.
+
+**Files (for each of Button, IconButton, Dialog, ConfirmDialog, TextField, ListItem, Badge, Spinner):**
+- Create: `src/shared/ui/<Name>/<Name>.tsx`
+- Create: `src/shared/ui/<Name>/<Name>.module.css`
+- Create: `src/shared/ui/<Name>/index.ts` (`export { <Name> } from "./<Name>";`)
+- Delete: old flat `src/shared/ui/<Name>.tsx`
+- Modify: `src/shared/ui/index.ts` (barrel re-exports from the folders)
+- Modify: `vitest.config.ts` (ensure `.module.css` imports resolve in tests)
+- Modify: `knip.json` if needed (keep `src/shared/ui/index.ts` in `entry`)
+
+- [ ] **Step 1: Configure Vitest for CSS Modules**
+
+In `vitest.config.ts`, under `test`, add so CSS-module class lookups return
+stable names in jsdom tests instead of being stripped:
+
+```typescript
+    css: { modules: { classNameStrategy: "non-scoped" } },
+```
+
+- [ ] **Step 2: Move each component into its own folder with a CSS Module**
+
+For every primitive, create `<Name>/<Name>.tsx` and `<Name>/<Name>.module.css`.
+Move ALL static styling from the current inline `style` objects into the CSS
+Module (class per element, using the same `var(--es-*)` tokens and values that
+are currently inline). Replace `style={{...}}` with `className={styles.x}`.
+
+Keep inline style ONLY for genuinely dynamic values that cannot be a static
+class, and add a comment explaining each:
+- `Spinner` size (width/height/border-width derived from the `size` prop).
+- `Button` disabled opacity/cursor — move to CSS `:disabled` / `[disabled]`
+  selectors instead (preferred; no inline needed).
+
+Example shape (`Button`):
+
+```tsx
+// src/shared/ui/Button/Button.tsx
+import type { ButtonHTMLAttributes } from "react";
+import styles from "./Button.module.css";
+
+type Variant = "primary" | "secondary" | "danger";
+
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+}
+
+export function Button({ variant = "primary", className, ...rest }: Props) {
+  return (
+    <button
+      type="button"
+      className={[styles.button, styles[variant], className].filter(Boolean).join(" ")}
+      {...rest}
+    />
+  );
+}
+```
+
+```css
+/* src/shared/ui/Button/Button.module.css */
+.button {
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--es-accent);
+  color: var(--es-accent-text);
+}
+.secondary {
+  background: var(--es-surface);
+  color: var(--es-text);
+}
+.danger {
+  background: var(--es-danger);
+  color: var(--es-accent-text);
+}
+```
+
+Apply the same treatment to the other seven, moving their existing inline styles
+verbatim (same values) into class rules. For `Dialog`, the overlay and panel
+become `.overlay` / `.panel`; for `Spinner`, the static rules go in the module
+and only the size-derived dimensions stay inline (documented). Add the
+`@keyframes es-spin` used by `Spinner` into `Spinner.module.css` (use `:global`
+if referenced by name, or a local keyframe).
+
+- [ ] **Step 3: Update the barrel `src/shared/ui/index.ts`**
+
+```typescript
+export { Badge } from "./Badge";
+export { Button } from "./Button";
+export { ConfirmDialog } from "./ConfirmDialog";
+export { Dialog } from "./Dialog";
+export { IconButton } from "./IconButton";
+export { ListItem } from "./ListItem";
+export { Spinner } from "./Spinner";
+export { TextField } from "./TextField";
+```
+
+- [ ] **Step 4: Keep tests working**
+
+Existing `tests/ui/Button.test.tsx` and `tests/ui/ConfirmDialog.test.tsx` assert
+on roles/text/click — they should pass unchanged once imports still resolve
+(via the barrel or the component folder). Run them.
+
+- [ ] **Step 5: Verify and commit**
+
+Run: `npm test && npm run lint && npm run compile && npm run knip && npm run build`
+Expected: all exit 0; no flat `src/shared/ui/*.tsx` files remain (only folders).
+
+```bash
+git add src/shared/ui vitest.config.ts knip.json
+git commit -m "refactor: move ui primitives to per-component folders with css modules"
+```
+
+---
+
+## Task 18: Colocate tests with source
+
+**Why:** Tests were first written under a top-level `tests/` directory. Convention
+is to colocate each test beside the code it covers, so the test moves/renames with
+its subject and ownership is obvious.
+
+**Moves:**
+- `tests/messages.test.ts` → `src/shared/messages.test.ts`
+- `tests/excalidraw-format.test.ts` → `src/shared/excalidraw-format.test.ts`
+- `tests/theme.test.ts` → `src/shared/theme.test.ts`
+- `tests/ui/Button.test.tsx` → `src/shared/ui/Button/Button.test.tsx`
+- `tests/ui/ConfirmDialog.test.tsx` → `src/shared/ui/ConfirmDialog/ConfirmDialog.test.tsx`
+- `tests/ui/setup.ts` → `src/test-setup.ts`
+- Delete `tests/smoke.test.ts` and the now-empty `tests/` tree (real tests cover the harness).
+
+**Config updates:**
+- `vitest.config.ts`: `setupFiles: ["src/test-setup.ts"]`; change the jsdom glob to
+  `environmentMatchGlobs: [["src/shared/ui/**", "jsdom"]]`. (Vitest auto-discovers
+  `**/*.{test,spec}.*`, so colocated tests are picked up automatically.)
+- `tsconfig.json`: drop `"tests"` from `include` (keep `"src"`).
+- Import paths inside moved tests: relative imports like `@/shared/...` still
+  resolve; no change needed beyond the file location.
+
+- [ ] **Step 1: Move the files** (use `git mv` where possible to preserve history)
+
+- [ ] **Step 2: Update `vitest.config.ts` and `tsconfig.json`** per above.
+
+- [ ] **Step 3: Verify and commit**
+
+Run: `npm test && npm run lint && npm run compile && npm run knip && npm run build`
+Expected: all exit 0; 17 tests still pass; no `tests/` directory remains.
+
+```bash
+git add -A
+git commit -m "refactor: colocate tests with the code they cover"
+```
+
+---
+
+## Task 19: Restructure to simplified FSD + camelCase + CSS theme
+
+**Why:** The shared layer started as flat files. Adopt simplified Feature-Sliced
+Design so Plans 2-3 (entities/features/widgets) slot in cleanly; rename module
+files to camelCase; move theme tokens from a JS object into a CSS file.
+
+**Moves (use `git mv` to preserve history):**
+- `src/shared/messages.ts` → `src/shared/api/messages.ts` (+ colocated test)
+- `src/shared/excalidraw-format.ts` → `src/entities/diagram/lib/excalidrawFormat.ts`
+  (rename to camelCase) (+ colocated test → `excalidrawFormat.test.ts`)
+- `src/shared/theme.ts` → split into `src/shared/config/theme.css` + `theme.ts`
+  (delete `theme.test.ts` — CSS tokens aren't unit-tested)
+
+**New barrels (FSD public API):**
+- `src/shared/ui/index.ts` (exists)
+- `src/shared/api/index.ts` → `export * from "./messages";`
+- `src/shared/config/index.ts` → `export * from "./theme"; import "./theme.css";`
+- `src/entities/diagram/lib/index.ts` → `export * from "./excalidrawFormat";`
+- `src/entities/diagram/index.ts` → `export * from "./lib";`
+
+- [ ] **Step 1: Move + rename files**
+
+`git mv` messages and excalidraw-format into the new paths (rename the latter to
+`excalidrawFormat.ts` and its test to `excalidrawFormat.test.ts`). Create the
+barrel `index.ts` files above.
+
+- [ ] **Step 2: Convert theme to CSS**
+
+Create `src/shared/config/theme.css` with the SAME token values currently in
+`theme.ts`, defined for both the popup (`:root`) and the Shadow-DOM panel
+(`:host`), keyed by a `data-theme` attribute (default light):
+
+```css
+:root,
+:host {
+  --es-bg: #ffffff;
+  --es-surface: #f1f0ff;
+  --es-text: #1b1b1f;
+  --es-muted: #6a6a75;
+  --es-border: #e0dfff;
+  --es-accent: #6965db;
+  --es-accent-text: #ffffff;
+  --es-danger: #e03131;
+  --es-radius: 8px;
+  --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="dark"],
+:host([data-theme="dark"]) {
+  --es-bg: #232329;
+  --es-surface: #2e2d39;
+  --es-text: #e3e3e8;
+  --es-muted: #9a99a5;
+  --es-border: #3b3a47;
+  --es-accent: #a8a5ff;
+  --es-accent-text: #1b1b1f;
+  --es-danger: #ff8787;
+  --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+```
+
+Replace `theme.ts` contents with just the type + constant (delete the JS token
+maps and `themeVars`):
+
+```typescript
+// Theme is defined in theme.css via --es-* custom properties, switched by the
+// data-theme attribute on the popup :root or the panel Shadow-DOM :host.
+export type ThemeMode = "light" | "dark";
+export const THEME_ATTR = "data-theme";
+```
+
+Delete `src/shared/config/theme.test.ts` (the old `themeVars` test is obsolete;
+the CSS isn't meaningfully unit-tested).
+
+- [ ] **Step 3: Update all imports + path usages**
+
+- `messages` consumers import from `@/shared/api` (or `@/shared/api/messages`).
+- `excalidrawFormat` consumers import from `@/entities/diagram`.
+- Anything importing `themeVars` is removed; theme now applied via `THEME_ATTR`
+  + the imported `theme.css` (Plan 3 wires the attribute toggle).
+- Update `knip.json` `entry` to the new barrel paths
+  (`src/shared/ui/index.ts`, `src/shared/api/index.ts`, `src/shared/config/index.ts`,
+  `src/entities/diagram/index.ts`); remove stale `src/shared/messages.ts` /
+  `excalidraw-format.ts` entries. Ensure `theme.css` import in the config barrel
+  keeps knip from flagging it unused.
+
+- [ ] **Step 4: Update CLAUDE.md + architecture doc**
+
+Add an "## Architecture (FSD)" rule block to `CLAUDE.md`: layers
+`shared → entities → features → widgets` import only downward; segments
+`ui/api/model/lib/config`; module files camelCase, components PascalCase; theme
+tokens in CSS. Update `docs/architecture.md` with the FSD layout (the `src/` tree
+above) and the import-direction rule. (Per the docs-discipline rule.)
+
+- [ ] **Step 5: Verify and commit**
+
+Run: `npm test && npm run lint && npm run compile && npm run knip && npm run build`
+Expected: all exit 0; remaining tests still pass (theme test removed, so the
+count drops by its 2 cases); no flat files left under `src/shared/`.
+
+```bash
+git add -A
+git commit -m "refactor: adopt simplified feature-sliced design, camelCase, css theme"
+```
+
+**Deferred:** the **steiger** FSD linter is intentionally NOT added yet — on a
+4-file codebase its `insignificant-slice`/`public-api` rules are noisy. Add it in
+Plan 2/3 once `features`/`widgets` exist. Tracked in `docs/features.md`.
 
 ---
 

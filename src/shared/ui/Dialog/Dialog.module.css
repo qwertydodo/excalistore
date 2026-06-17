@@ -1,0 +1,22 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  z-index: 2147483647;
+}
+.panel {
+  background: var(--es-bg);
+  color: var(--es-text);
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  box-shadow: var(--es-shadow);
+  padding: 20px;
+  min-width: 320px;
+  max-width: 420px;
+}
+.title {
+  margin: 0 0 12px;
+  font-size: 16px;
+}

@@ -1,0 +1,44 @@
+{
+  "name": "excalistore",
+  "version": "0.1.0",
+  "description": "Chrome extension connecting excalidraw.com to Google Drive.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "compile": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "knip": "knip",
+    "postinstall": "wxt prepare",
+    "prepare": "lefthook install"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "@wxt-dev/module-react": "^1.1.0",
+    "jsdom": "^24.0.0",
+    "knip": "^5.0.0",
+    "lefthook": "^1.6.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "wxt": "^0.19.0"
+  }
+}

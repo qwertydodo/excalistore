@@ -1,0 +1,23 @@
+.button {
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--es-accent);
+  color: var(--es-accent-text);
+}
+.secondary {
+  background: var(--es-surface);
+  color: var(--es-text);
+}
+.danger {
+  background: var(--es-danger);
+  color: var(--es-accent-text);
+}
