@@ -4,9 +4,10 @@
     "entrypoints/**/*.{ts,tsx,html}",
     "wxt.config.ts",
     "*.config.{ts,js}",
-    "src/shared/messages.ts",
-    "src/shared/excalidraw-format.ts",
-    "src/shared/ui/index.ts"
+    "src/shared/ui/index.ts",
+    "src/shared/api/index.ts",
+    "src/shared/config/index.ts",
+    "src/entities/diagram/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "ignoreDependencies": ["@wxt-dev/module-react"]

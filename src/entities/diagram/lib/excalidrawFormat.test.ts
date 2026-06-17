@@ -3,7 +3,7 @@ import {
   type ExcalidrawFile,
   parseExcalidrawFile,
   validateExcalidrawFile,
-} from "@/shared/excalidraw-format";
+} from "@/entities/diagram";
 
 const valid: ExcalidrawFile = {
   type: "excalidraw",
@@ -37,7 +37,7 @@ describe("validateExcalidrawFile", () => {
   });
 });
 
-import { buildExcalidrawFile, sceneHash } from "@/shared/excalidraw-format";
+import { buildExcalidrawFile, sceneHash } from "@/entities/diagram";
 
 describe("buildExcalidrawFile", () => {
   it("assembles a valid file from parts including images", () => {

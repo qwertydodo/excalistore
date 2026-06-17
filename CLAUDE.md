@@ -17,6 +17,22 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   `excalidraw-format.test.ts` next to `excalidraw-format.ts`). No top-level `tests/`
   directory.
 
+## Architecture (FSD)
+- Simplified Feature-Sliced Design under `src/`: layers `shared → entities →
+  features → widgets` import only from layers strictly below (never sideways,
+  never up). `entrypoints/` is the app/composition root and may import any
+  layer.
+- Slices on the same layer do not import each other.
+- Segments within a slice: `ui` (components), `api` (transport/contracts),
+  `model` (types/state), `lib` (pure helpers), `config` (tokens/constants).
+  Each segment exposes a barrel `index.ts` as its public API — import from the
+  barrel, not internal files.
+- Module files are **camelCase** (`excalidrawFormat.ts`); React components are
+  **PascalCase** (`Button.tsx`).
+- Theme tokens live in CSS custom properties (`src/shared/config/theme.css`),
+  not JS objects — switch themes via the `data-theme` attribute, not by
+  swapping a JS variable map.
+
 ## Docs discipline
 - After any change, update the corresponding doc: architecture change →
   `docs/architecture.md`; security change → `docs/security.md`; setup change →

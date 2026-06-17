@@ -8,6 +8,7 @@
 - Self-hosted Excalidraw hosts.
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.
+- Add steiger (FSD lint) once features/widgets exist.
 
 ## Shipped
 _(Move items here as they ship, with a short behavior description.)_

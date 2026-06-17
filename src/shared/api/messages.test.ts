@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type DriveFileMeta, isErrorResponse } from "@/shared/messages";
+import { type DriveFileMeta, isErrorResponse } from "@/shared/api";
 
 describe("messages", () => {
   it("DriveFileMeta shape is usable", () => {

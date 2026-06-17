@@ -1,5 +1,37 @@
 # Architecture
 
+## Source layout (simplified Feature-Sliced Design)
+
+`src/` is organized as simplified FSD. Layers import only from layers strictly
+below: `shared → entities → features → widgets`. `entrypoints/` (background,
+content, popup) is the app/composition root and may import from any layer.
+Slices on the same layer never import each other. Each slice exposes a barrel
+`index.ts` as its public API.
+
+```
+src/
+  test-setup.ts
+  shared/                  (business-agnostic, reused everywhere)
+    ui/                    (primitive components; PascalCase + CSS Modules)
+      Button/, IconButton/, Dialog/, ConfirmDialog/, TextField/,
+      ListItem/, Badge/, Spinner/, index.ts
+    api/                   (cross-process RPC contracts)
+      messages.ts, messages.test.ts, index.ts
+    config/                (design tokens / constants)
+      theme.css, theme.ts, index.ts
+  entities/
+    diagram/                (the .excalidraw business entity)
+      lib/
+        excalidrawFormat.ts, excalidrawFormat.test.ts, index.ts
+      index.ts
+  (Plans 2-3 add: entities/{driveFile,scene}, features/{auth,autosave,
+   openDiagram,createDiagram,renameDiagram}, widgets/{diagramPanel,popupConnect})
+```
+
+Module files are camelCase; React components are PascalCase. Theme tokens are
+CSS custom properties (`--es-*`) in `shared/config/theme.css`, applied to
+`:root`/`:host` and switched via the `data-theme` attribute — not a JS object.
+
 ```
 ┌─────────────────────── excalidraw.com tab ───────────────────────┐
 │                                                                   │
@@ -65,19 +97,22 @@ in isolation.
 
 Reusable foundation everything else is built from:
 
-- **`ui`** — primitive components rendered in Shadow DOM: `Button`,
+- **`shared/ui`** — primitive components rendered in Shadow DOM: `Button`,
   `IconButton`, `Dialog`/`ConfirmDialog`, `TextField`, `ListItem`, `Badge`,
   `Spinner`. The panel and every dialog (replace-canvas, sign-out, rename,
   conflict) are composed from these.
-- **`theme`** — design tokens (CSS variables) for light and dark, mirrored from
-  Excalidraw's appState. Single source of styling for the primitives.
-- **`messages`** — typed request/response contracts (discriminated unions)
-  shared by content script and background.
-- **`excalidraw-format`** — pure functions to build, parse, and validate the
-  `.excalidraw` file format. No browser dependencies; fully unit-testable.
+- **`shared/config` (`theme`)** — design tokens as CSS custom properties
+  (`theme.css`) for light and dark, mirrored from Excalidraw's appState via the
+  `data-theme` attribute (`THEME_ATTR`). Single source of styling for the
+  primitives.
+- **`shared/api` (`messages`)** — typed request/response contracts
+  (discriminated unions) shared by content script and background.
+- **`entities/diagram` (`excalidrawFormat`)** — pure functions to build, parse,
+  and validate the `.excalidraw` file format. No browser dependencies; fully
+  unit-testable.
 
 This isolates the fragile DOM/storage coupling inside `scene-bridge`, and keeps
-`excalidraw-format` and `drive-client` pure and easy to test. No component
+`excalidrawFormat` and `drive-client` pure and easy to test. No component
 re-implements a button, dialog, or theme lookup.
 
 ## Data Flow
