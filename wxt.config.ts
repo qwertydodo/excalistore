@@ -8,10 +8,7 @@ export default defineConfig({
     name: "Excalistore",
     description: "Store and autosave Excalidraw diagrams in Google Drive.",
     permissions: ["identity", "storage"],
-    host_permissions: [
-      "https://excalidraw.com/*",
-      "https://www.googleapis.com/*",
-    ],
+    host_permissions: ["https://excalidraw.com/*", "https://www.googleapis.com/*"],
     // oauth2 client id is filled in Plan 2 (requires a Google Cloud client).
   },
 });
