@@ -36,3 +36,43 @@ describe("validateExcalidrawFile", () => {
     expect(() => parseExcalidrawFile("{not json")).toThrow();
   });
 });
+
+import { buildExcalidrawFile, sceneHash } from "@/shared/excalidraw-format";
+
+describe("buildExcalidrawFile", () => {
+  it("assembles a valid file from parts including images", () => {
+    const file = buildExcalidrawFile(
+      [{ id: "e1", version: 1, type: "image", fileId: "f1" }],
+      { viewBackgroundColor: "#fff" },
+      { f1: { id: "f1", mimeType: "image/png", dataURL: "data:image/png;base64,AAAA" } },
+    );
+    expect(file.type).toBe("excalidraw");
+    expect(file.version).toBe(2);
+    expect(file.files.f1?.dataURL).toContain("base64");
+    expect(() => validateExcalidrawFile(file)).not.toThrow();
+  });
+});
+
+describe("sceneHash", () => {
+  it("is stable for the same scene", () => {
+    const a = buildExcalidrawFile([{ id: "e1", version: 2 }], {}, {});
+    const b = buildExcalidrawFile([{ id: "e1", version: 2 }], {}, {});
+    expect(sceneHash(a)).toBe(sceneHash(b));
+  });
+
+  it("changes when an element version bumps", () => {
+    const a = buildExcalidrawFile([{ id: "e1", version: 2 }], {}, {});
+    const b = buildExcalidrawFile([{ id: "e1", version: 3 }], {}, {});
+    expect(sceneHash(a)).not.toBe(sceneHash(b));
+  });
+
+  it("changes when image files change", () => {
+    const a = buildExcalidrawFile([], {}, {});
+    const b = buildExcalidrawFile(
+      [],
+      {},
+      { f1: { id: "f1", mimeType: "image/png", dataURL: "data:image/png;base64,AAAA" } },
+    );
+    expect(sceneHash(a)).not.toBe(sceneHash(b));
+  });
+});

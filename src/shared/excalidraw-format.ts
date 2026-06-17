@@ -38,3 +38,43 @@ export function parseExcalidrawFile(json: string): ExcalidrawFile {
   validateExcalidrawFile(raw);
   return raw;
 }
+
+export function buildExcalidrawFile(
+  elements: Array<Record<string, unknown>>,
+  appState: Record<string, unknown>,
+  files: Record<string, BinaryFile>,
+): ExcalidrawFile {
+  const file: ExcalidrawFile = {
+    type: "excalidraw",
+    version: 2,
+    source: "https://excalidraw.com",
+    elements,
+    appState,
+    files,
+  };
+  validateExcalidrawFile(file);
+  return file;
+}
+
+// djb2 string hash — small, dependency-free, sufficient for change detection.
+function djb2(input: string): string {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+// Hash only the fields that represent visible scene state: element id+version
+// and the set of file ids + their dataURL lengths. Cheap and stable.
+export function sceneHash(file: ExcalidrawFile): string {
+  const elementSig = file.elements
+    .map((e) => `${String(e.id)}:${String(e.version)}`)
+    .sort()
+    .join(",");
+  const fileSig = Object.values(file.files)
+    .map((f) => `${f.id}:${f.dataURL.length}`)
+    .sort()
+    .join(",");
+  return djb2(`${elementSig}|${fileSig}`);
+}
