@@ -5,9 +5,10 @@
     "wxt.config.ts",
     "*.config.{ts,js}",
     "src/shared/messages.ts",
-    "src/shared/excalidraw-format.ts"
+    "src/shared/excalidraw-format.ts",
+    "src/shared/ui/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "ignore": [".wxt/**", ".output/**"],
-  "ignoreDependencies": ["@wxt-dev/module-react", "@testing-library/react"]
+  "ignoreDependencies": ["@wxt-dev/module-react"]
 }
