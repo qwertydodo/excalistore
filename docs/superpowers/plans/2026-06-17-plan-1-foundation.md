@@ -43,17 +43,17 @@ excalistore/
 ├── src/shared/
 │   ├── messages.ts            (typed contracts)
 │   ├── excalidraw-format.ts   (pure build/parse/validate/hash)
-│   ├── theme.ts               (design tokens)
-│   └── ui/
-│       ├── Button.tsx
-│       ├── IconButton.tsx
-│       ├── Dialog.tsx
-│       ├── ConfirmDialog.tsx
-│       ├── TextField.tsx
-│       ├── ListItem.tsx
-│       ├── Badge.tsx
-│       ├── Spinner.tsx
-│       └── index.ts
+│   ├── theme.ts               (design tokens, applied as CSS vars at runtime)
+│   └── ui/                    (one folder per component, CSS Modules, NO inline styles)
+│       ├── Button/{Button.tsx, Button.module.css, index.ts}
+│       ├── IconButton/{IconButton.tsx, IconButton.module.css, index.ts}
+│       ├── Dialog/{Dialog.tsx, Dialog.module.css, index.ts}
+│       ├── ConfirmDialog/{ConfirmDialog.tsx, ConfirmDialog.module.css, index.ts}
+│       ├── TextField/{TextField.tsx, TextField.module.css, index.ts}
+│       ├── ListItem/{ListItem.tsx, ListItem.module.css, index.ts}
+│       ├── Badge/{Badge.tsx, Badge.module.css, index.ts}
+│       ├── Spinner/{Spinner.tsx, Spinner.module.css, index.ts}
+│       └── index.ts           (barrel re-export)
 └── tests/
     ├── excalidraw-format.test.ts
     ├── messages.test.ts
@@ -1319,6 +1319,10 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - OAuth scope `drive.file` only. All Drive/auth calls happen in the background
   service worker — never in the content script or panel.
 - Validate every `.excalidraw` payload before writing it into page storage.
+- **UI components:** one folder per component
+  (`ui/<Name>/<Name>.tsx` + `<Name>.module.css` + `index.ts`). Styling lives in
+  **CSS Modules** referencing theme vars `var(--es-*)`. No inline `style` props
+  except genuinely dynamic values that can't be a class (document the exception).
 
 ## Docs discipline
 - After any change, update the corresponding doc: architecture change →
@@ -1476,6 +1480,134 @@ console.
 - [ ] **Step 3: Confirm completion**
 
 Foundation complete. Plan 2 (Drive core) can begin.
+
+---
+
+## Task 17: Refactor UI primitives to CSS Modules + per-component folders
+
+**Why:** Task 12 first shipped the 8 primitives as flat files with inline
+`style={{}}` props. That is not the project convention. This task restructures
+them to one folder per component with styles in CSS Modules, preserving identical
+appearance and behavior. CSS in content scripts is injected into the Shadow DOM
+root by WXT's `createShadowRootUi` (Plan 3), so CSS Modules scope correctly there.
+
+**Files (for each of Button, IconButton, Dialog, ConfirmDialog, TextField, ListItem, Badge, Spinner):**
+- Create: `src/shared/ui/<Name>/<Name>.tsx`
+- Create: `src/shared/ui/<Name>/<Name>.module.css`
+- Create: `src/shared/ui/<Name>/index.ts` (`export { <Name> } from "./<Name>";`)
+- Delete: old flat `src/shared/ui/<Name>.tsx`
+- Modify: `src/shared/ui/index.ts` (barrel re-exports from the folders)
+- Modify: `vitest.config.ts` (ensure `.module.css` imports resolve in tests)
+- Modify: `knip.json` if needed (keep `src/shared/ui/index.ts` in `entry`)
+
+- [ ] **Step 1: Configure Vitest for CSS Modules**
+
+In `vitest.config.ts`, under `test`, add so CSS-module class lookups return
+stable names in jsdom tests instead of being stripped:
+
+```typescript
+    css: { modules: { classNameStrategy: "non-scoped" } },
+```
+
+- [ ] **Step 2: Move each component into its own folder with a CSS Module**
+
+For every primitive, create `<Name>/<Name>.tsx` and `<Name>/<Name>.module.css`.
+Move ALL static styling from the current inline `style` objects into the CSS
+Module (class per element, using the same `var(--es-*)` tokens and values that
+are currently inline). Replace `style={{...}}` with `className={styles.x}`.
+
+Keep inline style ONLY for genuinely dynamic values that cannot be a static
+class, and add a comment explaining each:
+- `Spinner` size (width/height/border-width derived from the `size` prop).
+- `Button` disabled opacity/cursor — move to CSS `:disabled` / `[disabled]`
+  selectors instead (preferred; no inline needed).
+
+Example shape (`Button`):
+
+```tsx
+// src/shared/ui/Button/Button.tsx
+import type { ButtonHTMLAttributes } from "react";
+import styles from "./Button.module.css";
+
+type Variant = "primary" | "secondary" | "danger";
+
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+}
+
+export function Button({ variant = "primary", className, ...rest }: Props) {
+  return (
+    <button
+      type="button"
+      className={[styles.button, styles[variant], className].filter(Boolean).join(" ")}
+      {...rest}
+    />
+  );
+}
+```
+
+```css
+/* src/shared/ui/Button/Button.module.css */
+.button {
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--es-accent);
+  color: var(--es-accent-text);
+}
+.secondary {
+  background: var(--es-surface);
+  color: var(--es-text);
+}
+.danger {
+  background: var(--es-danger);
+  color: var(--es-accent-text);
+}
+```
+
+Apply the same treatment to the other seven, moving their existing inline styles
+verbatim (same values) into class rules. For `Dialog`, the overlay and panel
+become `.overlay` / `.panel`; for `Spinner`, the static rules go in the module
+and only the size-derived dimensions stay inline (documented). Add the
+`@keyframes es-spin` used by `Spinner` into `Spinner.module.css` (use `:global`
+if referenced by name, or a local keyframe).
+
+- [ ] **Step 3: Update the barrel `src/shared/ui/index.ts`**
+
+```typescript
+export { Badge } from "./Badge";
+export { Button } from "./Button";
+export { ConfirmDialog } from "./ConfirmDialog";
+export { Dialog } from "./Dialog";
+export { IconButton } from "./IconButton";
+export { ListItem } from "./ListItem";
+export { Spinner } from "./Spinner";
+export { TextField } from "./TextField";
+```
+
+- [ ] **Step 4: Keep tests working**
+
+Existing `tests/ui/Button.test.tsx` and `tests/ui/ConfirmDialog.test.tsx` assert
+on roles/text/click — they should pass unchanged once imports still resolve
+(via the barrel or the component folder). Run them.
+
+- [ ] **Step 5: Verify and commit**
+
+Run: `npm test && npm run lint && npm run compile && npm run knip && npm run build`
+Expected: all exit 0; no flat `src/shared/ui/*.tsx` files remain (only folders).
+
+```bash
+git add src/shared/ui vitest.config.ts knip.json
+git commit -m "refactor: move ui primitives to per-component folders with css modules"
+```
 
 ---
 
