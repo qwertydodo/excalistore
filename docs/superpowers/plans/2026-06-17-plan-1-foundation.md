@@ -40,25 +40,22 @@ excalistore/
 │   ├── background.ts          (stub)
 │   ├── content.ts             (stub)
 │   └── popup/                 (stub: index.html, main.tsx, App.tsx)
-├── src/shared/
-│   ├── messages.ts            (typed contracts)
-│   ├── excalidraw-format.ts   (pure build/parse/validate/hash)
-│   ├── theme.ts               (design tokens, applied as CSS vars at runtime)
-│   └── ui/                    (one folder per component, CSS Modules, NO inline styles)
-│       ├── Button/{Button.tsx, Button.module.css, index.ts}
-│       ├── IconButton/{IconButton.tsx, IconButton.module.css, index.ts}
-│       ├── Dialog/{Dialog.tsx, Dialog.module.css, index.ts}
-│       ├── ConfirmDialog/{ConfirmDialog.tsx, ConfirmDialog.module.css, index.ts}
-│       ├── TextField/{TextField.tsx, TextField.module.css, index.ts}
-│       ├── ListItem/{ListItem.tsx, ListItem.module.css, index.ts}
-│       ├── Badge/{Badge.tsx, Badge.module.css, index.ts}
-│       ├── Spinner/{Spinner.tsx, Spinner.module.css, index.ts}
-│       └── index.ts           (barrel re-export)
-└── tests/
-    ├── excalidraw-format.test.ts
-    ├── messages.test.ts
-    ├── theme.test.ts
-    └── ui/*.test.tsx
+├── src/
+│   ├── test-setup.ts          (vitest setup: jest-dom matchers)
+│   └── shared/                (tests colocated beside each source file)
+│       ├── messages.ts + messages.test.ts
+│       ├── excalidraw-format.ts + excalidraw-format.test.ts   (build/parse/validate/hash)
+│       ├── theme.ts + theme.test.ts        (design tokens, applied as CSS vars at runtime)
+│       └── ui/                (one folder per component, CSS Modules, NO inline styles)
+│           ├── Button/{Button.tsx, Button.module.css, Button.test.tsx, index.ts}
+│           ├── IconButton/{IconButton.tsx, IconButton.module.css, index.ts}
+│           ├── Dialog/{Dialog.tsx, Dialog.module.css, index.ts}
+│           ├── ConfirmDialog/{ConfirmDialog.tsx, ConfirmDialog.module.css, ConfirmDialog.test.tsx, index.ts}
+│           ├── TextField/{TextField.tsx, TextField.module.css, index.ts}
+│           ├── ListItem/{ListItem.tsx, ListItem.module.css, index.ts}
+│           ├── Badge/{Badge.tsx, Badge.module.css, index.ts}
+│           ├── Spinner/{Spinner.tsx, Spinner.module.css, index.ts}
+│           └── index.ts       (barrel re-export)
 ```
 
 ---
@@ -1323,6 +1320,9 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   (`ui/<Name>/<Name>.tsx` + `<Name>.module.css` + `index.ts`). Styling lives in
   **CSS Modules** referencing theme vars `var(--es-*)`. No inline `style` props
   except genuinely dynamic values that can't be a class (document the exception).
+- **Tests are colocated** next to the code they test (`Button/Button.test.tsx`,
+  `excalidraw-format.test.ts` beside `excalidraw-format.ts`). No top-level
+  `tests/` directory.
 
 ## Docs discipline
 - After any change, update the corresponding doc: architecture change →
@@ -1607,6 +1607,45 @@ Expected: all exit 0; no flat `src/shared/ui/*.tsx` files remain (only folders).
 ```bash
 git add src/shared/ui vitest.config.ts knip.json
 git commit -m "refactor: move ui primitives to per-component folders with css modules"
+```
+
+---
+
+## Task 18: Colocate tests with source
+
+**Why:** Tests were first written under a top-level `tests/` directory. Convention
+is to colocate each test beside the code it covers, so the test moves/renames with
+its subject and ownership is obvious.
+
+**Moves:**
+- `tests/messages.test.ts` → `src/shared/messages.test.ts`
+- `tests/excalidraw-format.test.ts` → `src/shared/excalidraw-format.test.ts`
+- `tests/theme.test.ts` → `src/shared/theme.test.ts`
+- `tests/ui/Button.test.tsx` → `src/shared/ui/Button/Button.test.tsx`
+- `tests/ui/ConfirmDialog.test.tsx` → `src/shared/ui/ConfirmDialog/ConfirmDialog.test.tsx`
+- `tests/ui/setup.ts` → `src/test-setup.ts`
+- Delete `tests/smoke.test.ts` and the now-empty `tests/` tree (real tests cover the harness).
+
+**Config updates:**
+- `vitest.config.ts`: `setupFiles: ["src/test-setup.ts"]`; change the jsdom glob to
+  `environmentMatchGlobs: [["src/shared/ui/**", "jsdom"]]`. (Vitest auto-discovers
+  `**/*.{test,spec}.*`, so colocated tests are picked up automatically.)
+- `tsconfig.json`: drop `"tests"` from `include` (keep `"src"`).
+- Import paths inside moved tests: relative imports like `@/shared/...` still
+  resolve; no change needed beyond the file location.
+
+- [ ] **Step 1: Move the files** (use `git mv` where possible to preserve history)
+
+- [ ] **Step 2: Update `vitest.config.ts` and `tsconfig.json`** per above.
+
+- [ ] **Step 3: Verify and commit**
+
+Run: `npm test && npm run lint && npm run compile && npm run knip && npm run build`
+Expected: all exit 0; 17 tests still pass; no `tests/` directory remains.
+
+```bash
+git add -A
+git commit -m "refactor: colocate tests with the code they cover"
 ```
 
 ---
