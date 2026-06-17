@@ -13,6 +13,9 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   (`ui/<Name>/<Name>.tsx` + `<Name>.module.css` + `index.ts`). Styling lives in
   **CSS Modules** referencing theme vars `var(--es-*)`. No inline `style` props
   except genuinely dynamic values that can't be a class (document the exception).
+- **Tests are colocated** beside the code they test (e.g. `Button/Button.test.tsx`,
+  `excalidraw-format.test.ts` next to `excalidraw-format.ts`). No top-level `tests/`
+  directory.
 
 ## Docs discipline
 - After any change, update the corresponding doc: architecture change →
