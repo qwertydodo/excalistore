@@ -217,8 +217,9 @@ import { createFile, listFolder, renameFile, updateFile } from "./driveClient";
 const TOKEN = "tok123";
 
 function mockFetch(body: unknown, ok = true, status = 200) {
-  return vi.fn(async () =>
-    ({ ok, status, json: async () => body, text: async () => JSON.stringify(body) }) as Response,
+  return vi.fn(
+    async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      ({ ok, status, json: async () => body, text: async () => JSON.stringify(body) }) as Response,
   );
 }
 
@@ -256,8 +257,8 @@ describe("createFile", () => {
 describe("updateFile", () => {
   it("rejects on revision mismatch before writing", async () => {
     // getMeta returns a newer revision than the caller's prevRevision.
-    const fetchMock = vi.fn(async (url: string) => {
-      if (url.includes("fields=")) {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url).includes("fields=")) {
         return { ok: true, status: 200, json: async () => ({ id: "9", name: "n", modifiedTime: "t", headRevisionId: "rNEW" }) } as Response;
       }
       return { ok: true, status: 200, json: async () => ({}) } as Response;
@@ -266,11 +267,12 @@ describe("updateFile", () => {
   });
 
   it("writes when revision matches", async () => {
-    const fetchMock = vi.fn(async (url: string) => {
-      if (url.includes("fields=")) {
-        return { ok: true, status: 200, json: async () => ({ id: "9", name: "n", modifiedTime: "t", headRevisionId: "rSAME" }) } as Response;
+    // getMeta hits /drive/v3; the write hits /upload/drive/v3 — discriminate on that.
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url).includes("/upload/")) {
+        return { ok: true, status: 200, json: async () => ({ id: "9", name: "n", modifiedTime: "t2", headRevisionId: "rNEXT" }) } as Response;
       }
-      return { ok: true, status: 200, json: async () => ({ id: "9", name: "n", modifiedTime: "t2", headRevisionId: "rNEXT" }) } as Response;
+      return { ok: true, status: 200, json: async () => ({ id: "9", name: "n", modifiedTime: "t", headRevisionId: "rSAME" }) } as Response;
     });
     const meta = await updateFile(TOKEN, "9", "{}", "rSAME", fetchMock);
     expect(meta.headRevisionId).toBe("rNEXT");
