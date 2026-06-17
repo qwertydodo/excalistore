@@ -9,6 +9,5 @@
     "src/shared/ui/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
-  "ignore": [".wxt/**", ".output/**"],
   "ignoreDependencies": ["@wxt-dev/module-react"]
 }
