@@ -1,5 +1,6 @@
-import { Button } from "./Button";
-import { Dialog } from "./Dialog";
+import { Button } from "../Button";
+import { Dialog } from "../Dialog";
+import styles from "./ConfirmDialog.module.css";
 
 interface Props {
   title: string;
@@ -22,8 +23,8 @@ export function ConfirmDialog({
 }: Props) {
   return (
     <Dialog title={title} onClose={onCancel}>
-      <p style={{ margin: "0 0 16px", color: "var(--es-muted)" }}>{message}</p>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+      <p className={styles.message}>{message}</p>
+      <div className={styles.actions}>
         <Button variant="secondary" onClick={onCancel}>
           {cancelLabel}
         </Button>

@@ -1,0 +1,12 @@
+.badge {
+  font-size: 12px;
+}
+.neutral {
+  color: var(--es-muted);
+}
+.success {
+  color: var(--es-accent);
+}
+.danger {
+  color: var(--es-danger);
+}

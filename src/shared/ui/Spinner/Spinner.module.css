@@ -1,0 +1,16 @@
+@keyframes es-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  border: 2px solid var(--es-border);
+  border-top-color: var(--es-accent);
+  border-radius: 50%;
+  animation: es-spin 0.7s linear infinite;
+}

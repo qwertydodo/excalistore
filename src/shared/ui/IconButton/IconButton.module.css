@@ -1,0 +1,9 @@
+.iconButton {
+  background: transparent;
+  border: none;
+  border-radius: var(--es-radius);
+  color: var(--es-text);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+}
