@@ -51,6 +51,14 @@ describe("handleMessage", () => {
     expect(res).toEqual({ ok: true, data: { connected: false } });
   });
 
+  it("drive/setConnection stores and echoes the status", async () => {
+    const d = deps();
+    const status = { connected: true, folderId: "G", folderName: "Other" };
+    const res = await handleMessage({ type: "drive/setConnection", status }, d);
+    expect(d.setStore).toHaveBeenCalledWith(status);
+    expect(res).toEqual({ ok: true, data: status });
+  });
+
   it("maps conflict errors to code conflict", async () => {
     const d = deps({
       listFolder: vi.fn(async () => {

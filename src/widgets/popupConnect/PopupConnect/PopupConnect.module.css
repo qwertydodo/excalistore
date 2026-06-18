@@ -1,0 +1,17 @@
+.root {
+  width: 280px;
+  padding: 16px;
+  background: var(--es-bg);
+  color: var(--es-text);
+  font:
+    14px / 1.4 system-ui,
+    sans-serif;
+}
+.title {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.folder {
+  margin: 0 0 12px;
+  color: var(--es-muted);
+}
