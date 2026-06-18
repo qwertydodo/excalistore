@@ -75,6 +75,21 @@ describe("writeScene", () => {
     expect(d.saveFiles).not.toHaveBeenCalled();
     expect(d.reload).not.toHaveBeenCalled();
   });
+
+  it("does not touch localStorage when saving binaries fails", async () => {
+    const storage = fakeStorage();
+    const d = deps({
+      storage,
+      saveFiles: vi.fn(async () => {
+        throw new Error("quota exceeded");
+      }),
+    });
+    const file = buildExcalidrawFile([{ id: "e1", version: 1 }], { theme: "light" }, {});
+    await expect(writeScene(file, d)).rejects.toThrow(/quota/);
+    expect(storage.getItem("excalidraw")).toBeNull();
+    expect(storage.getItem("excalidraw-state")).toBeNull();
+    expect(d.reload).not.toHaveBeenCalled();
+  });
 });
 
 describe("clearScene", () => {
