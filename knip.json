@@ -9,7 +9,8 @@
     "src/shared/config/index.ts",
     "src/entities/diagram/index.ts",
     "src/entities/driveFile/index.ts",
-    "src/features/auth/index.ts"
+    "src/features/auth/index.ts",
+    "src/features/pickFolder/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "ignoreDependencies": ["@wxt-dev/module-react"]

@@ -31,6 +31,8 @@
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/chrome": "^0.1.43",
+    "@types/gapi": "^0.0.47",
+    "@types/google.picker": "^0.0.52",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitest/coverage-v8": "^2.1.9",

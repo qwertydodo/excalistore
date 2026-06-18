@@ -710,7 +710,7 @@ add an explicit `.env` line). Commit that with the same change if needed.
 manually (Task 12), not unit-tested (loading `gapi` in jsdom isn't meaningful).
 Keep it thin so the untested surface is minimal.
 
-- [ ] **Step 1: Write `src/features/pickFolder/lib/picker.ts`**
+- [x] **Step 1: Write `src/features/pickFolder/lib/picker.ts`**
 
 ```typescript
 // Thin Google Picker wrapper. Loads gapi (first-party, CSP-allowed), shows a
@@ -764,19 +764,19 @@ export async function pickFolder(token: string, apiKey: string, appId: string): 
 }
 ```
 
-- [ ] **Step 2: Add Picker types**
+- [x] **Step 2: Add Picker types**
 
 Install types: `npm install -D @types/google.picker @types/gapi`
 (If those packages are unavailable, add a minimal `src/features/pickFolder/lib/gapi.d.ts`
 declaring the `gapi`/`google.picker` globals you use — declare `gapi.load`,
 `google.picker.DocsView`, `PickerBuilder`, `ViewId`, `Action`, `ResponseObject`.)
 
-- [ ] **Step 3: Barrels**
+- [x] **Step 3: Barrels**
 
 `src/features/pickFolder/lib/index.ts`: `export * from "./picker";`
 `src/features/pickFolder/index.ts`: `export * from "./lib";`
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `npm run lint && npm run compile && npm run knip && npm run build`
 Expected: exit 0. (Add `src/features/pickFolder/index.ts` to knip `entry` if
