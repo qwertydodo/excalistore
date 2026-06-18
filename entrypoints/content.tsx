@@ -86,9 +86,18 @@ function PanelApp({ host }: { host: HTMLElement }) {
       },
       onStatus: setSaveStatus,
     });
-    void currentSceneHash(bridge).then((h) => autosave.markSaved(h));
-    autosave.start();
-    return () => autosave.stop();
+    let stopped = false;
+    // Establish the saved baseline before the first tick can fire.
+    void currentSceneHash(bridge).then((h) => {
+      if (stopped) return;
+      autosave.markSaved(h);
+      autosave.start();
+    });
+    return () => {
+      stopped = true;
+      void autosave.flush();
+      autosave.stop();
+    };
   }, [activeId]);
 
   const onOpen = useCallback(async (id: string) => {
