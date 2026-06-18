@@ -74,6 +74,27 @@ describe("handleMessage", () => {
     expect(res).toEqual({ ok: true, data: { connected: false } });
   });
 
+  it("classifies a Drive 403 as unauthorized", async () => {
+    const { DriveError } = await import("@/entities/driveFile");
+    const d = deps({
+      listFolder: vi.fn(async () => {
+        throw new DriveError(403, "Drive request failed: 403");
+      }),
+    });
+    const res = await handleMessage({ type: "drive/list" }, d);
+    expect(res).toMatchObject({ ok: false, code: "unauthorized" });
+  });
+
+  it("classifies a token-grant failure as unauthorized", async () => {
+    const d = deps({
+      getToken: vi.fn(async () => {
+        throw new Error("OAuth2 not granted or revoked");
+      }),
+    });
+    const res = await handleMessage({ type: "drive/list" }, d);
+    expect(res).toMatchObject({ ok: false, code: "unauthorized" });
+  });
+
   it("maps conflict errors to code conflict", async () => {
     const d = deps({
       listFolder: vi.fn(async () => {

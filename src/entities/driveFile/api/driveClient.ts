@@ -24,8 +24,19 @@ function timed(init: RequestInit = {}): RequestInit {
   return { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) };
 }
 
+// Carries the HTTP status so the gateway can classify auth failures (401/403)
+// without string-matching the message.
+export class DriveError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "DriveError";
+    this.status = status;
+  }
+}
+
 async function asJson<T>(res: Response): Promise<T> {
-  if (!res.ok) throw new Error(`Drive request failed: ${res.status}`);
+  if (!res.ok) throw new DriveError(res.status, `Drive request failed: ${res.status}`);
   return (await res.json()) as T;
 }
 
@@ -51,7 +62,7 @@ export async function getMeta(token: string, id: string, f: Fetch = fetch): Prom
 
 export async function getContent(token: string, id: string, f: Fetch = fetch): Promise<string> {
   const res = await f(`${DRIVE_API}/files/${id}?alt=media`, timed({ headers: authHeaders(token) }));
-  if (!res.ok) throw new Error(`Drive content fetch failed: ${res.status}`);
+  if (!res.ok) throw new DriveError(res.status, `Drive content fetch failed: ${res.status}`);
   return res.text();
 }
 

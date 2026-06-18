@@ -1,4 +1,4 @@
-import type { DriveFile } from "@/entities/driveFile";
+import { DriveError, type DriveFile } from "@/entities/driveFile";
 import type { ConnectionStatus, DiagramContent, Request, Response } from "@/shared/api";
 
 // Dependencies injected so the router is pure and testable. background.ts
@@ -26,12 +26,19 @@ export interface GatewayDeps {
   findOrCreateFolder: (token: string, name: string) => Promise<{ id: string; name: string }>;
 }
 
-function err(message: string): Extract<Response<never>, { ok: false }> {
-  const code = /conflict/i.test(message)
-    ? "conflict"
-    : /unauthor|401/i.test(message)
-      ? "unauthorized"
-      : "unknown";
+function err(e: unknown): Extract<Response<never>, { ok: false }> {
+  const message = e instanceof Error ? e.message : String(e);
+  const status = e instanceof DriveError ? e.status : undefined;
+  let code: Extract<Response<never>, { ok: false }>["code"] = "unknown";
+  if (/conflict/i.test(message)) {
+    code = "conflict";
+  } else if (
+    status === 401 ||
+    status === 403 ||
+    /unauthor|insufficient|not granted|revoked|no auth token/i.test(message)
+  ) {
+    code = "unauthorized";
+  }
   return { ok: false, error: message, code };
 }
 
@@ -107,6 +114,6 @@ export async function handleMessage(req: Request, deps: GatewayDeps): Promise<Re
         return err(`unhandled request: ${(req as { type: string }).type}`);
     }
   } catch (e) {
-    return err((e as Error).message);
+    return err(e);
   }
 }
