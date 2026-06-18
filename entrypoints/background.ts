@@ -11,6 +11,10 @@ const deps: GatewayDeps = {
   getToken,
   signOut,
   listFolder,
+  getFile: () => Promise.reject(new Error("not implemented")),
+  createFile: () => Promise.reject(new Error("not implemented")),
+  updateFile: () => Promise.reject(new Error("not implemented")),
+  renameFile: () => Promise.reject(new Error("not implemented")),
   getStore: async () =>
     ((await chrome.storage.local.get(STORE_KEY))[STORE_KEY] as ConnectionStatus) ?? {
       connected: false,
