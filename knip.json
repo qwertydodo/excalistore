@@ -11,7 +11,10 @@
     "src/entities/driveFile/index.ts",
     "src/features/auth/index.ts",
     "src/features/pickFolder/index.ts",
-    "src/features/sceneBridge/index.ts"
+    "src/features/sceneBridge/index.ts",
+    "src/features/session/index.ts",
+    "src/features/autosave/index.ts",
+    "src/widgets/diagramPanel/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "ignoreDependencies": ["@wxt-dev/module-react"]

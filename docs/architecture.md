@@ -60,14 +60,34 @@ src/
                                 store; the one manually-verified boundary)
         index.ts
       index.ts
+    autosave/                  (debounced autosave controller)
+      lib/
+        autosaveController.ts, autosaveController.test.ts, index.ts
+        (createAutosave: injectable getHash/save/now/tick; start() drives a
+        real interval, flush() forces an immediate save on sign-out)
+      index.ts
+    session/                   (active-file pointer persisted across reload)
+      lib/
+        activeFileStore.ts, activeFileStore.test.ts, index.ts
+        (getActiveFile/setActiveFile/clearActiveFile over
+        chrome.storage.local, validated with entities/diagram's isActiveFile)
+      index.ts
   widgets/
     popupConnect/              (popup UI composed from shared/ui)
       PopupConnect/
         PopupConnect.tsx, PopupConnect.module.css, PopupConnect.test.tsx,
         index.ts
       index.ts
-  (Plan 4 adds: features/{autosave,openDiagram,createDiagram,renameDiagram},
-   widgets/diagramPanel)
+    diagramPanel/               (in-page panel UI composed from shared/ui)
+      DiagramPanel/
+        DiagramPanel.tsx, DiagramPanel.module.css, DiagramPanel.test.tsx,
+        index.ts
+      index.ts
+entrypoints/
+  content.tsx                  (app layer: mounts diagramPanel in a Shadow
+                                 DOM on excalidraw.com and orchestrates
+                                 messaging + sceneBridge + autosave + session;
+                                 presentational widget stays framework-thin)
 ```
 
 Module files are camelCase; React components are PascalCase. Theme tokens are
@@ -120,10 +140,31 @@ The gateway now routes the full diagram read-write surface —
 `drive/list|setConnection` and `auth/*` — and is the only thing in the
 background that touches `auth` or `driveFile`; the OAuth token still never
 leaves the background worker. It returns a typed `Response<T>` that
-`sendToBackground` unwraps (throwing on `{ ok: false }`). `updateFile`'s
-conflict guard (remote `headRevisionId` ≠ the caller's `prevRevision`) and any
-`401` propagate through unchanged, mapped to `code: "conflict"` /
-`code: "unauthorized"` by the gateway's `err()` helper.
+`sendToBackground` unwraps, throwing a `RequestError` on `{ ok: false }` that
+carries the response's `code` (`"conflict" | "unauthorized" | "unknown"`) as
+a typed property (`RequestError.code`), not just baked into the message
+string — so callers (the panel container, the autosave save callback) can
+branch on it directly, e.g. `e instanceof RequestError && e.code ===
+"unauthorized"` to distinguish an expired session from a generic failure.
+`updateFile`'s conflict guard (remote `headRevisionId` ≠ the caller's
+`prevRevision`) and any `401` propagate through unchanged, mapped to
+`code: "conflict"` / `code: "unauthorized"` by the gateway's `err()` helper.
+
+**Content-script mount (`entrypoints/content.tsx`):** the app-layer
+composition root for excalidraw.com. It calls WXT's `createShadowRootUi` with
+`cssInjectionMode: "ui"` (so `defineContentScript`'s bundled CSS, including
+`shared/config/theme.css` and the panel's CSS Module, is injected into the
+shadow root) and `position: "inline"` / `anchor: "body"`. `onMount` receives
+`(uiContainer, shadow, shadowHost)`: the React root is created on
+`uiContainer` (the element whose styles are isolated inside the shadow root),
+while `shadowHost` (the actual element WXT appends to the page DOM) is
+positioned fixed top-right via inline styles (genuinely dynamic — Shadow DOM
+hosts can't be targeted by a CSS Module from outside) and carries the
+`data-theme` attribute the theme mirror updates, so `:host([data-theme=...])`
+rules in `theme.css` apply. `PanelApp` wires `shared/api.sendToBackground` +
+`features/sceneBridge` + `features/autosave` + `features/session` together
+and renders `widgets/diagramPanel`'s `DiagramPanel`, keeping the widget itself
+presentational and FSD-clean.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
@@ -166,11 +207,23 @@ in isolation.
   `readTheme()`, `currentSceneHash()` for change detection. Validates the
   `.excalidraw` envelope against a schema before any write — the security
   boundary before untrusted content reaches page storage.
-- **`autosave`** — watches `sceneHash`, debounces ~2.5s idle, calls gateway
-  `updateFile`, surfaces status (idle / saving / saved / error / conflict).
-- **`panel`** (React, Shadow DOM) — file list (name + modified date),
-  active-file indicator, save-status badge, actions: open, create, rename, and
-  the replace-canvas and sign-out dialogs. Mirrors Excalidraw's theme.
+- **`autosave`** (`features/autosave`) — `createAutosave({getHash, save,
+  onStatus, delayMs, pollMs, now})` polls `currentSceneHash`, and once the
+  hash has been stable-but-different from the last saved hash for `delayMs`
+  (~2.5s), calls `save()` and reports `saving` → `saved`/`conflict`/`error`.
+  `flush()` forces an immediate save when dirty (used by sign-out); the clock
+  and poll trigger are injectable, so the controller is fully unit-tested
+  without real timers.
+- **`session`** (`features/session`) — `getActiveFile`/`setActiveFile`/
+  `clearActiveFile` persist the `ActiveFile` pointer (`id`, `name`,
+  `loadedRevision`) in `chrome.storage.local` so it survives the
+  `writeScene`-triggered tab reload.
+- **`panel`** (`widgets/diagramPanel`, React, Shadow DOM) — presentational:
+  file list (name + modified date), active-file indicator, save-status badge,
+  inline rename, and `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The
+  replace-canvas confirm and sign-out `ConfirmDialog` are rendered by the
+  container (`entrypoints/content.tsx`), not the widget, since they need
+  orchestration. Mirrors Excalidraw's theme via the host's `data-theme`.
 
 ### Shared layer
 
@@ -199,32 +252,44 @@ re-implements a button, dialog, or theme lookup.
 - **Connect (first run):** popup → "Connect Drive" → `getAuthToken(interactive)`
   → Google Picker → user picks folder → store `folderId` + `connected` in
   `chrome.storage.local`. No token stored (Chrome caches it).
-- **List:** panel open → gateway `listFolder(folderId)` → render names + modified
-  dates.
-- **Open diagram:** click file → `getFile(id)` → replace-canvas dialog (Save /
-  Discard / Cancel) → on confirm, `scene-bridge.writeScene()` → reload tab →
-  Excalidraw restores it → set active file (`fileId`, `loadedRevision`).
-- **Create:** "New" → name prompt → replace-canvas dialog →
-  `createFile(name, folderId, emptyScene)` → write blank scene + reload →
-  becomes active.
-- **Autosave:** edits → `sceneHash` changes → debounce 2.5s → build
-  `.excalidraw` → gateway `updateFile(id, content, loadedRevision)`. If remote
-  `headRevisionId` ≠ `loadedRevision` → conflict: badge warns, no silent
+- **List:** panel mounts (connected) → gateway `drive/list` → render names +
+  modified dates; a `401` here flips the panel to disconnected without
+  touching the canvas (see Involuntary logout below).
+- **Open diagram:** click file → gateway `drive/get(id)` → `parseExcalidrawFile`
+  validates the envelope → `setActiveFile({id, name, loadedRevision:
+  headRevisionId})` persists the pointer → `sceneBridge.writeScene(file)`
+  writes localStorage + IndexedDB binaries and reloads the tab → Excalidraw
+  restores it.
+- **Create:** "New diagram" → name entered → `buildExcalidrawFile([], {theme},
+  {})` (blank scene) → gateway `drive/create` → `setActiveFile` → `writeScene`
+  (write + reload) → becomes active.
+- **Autosave:** the autosave controller polls `currentSceneHash` on a
+  ~1s interval; once changed-and-stable for ~2.5s, it reads the scene
+  (`readScene`), calls gateway `drive/update(id, content, prevRevision:
+  loadedRevision)`, and on success updates `loadedRevision` to the new
+  `headRevisionId` and re-persists the active-file pointer. If the remote
+  `headRevisionId` no longer matches `prevRevision`, the gateway returns
+  `code: "conflict"`; the badge shows "Conflict — not saved" — no silent
   overwrite (resolution UI deferred; v1 blocks + tells the user).
-- **Rename:** inline edit → `renameFile(id, name)` → refresh list.
+- **Rename:** inline edit → gateway `drive/rename(id, name)` → re-fetch
+  `drive/list` to refresh the panel.
 
 ## Auth / Session Lifecycle
 
 - **Sign in:** popup "Sign in with Google" → `getAuthToken(interactive)` →
   Picker (first time only) → connected.
-- **Sign out (explicit):** warn first — "Signing out saves the current diagram
-  to Drive and clears the canvas. Continue?" On confirm: (1) flush autosave —
-  save the active file now; if the canvas is dirty but has no active file, prompt
-  Save as new / Discard; (2) clear scene (localStorage keys + IndexedDB
-  binaries) and reload; (3) `removeCachedAuthToken` + revoke token; (4) clear
-  `connected` / `folderId` / active-file state; (5) panel returns to the
-  disconnected state.
-- **Involuntary logout (token expired or revoked externally):** the gateway
-  catches a `401`, marks disconnected, and does **not** clear or lose the local
-  scene. The panel shows "Session expired — reconnect." The local canvas stays
-  intact. This is deliberately distinct from explicit sign-out (which clears).
+- **Sign out (explicit):** the panel's "Sign out" opens a `ConfirmDialog` —
+  "This saves the current diagram to Drive and clears the canvas. Continue?"
+  On confirm (`doSignOut`): (1) best-effort flush — if a file is active, save
+  it now via `drive/update` (failure doesn't block sign-out); (2)
+  `auth/signOut` revokes the cached OAuth token in the background; (3)
+  `clearActiveFile()` removes the session pointer; (4) local state resets and
+  the panel shows disconnected; (5) `sceneBridge.clearScene()` wipes
+  localStorage + IndexedDB binaries and reloads the tab.
+- **Involuntary logout (token expired or revoked externally):** any
+  `sendToBackground` call that throws a `RequestError` with `code ===
+  "unauthorized"` (the panel's `refresh()` checks this on `drive/list`
+  failures) flips the panel to disconnected **without** clearing or reloading
+  the local scene — deliberately distinct from explicit sign-out, which
+  clears. The active-file pointer in `chrome.storage.local` is left intact so
+  re-connecting can resume where the user left off.
