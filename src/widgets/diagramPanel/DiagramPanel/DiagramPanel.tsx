@@ -58,6 +58,7 @@ export function DiagramPanel({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [savingRenameId, setSavingRenameId] = useState<string | null>(null);
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
   // list (sorting by modifiedTime would jump the active item to the top).
@@ -81,10 +82,19 @@ export function DiagramPanel({
     setCreating(false);
   }
 
-  function submitRename(id: string) {
+  async function submitRename(id: string) {
     const name = renameValue.trim();
-    if (name) onRename(id, name);
-    setRenamingId(null);
+    if (!name) {
+      setRenamingId(null);
+      return;
+    }
+    setSavingRenameId(id);
+    try {
+      await onRename(id, name); // optimistic in-place update in the container
+    } finally {
+      setSavingRenameId(null);
+      setRenamingId(null);
+    }
   }
 
   return (
@@ -128,9 +138,14 @@ export function DiagramPanel({
                     aria-label="Rename diagram"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
+                    disabled={savingRenameId === f.id}
                     autoFocus
                   />
-                  <Button type="submit">Save</Button>
+                  {savingRenameId === f.id ? (
+                    <Spinner size={14} />
+                  ) : (
+                    <Button type="submit">Save</Button>
+                  )}
                 </form>
               ) : (
                 <>

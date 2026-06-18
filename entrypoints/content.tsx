@@ -174,13 +174,21 @@ function PanelApp({ host }: { host: HTMLElement }) {
       setActionError(null);
       try {
         const fileName = name.endsWith(".excalidraw") ? name : `${name}.excalidraw`;
-        await sendToBackground<DriveFileMeta>({ type: "drive/rename", id, name: fileName });
-        await refresh();
+        const meta = await sendToBackground<DriveFileMeta>({
+          type: "drive/rename",
+          id,
+          name: fileName,
+        });
+        // Patch the single row in place — no full re-fetch, so the list doesn't
+        // blank to the loading spinner.
+        const next = files.map((f) => (f.id === id ? meta : f));
+        setFiles(next);
+        void setCachedFiles(next);
       } catch (e) {
         setActionError(e instanceof Error ? e.message : "Failed to rename diagram");
       }
     },
-    [refresh],
+    [files],
   );
 
   const doSignOut = useCallback(async () => {
