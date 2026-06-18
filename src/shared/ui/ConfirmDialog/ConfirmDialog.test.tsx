@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 describe("ConfirmDialog", () => {
   it("renders message and resolves confirm/cancel", async () => {
