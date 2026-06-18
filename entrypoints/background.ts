@@ -1,4 +1,11 @@
-import { listFolder } from "@/entities/driveFile";
+import {
+  createFile,
+  getContent,
+  getMeta,
+  listFolder,
+  renameFile,
+  updateFile,
+} from "@/entities/driveFile";
 import { getToken, signOut } from "@/features/auth";
 import { type GatewayDeps, handleMessage } from "@/features/driveGateway";
 import type { ConnectionStatus, Request } from "@/shared/api";
@@ -11,10 +18,13 @@ const deps: GatewayDeps = {
   getToken,
   signOut,
   listFolder,
-  getFile: () => Promise.reject(new Error("not implemented")),
-  createFile: () => Promise.reject(new Error("not implemented")),
-  updateFile: () => Promise.reject(new Error("not implemented")),
-  renameFile: () => Promise.reject(new Error("not implemented")),
+  getFile: async (token, id) => {
+    const [meta, content] = await Promise.all([getMeta(token, id), getContent(token, id)]);
+    return { meta, content };
+  },
+  createFile,
+  updateFile,
+  renameFile,
   getStore: async () =>
     ((await chrome.storage.local.get(STORE_KEY))[STORE_KEY] as ConnectionStatus) ?? {
       connected: false,
