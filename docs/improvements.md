@@ -47,6 +47,23 @@ flushing the current one.
 - **Open / close diagrams:** explicit open and a way to "close" the active
   diagram (clear active state / return to a neutral canvas) from the panel.
 
+## 7. Subfolders aren't shown — list is flat, root of the folder only
+
+`listFolder` queries `'<folderId>' in parents`, which returns only direct
+children of the connected folder. Diagrams inside a **subfolder** don't appear,
+and there's no way to navigate into subfolders.
+
+- Decide the model: either (a) show subfolders as navigable entries in the panel
+  (breadcrumb / drill-in), or (b) recurse and flat-list all `.excalidraw` files
+  under the folder tree (with a path label), or (c) keep flat but document that
+  only the top level is shown.
+- Under `drive.file`, the app can only see folders/files it created or that were
+  opened via it — so a subfolder created in Drive's own UI inside the app folder
+  is visible to the app (it's a descendant the app can access once listed), but
+  arbitrary pre-existing trees still aren't. Verify the scope behavior when
+  designing this.
+- Part of the **#4 folder model** rework — design together.
+
 ## 5. Hover styling should match Excalidraw
 
 Panel items (and buttons) on hover should use the **same hover styling as
@@ -79,7 +96,8 @@ field — can't type normally (e.g. pressing a letter selects a tool).
   plan.
 - Items 3 + 6 are correctness bugs and should likely go first (data loss + can't
   type are the worst UX).
-- Item 4 expands the folder model (multi-folder) — revisit the `drive.file`
-  app-owned-folder design; creating folders is fine under `drive.file`, but
+- Items 4 + 7 are the **folder model** rework (multi-folder, subfolder
+  navigation/recursion) — design them together; revisit the `drive.file`
+  app-owned-folder design. Creating folders is fine under `drive.file`, but
   organizing arbitrary existing content is still scope-limited (see
   `docs/security.md`).
