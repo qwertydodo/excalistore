@@ -36,6 +36,18 @@ describe("getToken", () => {
     );
     await expect(getToken(true)).rejects.toThrow(/denied/);
   });
+
+  it("dedupes concurrent non-interactive getToken calls", async () => {
+    let calls = 0;
+    identity.getAuthToken.mockImplementation((_: unknown, cb: (r: { token?: string }) => void) => {
+      calls += 1;
+      setTimeout(() => cb({ token: "TOK" }), 5);
+    });
+    const [a, b] = await Promise.all([getToken(false), getToken(false)]);
+    expect(a).toBe("TOK");
+    expect(b).toBe("TOK");
+    expect(calls).toBe(1);
+  });
 });
 
 describe("signOut", () => {
