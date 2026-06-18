@@ -28,6 +28,26 @@
   `import.meta.env.WXT_OAUTH_CLIENT_ID` at build time with a placeholder
   fallback so the project still builds without it.
 
+### Sandboxed picker (Plan 5)
+
+Folder selection now uses a sandboxed page (`sandbox.html`, built from
+`entrypoints/sandbox`) embedded as an iframe in the popup, because MV3 forbids
+remote scripts on extension pages and the Google Picker needs
+`apis.google.com`. `features/pickFolder`'s `pickFolder()` creates the iframe,
+hands it the OAuth token over `postMessage`, and resolves with the chosen
+folder; its public signature is unchanged.
+
+If "Connect" shows a blank or broken Picker:
+1. Open the popup's devtools, then switch context to the sandbox iframe
+   (devtools target picker, top-left dropdown) and check its console for CSP
+   violations.
+2. Widen the offending directive in `wxt.config.ts` →
+   `manifest.content_security_policy.sandbox`, then `npm run build` and reload
+   the unpacked extension.
+3. Confirm `WXT_PICKER_API_KEY` is set and the Picker API is enabled on the
+   same Google Cloud project as the OAuth client — a mismatched project is a
+   common cause of a Picker that loads but immediately errors.
+
 ## Manual E2E checklist
 
 Requires `WXT_OAUTH_CLIENT_ID` and `WXT_PICKER_API_KEY` set in a local `.env`
