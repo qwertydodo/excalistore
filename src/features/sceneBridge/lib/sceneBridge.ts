@@ -27,6 +27,7 @@ function readJson<T>(storage: Storage, key: string, fallback: T): T {
   try {
     return JSON.parse(raw) as T;
   } catch {
+    console.warn(`[excalistore] corrupt JSON in localStorage["${key}"]; using fallback`);
     return fallback;
   }
 }
