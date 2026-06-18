@@ -1,7 +1,28 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "wxt";
 
 const SRC_DIR = fileURLToPath(new URL("./src", import.meta.url));
+
+// WXT does not populate import.meta.env when this config file is evaluated, so
+// read .env directly for the manifest's oauth2 client id (Chrome reads it from
+// the built manifest). Runtime entrypoints still get import.meta.env via Vite's
+// define as usual. process.env wins so CI/shell vars override the .env file.
+function loadEnv(): Record<string, string | undefined> {
+  const file: Record<string, string> = {};
+  try {
+    const raw = readFileSync(new URL("./.env", import.meta.url), "utf8");
+    for (const line of raw.split("\n")) {
+      const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*?)\s*$/);
+      if (m?.[1]) file[m[1]] = (m[2] ?? "").replace(/^["']|["']$/g, "");
+    }
+  } catch {
+    // No .env (e.g. fresh clone before setup) — fall back to process.env only.
+  }
+  return { ...file, ...process.env };
+}
+
+const env = loadEnv();
 
 // App code lives under src/ (entrypoints/ stays at the repo root, per WXT
 // convention, since moving it under src/ is out of scope here). WXT always
@@ -36,7 +57,7 @@ export default defineConfig({
     host_permissions: ["https://excalidraw.com/*", "https://www.googleapis.com/*"],
     oauth2: {
       // Replace with your Google Cloud OAuth client id (type: Chrome extension).
-      client_id: import.meta.env.WXT_OAUTH_CLIENT_ID ?? "REPLACE_WITH_OAUTH_CLIENT_ID",
+      client_id: env.WXT_OAUTH_CLIENT_ID ?? "REPLACE_WITH_OAUTH_CLIENT_ID",
       scopes: ["https://www.googleapis.com/auth/drive.file"],
     },
     // Single sanctioned remote-script exception: Google Picker (first-party).
