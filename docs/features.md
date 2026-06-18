@@ -1,6 +1,11 @@
 # Features
 
 ## Next to pick up
+- Diagram I/O primitives landed as infrastructure in Plan 3 (gateway
+  `drive/get|create|update|rename`, the `features/sceneBridge` localStorage +
+  IndexedDB transform, schema validation, `ActiveFile` pointer type). No
+  user-facing feature ships yet — the panel UI, autosave, and session
+  lifecycle that consume these land with the panel in Plan 4.
 - Open diagram (replace canvas, with Save/Discard/Cancel guard).
 - Create diagram (name prompt + blank scene).
 - Rename diagram.

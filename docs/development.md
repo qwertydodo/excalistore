@@ -46,6 +46,23 @@ environment).
       console; the panel UI for this lands in Plan 3).
 - [ ] Click "Sign out" → popup returns to the disconnected / connect state.
 
+### Scene bridge manual verification (Plan 3)
+
+The localStorage transform is unit-tested; the IndexedDB binary store is not
+(it requires Excalidraw's real `files-db`). Verify it by hand once:
+
+1. `npm run build`, load unpacked `.output/chrome-mv3`, open https://excalidraw.com.
+2. Draw a shape and paste/insert an image (creates a `files-db` entry).
+3. In the page DevTools console, confirm the store exists:
+   Application → IndexedDB → `files-db` → `files-store` has the image entry.
+4. From the **extension** background service worker console, exercise the gateway
+   round-trip once a folder is connected (Plan 2): `drive/create` a file from the
+   current scene, then `drive/get` it back and confirm `elements` + `files` match.
+   (A UI for this lands in Plan 4; for now drive it via `chrome.runtime.sendMessage`.)
+5. Confirm `writeScene` reloads the tab and the shape + image reappear.
+
+Record pass/fail here when run against a real Drive folder.
+
 ## Skills not yet installed
 
 The following skills referenced by the project spec could not be installed
