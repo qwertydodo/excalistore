@@ -472,13 +472,13 @@ git commit -m "feat: connect by folder name instead of picker"
 - Delete: `src/features/pickFolder/` (whole dir), `entrypoints/sandbox/` (whole dir)
 - Modify: `wxt.config.ts`, `knip.json`
 
-- [ ] **Step 1: Delete the dead code**
+- [x] **Step 1: Delete the dead code**
 
 ```bash
 git rm -r src/features/pickFolder entrypoints/sandbox
 ```
 
-- [ ] **Step 2: Tighten `wxt.config.ts`**
+- [x] **Step 2: Tighten `wxt.config.ts`**
 
 Remove the `sandbox: { pages: [...] }` block entirely. Replace the whole `content_security_policy` with the no-remote-code version (no `sandbox` key, no Google `frame-src`):
 
@@ -490,11 +490,11 @@ Remove the `sandbox: { pages: [...] }` block entirely. Replace the whole `conten
 
 (The OAuth flow uses `chrome.identity`, not an in-page Google iframe, so no `frame-src` exception is needed anymore.)
 
-- [ ] **Step 3: Update `knip.json`**
+- [x] **Step 3: Update `knip.json`**
 
 Remove the `"src/features/pickFolder/index.ts"` entry from the `entry` array. (The sandbox entrypoint was covered by the `entrypoints/**` glob and is now gone.)
 
-- [ ] **Step 4: Verify nothing references the removed modules**
+- [x] **Step 4: Verify nothing references the removed modules**
 
 Run: `npm run lint && npm run compile && npm run knip && npm run build`
 Expected: exit 0. If `tsc`/knip flag a dangling import of `@/features/pickFolder` or the sandbox, fix it (there should be none — App.tsx was updated in Task 5). Confirm the build no longer emits `sandbox.html` and the manifest has no `sandbox` key:
@@ -505,7 +505,7 @@ node -e "const m=require('./.output/chrome-mv3/manifest.json'); console.log('san
 
 Expected: `sandbox key: false`; csp `extension_pages` = `script-src 'self'; object-src 'self';`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 npx biome check --write .
@@ -520,19 +520,19 @@ git commit -m "refactor: remove google picker, sandbox page, and remote csp"
 **Files:**
 - Modify: `docs/security.md`, `docs/features.md`, `docs/development.md`
 
-- [ ] **Step 1: `docs/security.md`**
+- [x] **Step 1: `docs/security.md`**
 
 Replace the entire "Picker" + "Sandbox CSP" + "Picker API key" sections with a concise **"Folder selection: app-owned folder"** section: under `drive.file` the app cannot browse the user's Drive (by design), so there is no Picker — the user names a folder and the app finds-or-creates an **app-owned** folder via `drive.file`. State the upgraded posture: **no remote scripts anywhere**, `extension_pages` CSP is `script-src 'self'; object-src 'self'`, no sandboxed page, no `WXT_PICKER_API_KEY`. Note `drive.file` keeps Drive exposure to that one app-created folder + files within it.
 
-- [ ] **Step 2: `docs/features.md`**
+- [x] **Step 2: `docs/features.md`**
 
 Update folder selection: connect now creates/reuses a named app folder (no folder browsing). Move "Connect Google Drive" behavior note accordingly. Keep "change folder without disconnecting" under Next to pick up.
 
-- [ ] **Step 3: `docs/development.md`**
+- [x] **Step 3: `docs/development.md`**
 
 Remove the Picker API-key setup steps and the sandboxed-picker debugging note. Update the Google OAuth section: only `WXT_OAUTH_CLIENT_ID` is needed now (no Picker key). Update the manual E2E checklist's connect step to "enter a folder name → app creates/reuses it" instead of the Picker.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 npx biome check --write .
@@ -540,11 +540,16 @@ git add docs/security.md docs/features.md docs/development.md
 git commit -m "docs: record app-owned folder model, remove picker docs"
 ```
 
+(Deviation: also updated `docs/architecture.md`, which still had stale
+`pickFolder`/Picker/sandbox references not listed in this task's file scope.
+Per CLAUDE.md's docs discipline — "architecture change → docs/architecture.md"
+— this is a real architecture change, so it was folded into the same commit.)
+
 ---
 
 ## Task 8: Full verification
 
-- [ ] **Step 1: Full suite**
+- [x] **Step 1: Full suite**
 
 Run: `npm run lint && npm run compile && npm run knip && npm test && npm run build`
 Expected: exit 0. The `pickFolder` protocol tests are gone with the feature; `findOrCreateFolder` + gateway `drive/connect` + popup tests cover the new path.
