@@ -134,9 +134,12 @@ with `getToken`/`signOut` (`features/auth`),
 `findOrCreateFolder` (`entities/driveFile`), and `getStore`/`setStore`
 (`chrome.storage.local`). The gateway routes the full diagram read-write
 surface — `drive/get|create|update|rename`, the connect flow
-(`drive/connect|setConnection`) — and `auth/*`, and is the only thing in the
+(`drive/connect`) — and `auth/*`, and is the only thing in the
 background that touches `auth` or `driveFile`; the OAuth token never leaves
-the background worker. It returns a typed `Response<T>` that
+the background worker. Before routing, the listener validates the message
+sender via `isAllowedSender` — the request must come from the extension's own
+popup page or a content script on `https://excalidraw.com/` (same
+`chrome.runtime.id`); anything else is rejected with `forbidden sender`. It returns a typed `Response<T>` that
 `sendToBackground` unwraps, throwing a `RequestError` on `{ ok: false }` that
 carries the response's `code` (`"conflict" | "unauthorized" | "unknown"`) as
 a typed property (`RequestError.code`), not just baked into the message
@@ -144,8 +147,13 @@ string — so callers (the panel container, the autosave save callback) can
 branch on it directly, e.g. `e instanceof RequestError && e.code ===
 "unauthorized"` to distinguish an expired session from a generic failure.
 `updateFile`'s conflict guard (remote `headRevisionId` ≠ the caller's
-`prevRevision`) and any `401` propagate through unchanged, mapped to
-`code: "conflict"` / `code: "unauthorized"` by the gateway's `err()` helper.
+`prevRevision`) maps to `code: "conflict"`. Auth failures map to
+`code: "unauthorized"`: the gateway's `err()` helper classifies on the
+structured `DriveError.status` (HTTP `401`/`403`, e.g. Drive's "insufficient
+scopes") and on token-grant failures from `getToken` ("not granted /
+revoked"), rather than string-matching a status code that happened to appear
+in the message. `listFolder` follows Drive's `nextPageToken`, so folders with
+more than one page of diagrams list completely.
 
 **Content-script mount (`entrypoints/content.tsx`):** the app-layer
 composition root for excalidraw.com. It calls WXT's `createShadowRootUi` with
@@ -195,8 +203,8 @@ in isolation.
   name, creating it if none matches). Returns `modifiedTime` +
   `headRevisionId` for the conflict guard.
 - **`gateway`** — message router; the only place that touches `auth` and
-  `drive-client`. Routes `auth/status|signIn|signOut`, `drive/connect|list|
-  get|create|update|rename|setConnection`.
+  `drive-client`. Validates the message sender (`isAllowedSender`) before
+  routing `auth/status|signOut`, `drive/connect|list|get|create|update|rename`.
 
 ### Content script
 
