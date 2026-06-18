@@ -1,23 +1,16 @@
 # Features
 
 ## Next to pick up
-- Diagram I/O primitives landed as infrastructure in Plan 3 (gateway
-  `drive/get|create|update|rename`, the `features/sceneBridge` localStorage +
-  IndexedDB transform, schema validation, `ActiveFile` pointer type). No
-  user-facing feature ships yet — the panel UI, autosave, and session
-  lifecycle that consume these land with the panel in Plan 4.
-- Open diagram (replace canvas, with Save/Discard/Cancel guard).
-- Create diagram (name prompt + blank scene).
-- Rename diagram.
-- Autosave (debounced, conflict-guarded).
-- Full sign-out flow (flush autosave, clear canvas, revoke token).
 - Change folder without disconnecting.
 - Thumbnail previews.
-- Conflict resolution UI (currently blocks + warns).
+- Conflict resolution UI (currently blocks + warns; no reload-remote /
+  overwrite / save-as flow yet).
 - Delete / move diagrams, subfolders.
 - Self-hosted Excalidraw hosts.
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.
+- Theme mirror via a precise `MutationObserver` instead of the current 1s poll.
+- Debounce the autosave poll off real edit events if Excalidraw exposes them.
 - Add steiger (FSD lint) once features/widgets exist.
 
 ## Shipped
@@ -36,5 +29,30 @@ _(Move items here as they ship, with a short behavior description.)_
 - Browse folder file list (background): the gateway's `drive/list` message
   calls the Drive REST v3 client to list `.excalidraw` files in the
   connected folder (id, name, modifiedTime, headRevisionId), returning an
-  error if not yet connected. No UI surfaces this list yet — that's the
-  panel in Plan 3.
+  error if not yet connected.
+- In-page diagram panel (excalidraw.com, Shadow DOM): lists the connected
+  folder's `.excalidraw` files with name + modified date, highlights the
+  active file, and shows a save-status badge (idle / saving / saved / error /
+  conflict).
+- Open diagram: clicking a file fetches it, validates the `.excalidraw`
+  envelope, writes it into Excalidraw's localStorage + IndexedDB, and reloads
+  the tab so Excalidraw restores it as the active file.
+- Create diagram: names a new file, creates a blank `.excalidraw` scene in
+  Drive, writes it locally, and reloads, becoming the active file.
+- Rename diagram: inline rename in the panel updates the Drive file name and
+  refreshes the list.
+- Debounced autosave: edits are hashed and, once stable-but-changed for
+  ~2.5s, written to Drive via `drive/update` with the loaded revision as the
+  conflict guard. If the remote `headRevisionId` no longer matches, the save
+  is rejected and the badge shows "Conflict — not saved" — no silent
+  overwrite; conflict resolution UI is deferred.
+- Safe sign-out: confirms with the user, flushes (saves) the active file,
+  clears the local canvas (storage + IndexedDB binaries) and reloads, then
+  revokes the cached OAuth token and clears the stored connection + active
+  file.
+- Involuntary-logout handling: a `401` from the gateway (token expired or
+  revoked externally) marks the panel disconnected without touching the
+  local canvas — distinct from explicit sign-out, which clears it.
+- Theme mirror: the panel polls Excalidraw's `appState.theme` and mirrors it
+  onto the Shadow DOM host's `data-theme` attribute so the panel's CSS
+  variables track light/dark within ~1s.

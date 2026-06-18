@@ -63,6 +63,26 @@ The localStorage transform is unit-tested; the IndexedDB binary store is not
 
 Record pass/fail here when run against a real Drive folder.
 
+### Panel / autosave / sign-out manual E2E (Plan 4)
+
+Requires `WXT_OAUTH_CLIENT_ID` + `WXT_PICKER_API_KEY` in `.env`. Pending user run.
+
+- [ ] Connect a folder via the popup (Plan 2), then open https://excalidraw.com.
+- [ ] The panel appears top-right and lists the folder's `.excalidraw` files.
+- [ ] Click a file → replace dialog/confirm → canvas reloads showing that diagram
+      (including embedded images).
+- [ ] "New diagram" → name it → blank canvas loads, file appears in Drive.
+- [ ] Edit the canvas → after ~2.5s idle the badge shows Saving… then Saved; the
+      Drive file's revision advances.
+- [ ] Edit the same file in another tab/device, then edit locally → badge shows
+      "Conflict — not saved"; no silent overwrite.
+- [ ] Rename a file inline → list + Drive reflect the new name.
+- [ ] "Sign out" → confirm → current diagram saves, canvas clears, panel shows the
+      disconnected message; token revoked.
+- [ ] Revoke the token externally (or let it expire) → next action shows the
+      session as disconnected WITHOUT clearing the local canvas.
+- [ ] Toggle Excalidraw's dark mode → the panel follows within ~1s.
+
 ## Skills not yet installed
 
 The following skills referenced by the project spec could not be installed
