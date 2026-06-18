@@ -28,6 +28,10 @@ export default defineConfig({
   manifest: {
     name: "Excalistore",
     description: "Store and autosave Excalidraw diagrams in Google Drive.",
+    // Pins a deterministic extension ID (kmjjeibokndaipkloajhppiaamdggeai) so the
+    // OAuth client binding stays stable across machines/reloads. This is the
+    // PUBLIC key — safe to commit; the private key lives in .keys/ (gitignored).
+    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2eJ0lLaAPC/QtqdJRi+0ejRdfybvi7BaeUa6N5PYsD/E8bWMC0vrd1OBXPaNDD8RcMgzaH/i6+yCnMzLhYU+SRRckwXIZpo9ijJxr1o3235qudNeTONdw1SgZ62P0b5Dmp71IlT28tewken6d93kBb4BeET1nrDNL6LBbPoO9JbMdgMDW5vF+FVlAKako/RRQjpDAYrK55cdSjQ63c7CnTiIoV/BnzK5+wSJ9724tDF9WXllxOWB15BjQ7mkKt+p7GkLths3RjFSZMS/8HnGkPf69h0fAv48pjk1QP7atVWbzhMdF8AZ0FZGiyLukT8FWF5i1NNq913UwfkRPG3GeQIDAQAB",
     permissions: ["identity", "storage"],
     host_permissions: ["https://excalidraw.com/*", "https://www.googleapis.com/*"],
     oauth2: {
