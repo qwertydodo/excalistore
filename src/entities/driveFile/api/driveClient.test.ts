@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createFile, listFolder, renameFile, updateFile } from "./driveClient";
+import { createFile, findOrCreateFolder, listFolder, renameFile, updateFile } from "./driveClient";
 
 const TOKEN = "tok123";
 
@@ -100,5 +100,59 @@ describe("renameFile", () => {
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body as string)).toEqual({ name: "new.excalidraw" });
+  });
+});
+
+describe("findOrCreateFolder", () => {
+  it("returns an existing app folder by name without creating", async () => {
+    const fetchMock = vi.fn(
+      async (_url: RequestInfo | URL) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ files: [{ id: "F1", name: "Diagrams" }] }),
+        }) as Response,
+    );
+    const folder = await findOrCreateFolder(TOKEN, "Diagrams", fetchMock);
+    expect(folder).toEqual({ id: "F1", name: "Diagrams" });
+    // only the list call happened (no create POST)
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain("mimeType");
+    expect(url).toContain("Diagrams");
+  });
+
+  it("creates the folder when none matches", async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return { ok: true, status: 200, json: async () => ({ id: "F2", name: "New" }) } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({ files: [] }) } as Response;
+    });
+    const folder = await findOrCreateFolder(TOKEN, "New", fetchMock);
+    expect(folder).toEqual({ id: "F2", name: "New" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const createInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(createInit.method).toBe("POST");
+    expect(JSON.parse(createInit.body as string)).toMatchObject({
+      name: "New",
+      mimeType: "application/vnd.google-apps.folder",
+    });
+  });
+
+  it("escapes single quotes in the folder name query", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "X", name: "Bob's" }),
+        } as Response;
+      }
+      const u = decodeURIComponent(String(url));
+      expect(u).toContain("Bob\\'s");
+      return { ok: true, status: 200, json: async () => ({ files: [] }) } as Response;
+    });
+    await findOrCreateFolder(TOKEN, "Bob's", fetchMock);
   });
 });
