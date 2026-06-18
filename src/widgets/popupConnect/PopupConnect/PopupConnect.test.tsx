@@ -4,9 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import { PopupConnect } from "./PopupConnect";
 
 describe("PopupConnect", () => {
-  it("shows connect button when disconnected", () => {
-    render(<PopupConnect status={{ connected: false }} onConnect={vi.fn()} onSignOut={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /connect/i })).toBeInTheDocument();
+  it("connects with the entered folder name", async () => {
+    const onConnect = vi.fn();
+    render(
+      <PopupConnect status={{ connected: false }} onConnect={onConnect} onSignOut={vi.fn()} />,
+    );
+    const input = screen.getByLabelText(/folder name/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "My Diagrams");
+    await userEvent.click(screen.getByRole("button", { name: /connect/i }));
+    expect(onConnect).toHaveBeenCalledWith("My Diagrams");
   });
 
   it("shows folder + sign out when connected", async () => {
