@@ -60,26 +60,8 @@ export default defineConfig({
       client_id: env.WXT_OAUTH_CLIENT_ID ?? "REPLACE_WITH_OAUTH_CLIENT_ID",
       scopes: ["https://www.googleapis.com/auth/drive.file"],
     },
-    // MV3 locks extension_pages script-src to 'self' — remote scripts are not
-    // permitted here (Chrome rejects the manifest otherwise). The Google Picker,
-    // which needs apis.google.com, must run in a sandboxed page instead (see
-    // docs/security.md → Picker). frame-src may still reference Google's iframes.
-    sandbox: {
-      pages: ["sandbox.html"],
-    },
     content_security_policy: {
-      extension_pages:
-        "script-src 'self'; object-src 'self'; frame-src https://docs.google.com https://accounts.google.com;",
-      // Sandboxed pages get their own CSP that MAY load remote scripts (the
-      // Google Picker needs apis.google.com). Chrome's sandbox-CSP validator
-      // only accepts the sandbox/script-src/child-src family — connect-src,
-      // img-src, style-src are rejected here, and omitting them leaves those
-      // resource types unrestricted (no default-src), which Picker needs anyway.
-      // The OAuth token only reaches here via postMessage from the popup.
-      sandbox:
-        "sandbox allow-scripts allow-popups allow-forms allow-modals; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.gstatic.com; " +
-        "child-src 'self' https://*.google.com https://*.googleusercontent.com;",
+      extension_pages: "script-src 'self'; object-src 'self';",
     },
   },
 });
