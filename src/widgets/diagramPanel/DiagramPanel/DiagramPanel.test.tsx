@@ -63,6 +63,15 @@ describe("DiagramPanel", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
   });
 
+  it("collapses to a button and expands again", async () => {
+    render(<DiagramPanel {...props()} />);
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /collapse panel/i }));
+    expect(screen.queryByText("alpha")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /open excalistore diagrams/i }));
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+  });
+
   it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {
     const onDocKeyDown = vi.fn();
     document.addEventListener("keydown", onDocKeyDown);

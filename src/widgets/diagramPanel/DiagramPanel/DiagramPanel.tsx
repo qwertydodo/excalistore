@@ -60,6 +60,7 @@ export function DiagramPanel({
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [savingRenameId, setSavingRenameId] = useState<string | null>(null);
   const [creatingBusy, setCreatingBusy] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
   // list (sorting by modifiedTime would jump the active item to the top).
@@ -107,6 +108,20 @@ export function DiagramPanel({
     }
   }
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className={styles.fab}
+        aria-label="Open Excalistore diagrams"
+        onClick={() => setCollapsed(false)}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        +
+      </button>
+    );
+  }
+
   return (
     // Excalidraw binds single-key tool shortcuts on the document, which would
     // fire while typing in the panel's inputs. Stop keyboard events at the panel
@@ -119,7 +134,17 @@ export function DiagramPanel({
     >
       <header className={styles.header}>
         <h2 className={styles.title}>Diagrams</h2>
-        <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
+        <div className={styles.headerRight}>
+          <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
+          <button
+            type="button"
+            className={styles.toggle}
+            aria-label="Collapse panel"
+            onClick={() => setCollapsed(true)}
+          >
+            −
+          </button>
+        </div>
       </header>
 
       {error ? (
