@@ -27,6 +27,7 @@
   --es-danger: var(--es-color-red-500);
   --es-radius: 8px;
   --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  --es-overlay: rgba(0, 0, 0, 0.4);
 }
 
 :root[data-theme="dark"],
@@ -40,4 +41,10 @@
   --es-accent-text: var(--es-color-ink-900);
   --es-danger: var(--es-color-red-300);
   --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --es-overlay: rgba(0, 0, 0, 0.6);
+}
+
+.es-disconnected {
+  padding: 12px;
+  font: 13px system-ui;
 }
