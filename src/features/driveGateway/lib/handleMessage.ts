@@ -56,10 +56,6 @@ export async function handleMessage(req: Request, deps: GatewayDeps): Promise<Re
         return { ok: true, data: await deps.listFolder(token, store.folderId) };
       }
 
-      case "drive/setConnection":
-        await deps.setStore(req.status);
-        return { ok: true, data: req.status };
-
       case "drive/get": {
         const store = await deps.getStore();
         if (!store.connected) return err("not connected");
