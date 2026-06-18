@@ -39,15 +39,17 @@ function PanelApp({ host }: { host: HTMLElement }) {
     return () => clearInterval(id);
   }, [host]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<DriveFileMeta[]> => {
     setLoading(true);
     try {
       const list = await sendToBackground<DriveFileMeta[]>({ type: "drive/list" });
       setFiles(list);
+      return list;
     } catch (e) {
       if (e instanceof RequestError && e.code === "unauthorized") {
         setStatus({ connected: false });
       }
+      return [];
     } finally {
       setLoading(false);
     }
@@ -61,11 +63,14 @@ function PanelApp({ host }: { host: HTMLElement }) {
       );
       setStatus(s);
       const active = await getActiveFile();
-      if (active) {
+      const list = s.connected ? await refresh() : [];
+      if (active && list.some((f) => f.id === active.id)) {
         setActiveId(active.id);
         revisionRef.current = active.loadedRevision;
+      } else if (active) {
+        // Stale pointer (different account/folder, or deleted) — drop it.
+        await clearActiveFile();
       }
-      if (s.connected) await refresh();
     })();
   }, [refresh]);
 
