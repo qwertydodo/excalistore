@@ -59,10 +59,15 @@ export function DiagramPanel({
   const [renameValue, setRenameValue] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [savingRenameId, setSavingRenameId] = useState<string | null>(null);
+  const [creatingBusy, setCreatingBusy] = useState(false);
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
   // list (sorting by modifiedTime would jump the active item to the top).
   const ordered = [...files].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Opening or creating replaces the canvas (tab reload) — lock the rows so a
+  // second action can't race it.
+  const rowsLocked = openingId !== null || creatingBusy;
 
   async function handleOpen(id: string) {
     if (openingId) return; // a switch is already in flight
@@ -74,12 +79,17 @@ export function DiagramPanel({
     }
   }
 
-  function submitCreate() {
+  async function submitCreate() {
     const name = newName.trim();
     if (!name) return;
-    onCreate(name);
-    setNewName("");
-    setCreating(false);
+    setCreatingBusy(true);
+    try {
+      await onCreate(name); // resolves into a tab reload on success
+    } finally {
+      setCreatingBusy(false);
+      setNewName("");
+      setCreating(false);
+    }
   }
 
   async function submitRename(id: string) {
@@ -151,7 +161,7 @@ export function DiagramPanel({
                 <>
                   <ListItem
                     active={f.id === activeId}
-                    disabled={f.id === activeId || openingId !== null}
+                    disabled={f.id === activeId || rowsLocked}
                     onClick={() => handleOpen(f.id)}
                   >
                     <span className={styles.name}>{stripExt(f.name)}</span>
@@ -193,12 +203,19 @@ export function DiagramPanel({
               placeholder="Diagram name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              disabled={creatingBusy}
               autoFocus
             />
-            <Button type="submit">Create</Button>
-            <Button variant="secondary" onClick={() => setCreating(false)}>
-              Cancel
-            </Button>
+            {creatingBusy ? (
+              <Spinner size={14} />
+            ) : (
+              <>
+                <Button type="submit">Create</Button>
+                <Button variant="secondary" onClick={() => setCreating(false)}>
+                  Cancel
+                </Button>
+              </>
+            )}
           </form>
         ) : (
           <Button onClick={() => setCreating(true)}>New diagram</Button>
