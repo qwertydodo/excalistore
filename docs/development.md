@@ -29,7 +29,22 @@
   fallback so the project still builds without it.
 
 ## Manual E2E checklist
-_(Filled in as features land in Plans 2–3.)_
+
+Requires `WXT_OAUTH_CLIENT_ID` and `WXT_PICKER_API_KEY` set in a local `.env`
+(see "Google OAuth" above). Pending the user's run on a real Google Cloud
+OAuth client — automated agents cannot execute this checklist (no real
+Google account, OAuth client, or Picker API key available in this
+environment).
+
+- [ ] `npm run build`, load `.output/chrome-mv3` as an unpacked extension.
+- [ ] Open the popup → click "Connect Google Drive" → complete Google
+      sign-in → Picker opens → choose a folder → popup shows the folder name.
+- [ ] Reopen the popup → still shows connected state (status persisted via
+      `chrome.storage.local`).
+- [ ] Add a `.excalidraw` file to the chosen Drive folder → confirm
+      `drive/list` returns it (check via the background service worker
+      console; the panel UI for this lands in Plan 3).
+- [ ] Click "Sign out" → popup returns to the disconnected / connect state.
 
 ## Skills not yet installed
 
