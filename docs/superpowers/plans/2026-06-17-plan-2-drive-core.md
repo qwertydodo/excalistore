@@ -800,7 +800,7 @@ The gateway logic is a pure function over injected dependencies so it is unit
 testable; `background.ts` only wires `chrome.runtime.onMessage` + `chrome.storage`
 to it.
 
-- [ ] **Step 1: Write the failing test `handleMessage.test.ts`**
+- [x] **Step 1: Write the failing test `handleMessage.test.ts`**
 
 ```typescript
 import { describe, expect, it, vi } from "vitest";
@@ -854,12 +854,12 @@ describe("handleMessage", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run src/features/driveGateway/lib/handleMessage.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write `src/features/driveGateway/lib/handleMessage.ts`**
+- [x] **Step 3: Write `src/features/driveGateway/lib/handleMessage.ts`**
 
 ```typescript
 import type { ConnectionStatus, Request, Response } from "@/shared/api";
@@ -915,14 +915,14 @@ the token for Picker, then persists the chosen folder via a `setStore` message;
 add those cases when wiring Task 11 if you route them through the gateway. For
 v1 the popup may call auth/pick directly and only persist via the gateway.)
 
-- [ ] **Step 4: Barrels + run**
+- [x] **Step 4: Barrels + run**
 
 `src/features/driveGateway/lib/index.ts`: `export * from "./handleMessage";`
 `src/features/driveGateway/index.ts`: `export * from "./lib";`
 Run: `npx vitest run src/features/driveGateway/lib/handleMessage.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Wire `entrypoints/background.ts`**
+- [x] **Step 5: Wire `entrypoints/background.ts`**
 
 ```typescript
 import { handleMessage, type GatewayDeps } from "@/features/driveGateway";
@@ -948,7 +948,7 @@ export default defineBackground(() => {
 });
 ```
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run: `npm run lint && npm run compile && npm run knip && npm test && npm run build`
 Expected: exit 0; gateway tests pass.
