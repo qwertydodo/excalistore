@@ -13,55 +13,35 @@
 - `npm run knip` — dead-code check.
 
 ## Google OAuth (needed from Plan 2 on)
-- Create a Google Cloud project, enable the Drive API and Picker API.
+- Create a Google Cloud project, enable the Drive API.
 - Load the extension unpacked once (`npm run build`, load
   `.output/chrome-mv3` at `chrome://extensions`) to get its extension ID —
   shown on the extension's card.
 - Create an OAuth client ID of type "Chrome extension" bound to that
   extension ID.
-- Create an API key for the Picker API.
 - Add the client id to `wxt.config.ts` manifest `oauth2` with scope
   `https://www.googleapis.com/auth/drive.file`.
-- Set `WXT_OAUTH_CLIENT_ID` (the OAuth client id) and `WXT_PICKER_API_KEY`
-  (the Picker API key) in a local `.env` file at the repo root — `.env` is
-  gitignored and never committed. `wxt.config.ts` reads
-  `import.meta.env.WXT_OAUTH_CLIENT_ID` at build time with a placeholder
-  fallback so the project still builds without it.
-
-### Sandboxed picker (Plan 5)
-
-Folder selection now uses a sandboxed page (`sandbox.html`, built from
-`entrypoints/sandbox`) embedded as an iframe in the popup, because MV3 forbids
-remote scripts on extension pages and the Google Picker needs
-`apis.google.com`. `features/pickFolder`'s `pickFolder()` creates the iframe,
-hands it the OAuth token over `postMessage`, and resolves with the chosen
-folder; its public signature is unchanged.
-
-If "Connect" shows a blank or broken Picker:
-1. Open the popup's devtools, then switch context to the sandbox iframe
-   (devtools target picker, top-left dropdown) and check its console for CSP
-   violations.
-2. Widen the offending directive in `wxt.config.ts` →
-   `manifest.content_security_policy.sandbox`, then `npm run build` and reload
-   the unpacked extension.
-3. Confirm `WXT_PICKER_API_KEY` is set and the Picker API is enabled on the
-   same Google Cloud project as the OAuth client — a mismatched project is a
-   common cause of a Picker that loads but immediately errors.
+- Set `WXT_OAUTH_CLIENT_ID` (the OAuth client id) in a local `.env` file at
+  the repo root — `.env` is gitignored and never committed. `wxt.config.ts`
+  reads `import.meta.env.WXT_OAUTH_CLIENT_ID` at build time with a
+  placeholder fallback so the project still builds without it. No other
+  Google API or key is needed — folder selection no longer uses the Picker
+  (see `docs/security.md` → "Folder selection: app-owned folder").
 
 ## Manual E2E checklist
 
-Requires `WXT_OAUTH_CLIENT_ID` and `WXT_PICKER_API_KEY` set in a local `.env`
-(see "Google OAuth" above). Pending the user's run on a real Google Cloud
-OAuth client — automated agents cannot execute this checklist (no real
-Google account, OAuth client, or Picker API key available in this
-environment).
+Requires `WXT_OAUTH_CLIENT_ID` set in a local `.env` (see "Google OAuth"
+above). Pending the user's run on a real Google Cloud OAuth client —
+automated agents cannot execute this checklist (no real Google account or
+OAuth client available in this environment).
 
 - [ ] `npm run build`, load `.output/chrome-mv3` as an unpacked extension.
-- [ ] Open the popup → click "Connect Google Drive" → complete Google
-      sign-in → Picker opens → choose a folder → popup shows the folder name.
+- [ ] Open the popup → enter a folder name → click "Connect Google Drive" →
+      complete Google sign-in → the app creates/reuses that folder → popup
+      shows the folder name.
 - [ ] Reopen the popup → still shows connected state (status persisted via
       `chrome.storage.local`).
-- [ ] Add a `.excalidraw` file to the chosen Drive folder → confirm
+- [ ] Add a `.excalidraw` file to the connected Drive folder → confirm
       `drive/list` returns it (check via the background service worker
       console; the panel UI for this lands in Plan 3).
 - [ ] Click "Sign out" → popup returns to the disconnected / connect state.
@@ -85,7 +65,7 @@ Record pass/fail here when run against a real Drive folder.
 
 ### Panel / autosave / sign-out manual E2E (Plan 4)
 
-Requires `WXT_OAUTH_CLIENT_ID` + `WXT_PICKER_API_KEY` in `.env`. Pending user run.
+Requires `WXT_OAUTH_CLIENT_ID` in `.env`. Pending user run.
 
 - [ ] Connect a folder via the popup (Plan 2), then open https://excalidraw.com.
 - [ ] The panel appears top-right and lists the folder's `.excalidraw` files.

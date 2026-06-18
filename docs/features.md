@@ -1,7 +1,8 @@
 # Features
 
 ## Next to pick up
-- Change folder without disconnecting.
+- Change folder without disconnecting (currently: re-connect with a different
+  folder name).
 - Thumbnail previews.
 - Conflict resolution UI (currently blocks + warns; no reload-remote /
   overwrite / save-as flow yet).
@@ -18,14 +19,16 @@ _(Move items here as they ship, with a short behavior description.)_
 
 - Foundation: repo scaffold, tooling, shared layer (messages, excalidraw-format,
   theme, ui primitives). No user-facing features yet.
-- Connect Google Drive (OAuth, sign-in/out): popup "Connect Google Drive"
-  button triggers `chrome.identity.getAuthToken` (interactive), then Google
-  Picker for folder selection; the background gateway persists
-  `{connected, folderId, folderName}` to `chrome.storage.local`. "Sign out"
-  removes the cached token, best-effort revokes it, and clears the stored
-  connection. The OAuth token never leaves the background service worker
-  except being handed to Picker (running in the popup) for the duration of
-  folder selection.
+- Connect Google Drive (OAuth, sign-in/out): the popup collects a folder name
+  (defaulting to "Excalidraw Diagrams") and sends `drive/connect` to the
+  background gateway, which triggers `chrome.identity.getAuthToken`
+  (interactive), finds or creates an app-owned Drive folder with that exact
+  name, and persists `{connected, folderId, folderName}` to
+  `chrome.storage.local`. There is no folder browsing — under `drive.file` the
+  app can only ever see folders it created, so naming a folder is the
+  sanctioned way to connect one. "Sign out" removes the cached token,
+  best-effort revokes it, and clears the stored connection. The OAuth token
+  never leaves the background service worker.
 - Browse folder file list (background): the gateway's `drive/list` message
   calls the Drive REST v3 client to list `.excalidraw` files in the
   connected folder (id, name, modifiedTime, headRevisionId), returning an
