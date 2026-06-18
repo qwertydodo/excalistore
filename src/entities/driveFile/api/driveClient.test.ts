@@ -155,4 +155,20 @@ describe("findOrCreateFolder", () => {
     });
     await findOrCreateFolder(TOKEN, "Bob's", fetchMock);
   });
+
+  it("escapes backslashes before quotes in the folder name query", async () => {
+    // Return a match so only the list call fires (no create POST to assert on).
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      const u = decodeURIComponent(String(url));
+      // a trailing backslash must be doubled so it can't escape the closing quote
+      expect(u).toContain("back\\\\slash");
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ files: [{ id: "X", name: "back\\slash" }] }),
+      } as Response;
+    });
+    await findOrCreateFolder(TOKEN, "back\\slash", fetchMock);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
 });

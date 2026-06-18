@@ -10,6 +10,12 @@ function authHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
+// Drive query strings wrap values in single quotes; escape backslash first,
+// then the quote, so a value can't break out of the quoted literal.
+function escapeQueryValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
 async function asJson<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`Drive request failed: ${res.status}`);
   return (await res.json()) as T;
@@ -20,7 +26,9 @@ export async function listFolder(
   folderId: string,
   f: Fetch = fetch,
 ): Promise<DriveFile[]> {
-  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`).replace(/%20/g, "+");
+  const q = encodeURIComponent(
+    `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
+  ).replace(/%20/g, "+");
   const url = `${DRIVE_API}/files?q=${q}&fields=files(${FIELDS})&orderBy=modifiedTime desc`;
   const data = await asJson<{ files: DriveFile[] }>(await f(url, { headers: authHeaders(token) }));
   return data.files ?? [];
@@ -103,7 +111,7 @@ export async function findOrCreateFolder(
   name: string,
   f: Fetch = fetch,
 ): Promise<{ id: string; name: string }> {
-  const safe = name.replace(/'/g, "\\'");
+  const safe = escapeQueryValue(name);
   const q = encodeURIComponent(
     `mimeType='${FOLDER_MIME}' and name='${safe}' and trashed=false`,
   ).replace(/%20/g, "+");
