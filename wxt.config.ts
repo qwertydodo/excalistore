@@ -9,6 +9,15 @@ export default defineConfig({
     description: "Store and autosave Excalidraw diagrams in Google Drive.",
     permissions: ["identity", "storage"],
     host_permissions: ["https://excalidraw.com/*", "https://www.googleapis.com/*"],
-    // oauth2 client id is filled in Plan 2 (requires a Google Cloud client).
+    oauth2: {
+      // Replace with your Google Cloud OAuth client id (type: Chrome extension).
+      client_id: import.meta.env.WXT_OAUTH_CLIENT_ID ?? "REPLACE_WITH_OAUTH_CLIENT_ID",
+      scopes: ["https://www.googleapis.com/auth/drive.file"],
+    },
+    // Single sanctioned remote-script exception: Google Picker (first-party).
+    content_security_policy: {
+      extension_pages:
+        "script-src 'self' https://apis.google.com; object-src 'self'; frame-src https://docs.google.com https://accounts.google.com;",
+    },
   },
 });

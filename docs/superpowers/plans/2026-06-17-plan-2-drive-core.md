@@ -643,7 +643,7 @@ git commit -m "feat: add typed background messaging client"
 - Modify: `wxt.config.ts`
 - Modify: `docs/development.md`, `docs/security.md`
 
-- [ ] **Step 1: Add oauth2 + CSP to `wxt.config.ts`**
+- [x] **Step 1: Add oauth2 + CSP to `wxt.config.ts`**
 
 ```typescript
 import { defineConfig } from "wxt";
@@ -669,7 +669,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: Document setup in `docs/development.md`**
+- [x] **Step 2: Document setup in `docs/development.md`**
 
 Under the existing "Google OAuth" section, add: create OAuth client (type Chrome
 extension) bound to the unpacked extension ID; enable Drive API + Picker API;
@@ -677,14 +677,14 @@ create an API key for Picker; set `WXT_OAUTH_CLIENT_ID` (and a Picker API key en
 `WXT_PICKER_API_KEY`) in a local `.env` (gitignored). Note the extension ID is
 shown at `chrome://extensions` after loading unpacked.
 
-- [ ] **Step 3: Document the CSP exception in `docs/security.md`**
+- [x] **Step 3: Document the CSP exception in `docs/security.md`**
 
 Add a subsection "Picker CSP exception" explaining the `apis.google.com`
 `script-src` allowance is the single remote-code exception, why it's required
 (`drive.file` can't list Drive), and that the token only reaches Picker in the
 popup, never the content script.
 
-- [ ] **Step 4: Verify build + commit**
+- [x] **Step 4: Verify build + commit**
 
 Run: `npm run build`
 Expected: build succeeds with the new manifest (placeholder client id is fine
