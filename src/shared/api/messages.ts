@@ -8,6 +8,13 @@ export interface DriveFileMeta {
   headRevisionId: string;
 }
 
+// drive/get response: file metadata (for the conflict guard + name) plus the
+// raw .excalidraw JSON content.
+export interface DiagramContent {
+  meta: DriveFileMeta;
+  content: string;
+}
+
 export type Request =
   | { type: "auth/status" }
   | { type: "auth/signIn" }
