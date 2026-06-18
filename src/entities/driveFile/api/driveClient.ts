@@ -52,7 +52,7 @@ export async function createFile(
   content: string,
   f: Fetch = fetch,
 ): Promise<DriveFile> {
-  const boundary = "es-boundary";
+  const boundary = `es-${crypto.randomUUID()}`;
   const metadata = { name, parents: [folderId], mimeType: DIAGRAM_MIME };
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +

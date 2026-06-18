@@ -48,6 +48,27 @@ describe("createFile", () => {
     expect(url).toContain("/upload/drive/v3/files");
     expect(url).toContain("uploadType=multipart");
   });
+
+  it("uses a boundary that does not collide with the content body", async () => {
+    // content deliberately contains the OLD fixed boundary token
+    const content = '{"note":"--es-boundary--"}';
+    let capturedBody = "";
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      capturedBody = init?.body as string;
+      const ct = (init?.headers as Record<string, string>)["Content-Type"] ?? "";
+      const boundary = ct.match(/boundary=(.+)$/)?.[1] ?? "";
+      // the chosen boundary must not appear inside the user content
+      expect(boundary).not.toBe("");
+      expect(content.includes(boundary)).toBe(false);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "9", name: "n", modifiedTime: "t", headRevisionId: "r" }),
+      } as Response;
+    });
+    await createFile(TOKEN, "n.excalidraw", "F", content, fetchMock);
+    expect(capturedBody).toContain(content);
+  });
 });
 
 describe("updateFile", () => {
