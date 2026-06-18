@@ -106,17 +106,34 @@ function PanelApp({ host }: { host: HTMLElement }) {
     };
   }, [activeId]);
 
-  const onOpen = useCallback(async (id: string) => {
-    setActionError(null);
-    try {
-      const { meta, content } = await sendToBackground<DiagramContent>({ type: "drive/get", id });
-      const file = parseExcalidrawFile(content); // validates before write
-      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-      await writeScene(file, bridge); // reloads the tab
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to open diagram");
-    }
-  }, []);
+  const onOpen = useCallback(
+    async (id: string) => {
+      if (id === activeId) return; // already open
+      setActionError(null);
+      try {
+        // Opening reloads the tab, so save the current diagram first — otherwise
+        // unsaved edits since the last autosave tick are lost. A failed save
+        // (e.g. conflict) aborts the switch so nothing is dropped silently.
+        if (activeId) {
+          const current = await readScene(bridge);
+          const saved = await sendToBackground<DriveFileMeta>({
+            type: "drive/update",
+            id: activeId,
+            content: JSON.stringify(current),
+            prevRevision: revisionRef.current ?? "",
+          });
+          revisionRef.current = saved.headRevisionId;
+        }
+        const { meta, content } = await sendToBackground<DiagramContent>({ type: "drive/get", id });
+        const file = parseExcalidrawFile(content); // validates before write
+        await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+        await writeScene(file, bridge); // reloads the tab
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to open diagram");
+      }
+    },
+    [activeId],
+  );
 
   const onCreate = useCallback(async (name: string) => {
     setActionError(null);

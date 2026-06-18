@@ -68,7 +68,15 @@ export function DiagramPanel({
   }
 
   return (
-    <section className={styles.root} aria-label="Excalistore diagrams">
+    // Excalidraw binds single-key tool shortcuts on the document, which would
+    // fire while typing in the panel's inputs. Stop keyboard events at the panel
+    // root so they never reach Excalidraw's global handlers.
+    <section
+      className={styles.root}
+      aria-label="Excalistore diagrams"
+      onKeyDown={(e) => e.stopPropagation()}
+      onKeyUp={(e) => e.stopPropagation()}
+    >
       <header className={styles.header}>
         <h2 className={styles.title}>Diagrams</h2>
         <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DiagramPanel } from "./DiagramPanel";
@@ -60,5 +60,14 @@ describe("DiagramPanel", () => {
   it("renders an error banner when error is set", () => {
     render(<DiagramPanel {...props({ error: "Could not open diagram" })} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
+  });
+
+  it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {
+    const onDocKeyDown = vi.fn();
+    document.addEventListener("keydown", onDocKeyDown);
+    render(<DiagramPanel {...props()} />);
+    fireEvent.keyDown(screen.getByLabelText("Excalistore diagrams"), { key: "r" });
+    document.removeEventListener("keydown", onDocKeyDown);
+    expect(onDocKeyDown).not.toHaveBeenCalled();
   });
 });
