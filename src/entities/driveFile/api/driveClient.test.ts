@@ -44,6 +44,32 @@ describe("listFolder", () => {
       /403/,
     );
   });
+
+  it("follows nextPageToken across pages", async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url);
+      if (u.includes("pageToken=PAGE2")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            files: [{ id: "2", name: "b", modifiedTime: "t", headRevisionId: "r" }],
+          }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          nextPageToken: "PAGE2",
+          files: [{ id: "1", name: "a", modifiedTime: "t", headRevisionId: "r" }],
+        }),
+      } as Response;
+    });
+    const files = await listFolder(TOKEN, "F", fetchMock);
+    expect(files.map((x) => x.id)).toEqual(["1", "2"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("createFile", () => {

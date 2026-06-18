@@ -48,11 +48,18 @@ export async function listFolder(
   const q = encodeURIComponent(
     `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
   ).replace(/%20/g, "+");
-  const url = `${DRIVE_API}/files?q=${q}&fields=files(${FIELDS})&orderBy=modifiedTime desc`;
-  const data = await asJson<{ files: DriveFile[] }>(
-    await f(url, timed({ headers: authHeaders(token) })),
-  );
-  return data.files ?? [];
+  const out: DriveFile[] = [];
+  let pageToken: string | undefined;
+  do {
+    const page = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const url = `${DRIVE_API}/files?q=${q}&fields=nextPageToken,files(${FIELDS})&orderBy=modifiedTime desc&pageSize=1000${page}`;
+    const data = await asJson<{ files?: DriveFile[]; nextPageToken?: string }>(
+      await f(url, timed({ headers: authHeaders(token) })),
+    );
+    out.push(...(data.files ?? []));
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+  return out;
 }
 
 export async function getMeta(token: string, id: string, f: Fetch = fetch): Promise<DriveFile> {
