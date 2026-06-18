@@ -1,5 +1,5 @@
 import type { DriveFile } from "@/entities/driveFile";
-import type { ConnectionStatus, Request, Response } from "@/shared/api";
+import type { ConnectionStatus, DiagramContent, Request, Response } from "@/shared/api";
 
 // Dependencies injected so the router is pure and testable. background.ts
 // supplies the real implementations.
@@ -7,6 +7,20 @@ export interface GatewayDeps {
   getToken: (interactive: boolean) => Promise<string>;
   signOut: (token: string) => Promise<void>;
   listFolder: (token: string, folderId: string) => Promise<DriveFile[]>;
+  getFile: (token: string, id: string) => Promise<DiagramContent>;
+  createFile: (
+    token: string,
+    name: string,
+    folderId: string,
+    content: string,
+  ) => Promise<DriveFile>;
+  updateFile: (
+    token: string,
+    id: string,
+    content: string,
+    prevRevision: string,
+  ) => Promise<DriveFile>;
+  renameFile: (token: string, id: string, name: string) => Promise<DriveFile>;
   getStore: () => Promise<ConnectionStatus>;
   setStore: (s: ConnectionStatus) => Promise<void>;
 }
@@ -44,6 +58,40 @@ export async function handleMessage(req: Request, deps: GatewayDeps): Promise<Re
       case "drive/setConnection":
         await deps.setStore(req.status);
         return { ok: true, data: req.status };
+
+      case "drive/get": {
+        const store = await deps.getStore();
+        if (!store.connected) return err("not connected");
+        const token = await deps.getToken(false);
+        return { ok: true, data: await deps.getFile(token, req.id) };
+      }
+
+      case "drive/create": {
+        const store = await deps.getStore();
+        if (!store.connected || !store.folderId) return err("not connected: no folder");
+        const token = await deps.getToken(false);
+        return {
+          ok: true,
+          data: await deps.createFile(token, req.name, store.folderId, req.content),
+        };
+      }
+
+      case "drive/update": {
+        const store = await deps.getStore();
+        if (!store.connected) return err("not connected");
+        const token = await deps.getToken(false);
+        return {
+          ok: true,
+          data: await deps.updateFile(token, req.id, req.content, req.prevRevision),
+        };
+      }
+
+      case "drive/rename": {
+        const store = await deps.getStore();
+        if (!store.connected) return err("not connected");
+        const token = await deps.getToken(false);
+        return { ok: true, data: await deps.renameFile(token, req.id, req.name) };
+      }
 
       default:
         return err(`unhandled request: ${(req as { type: string }).type}`);

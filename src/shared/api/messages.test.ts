@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type DriveFileMeta, isErrorResponse } from "@/shared/api";
-import type { ConnectionStatus } from "./messages";
+import type { ConnectionStatus, DiagramContent } from "./messages";
 
 describe("messages", () => {
   it("DriveFileMeta shape is usable", () => {
@@ -21,5 +21,14 @@ describe("messages", () => {
   it("ConnectionStatus shape", () => {
     const s: ConnectionStatus = { connected: true, folderId: "F", folderName: "Diagrams" };
     expect(s.connected).toBe(true);
+  });
+
+  it("DiagramContent shape", () => {
+    const d: DiagramContent = {
+      meta: { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r" },
+      content: "{}",
+    };
+    expect(d.content).toBe("{}");
+    expect(d.meta.headRevisionId).toBe("r");
   });
 });

@@ -23,6 +23,10 @@ src/
     diagram/                (the .excalidraw business entity)
       lib/
         excalidrawFormat.ts, excalidrawFormat.test.ts, index.ts
+      model/
+        activeFile.ts, activeFile.test.ts, index.ts  (ActiveFile pointer:
+        which Drive file the canvas represents + the loadedRevision used by
+        the autosave conflict guard)
       index.ts
     driveFile/               (the Drive file domain entity)
       model/
@@ -46,14 +50,24 @@ src/
       lib/
         handleMessage.ts, handleMessage.test.ts, index.ts
       index.ts
+    sceneBridge/               (content-script transform between Excalidraw's
+                                 page storage and the validated .excalidraw
+                                 envelope)
+      lib/
+        sceneBridge.ts, sceneBridge.test.ts  (readScene/writeScene/clearScene/
+        readTheme/currentSceneHash — dependency-injected, unit-tested)
+        filesDb.ts            (idb-keyval adapter for the files-db IndexedDB
+                                store; the one manually-verified boundary)
+        index.ts
+      index.ts
   widgets/
     popupConnect/              (popup UI composed from shared/ui)
       PopupConnect/
         PopupConnect.tsx, PopupConnect.module.css, PopupConnect.test.tsx,
         index.ts
       index.ts
-  (Plan 3 adds: entities/scene, features/{autosave,openDiagram,createDiagram,
-   renameDiagram}, widgets/diagramPanel)
+  (Plan 4 adds: features/{autosave,openDiagram,createDiagram,renameDiagram},
+   widgets/diagramPanel)
 ```
 
 Module files are camelCase; React components are PascalCase. Theme tokens are
@@ -99,15 +113,33 @@ status })`, or (b) sends a typed request (`auth/status`, `auth/signOut`,
 registers a single `chrome.runtime.onMessage` listener that hands every
 request to `features/driveGateway`'s `handleMessage(req, deps)`, a pure
 function injected with `getToken`/`signOut` (`features/auth`),
-`listFolder` (`entities/driveFile`), and `getStore`/`setStore`
-(`chrome.storage.local`). The gateway is the only thing in the background
-that touches `auth` or `driveFile`; it returns a typed `Response<T>` that
-`sendToBackground` unwraps (throwing on `{ ok: false }`).
+`listFolder`/`getFile`/`createFile`/`updateFile`/`renameFile`
+(`entities/driveFile`), and `getStore`/`setStore` (`chrome.storage.local`).
+The gateway now routes the full diagram read-write surface —
+`drive/get|create|update|rename`, alongside the existing
+`drive/list|setConnection` and `auth/*` — and is the only thing in the
+background that touches `auth` or `driveFile`; the OAuth token still never
+leaves the background worker. It returns a typed `Response<T>` that
+`sendToBackground` unwraps (throwing on `{ ok: false }`). `updateFile`'s
+conflict guard (remote `headRevisionId` ≠ the caller's `prevRevision`) and any
+`401` propagate through unchanged, mapped to `code: "conflict"` /
+`code: "unauthorized"` by the gateway's `err()` helper.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
 appState) and IndexedDB (`files-db` image binaries); loading a diagram writes
-storage then reloads the tab so Excalidraw restores it.
+storage then reloads the tab so Excalidraw restores it. `features/sceneBridge`
+owns this boundary: `readScene`/`writeScene`/`clearScene`/`readTheme`/
+`currentSceneHash` operate against an injected `SceneBridgeDeps` (a `Storage`
+plus `loadFiles`/`saveFiles`/`clearFiles`/`reload`), so the localStorage
+transform and validation are fully unit-tested without a browser. The real
+binary store is `idb-keyval`'s `createStore("files-db", "files-store")` —
+matching Excalidraw's own encoding exactly — wired up by
+`filesDb.ts#defaultSceneBridgeDeps()`. `writeScene` validates the
+`.excalidraw` envelope (the security boundary before anything is written into
+page storage) and `writeScene`/`clearScene` both reload the tab afterward so
+Excalidraw restores the new state from storage rather than from in-memory
+React state.
 
 ## Components
 
@@ -123,14 +155,17 @@ in isolation.
   `updateFile(id, content, prevRevision)`, `renameFile(id, name)`. Returns
   `modifiedTime` + `headRevisionId` for the conflict guard.
 - **`gateway`** — message router; the only place that touches `auth` and
-  `drive-client`.
+  `drive-client`. Routes `auth/status|signIn|signOut`, `drive/list|get|create|
+  update|rename|setConnection`.
 
 ### Content script
 
 - **`scene-bridge`** — `readScene()` (localStorage elements/appState + IndexedDB
-  binaries → `.excalidraw` JSON), `writeScene(file)` (write storage + reload
-  tab), `sceneHash()` for change detection. Validates JSON against a schema
-  before any write.
+  binaries → `.excalidraw` JSON), `writeScene(file)` (validate, write storage +
+  binaries, reload tab), `clearScene()` (wipe + reload, for safe sign-out),
+  `readTheme()`, `currentSceneHash()` for change detection. Validates the
+  `.excalidraw` envelope against a schema before any write — the security
+  boundary before untrusted content reaches page storage.
 - **`autosave`** — watches `sceneHash`, debounces ~2.5s idle, calls gateway
   `updateFile`, surfaces status (idle / saving / saved / error / conflict).
 - **`panel`** (React, Shadow DOM) — file list (name + modified date),
