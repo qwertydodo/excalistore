@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { sendToBackground } from "./sendMessage";
+import { RequestError, sendToBackground } from "./sendMessage";
 
 const runtime = { sendMessage: vi.fn() };
 beforeEach(() => {
@@ -14,8 +14,19 @@ describe("sendToBackground", () => {
     await expect(sendToBackground({ type: "auth/status" })).resolves.toEqual({ connected: false });
   });
 
-  it("throws on error response", async () => {
-    runtime.sendMessage.mockResolvedValue({ ok: false, error: "nope" });
-    await expect(sendToBackground({ type: "auth/status" })).rejects.toThrow("nope");
+  it("throws RequestError carrying the code on error response", async () => {
+    runtime.sendMessage.mockResolvedValue({ ok: false, error: "nope", code: "unauthorized" });
+    await expect(sendToBackground({ type: "auth/status" })).rejects.toMatchObject({
+      message: "nope",
+      code: "unauthorized",
+    });
+    await expect(sendToBackground({ type: "auth/status" })).rejects.toBeInstanceOf(RequestError);
+  });
+
+  it("defaults the code to unknown when omitted", async () => {
+    runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+    await expect(sendToBackground({ type: "auth/status" })).rejects.toMatchObject({
+      code: "unknown",
+    });
   });
 });
