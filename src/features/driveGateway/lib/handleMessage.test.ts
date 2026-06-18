@@ -31,6 +31,7 @@ function deps(over: Partial<GatewayDeps> = {}): GatewayDeps {
     })),
     getStore: vi.fn(async () => ({ connected: true, folderId: "F", folderName: "Diagrams" })),
     setStore: vi.fn(async () => undefined),
+    findOrCreateFolder: vi.fn(async () => ({ id: "F", name: "Diagrams" })),
     ...over,
   };
 }
@@ -165,6 +166,22 @@ describe("handleMessage", () => {
       ok: false,
       error: "conflict: remote revision changed",
       code: "conflict",
+    });
+  });
+
+  it("drive/connect signs in interactively, finds/creates the folder, persists it", async () => {
+    const d = deps();
+    const res = await handleMessage({ type: "drive/connect", folderName: "Diagrams" }, d);
+    expect(d.getToken).toHaveBeenCalledWith(true);
+    expect(d.findOrCreateFolder).toHaveBeenCalledWith("TOK", "Diagrams");
+    expect(d.setStore).toHaveBeenCalledWith({
+      connected: true,
+      folderId: "F",
+      folderName: "Diagrams",
+    });
+    expect(res).toEqual({
+      ok: true,
+      data: { connected: true, folderId: "F", folderName: "Diagrams" },
     });
   });
 
