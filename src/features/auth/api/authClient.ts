@@ -8,7 +8,10 @@ export function getToken(interactive: boolean): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive }, (result) => {
       const err = chrome.runtime.lastError;
-      const token = result.token;
+      // Chrome's runtime returns a bare string token in current builds, while
+      // @types/chrome types it as { token }. Accept either shape.
+      const raw = result as unknown as string | { token?: string } | undefined;
+      const token = typeof raw === "string" ? raw : raw?.token;
       if (err || !token) {
         reject(new Error(err?.message ?? "no auth token"));
         return;

@@ -22,6 +22,11 @@ describe("getToken", () => {
     expect(identity.getAuthToken).toHaveBeenCalledWith({ interactive: true }, expect.any(Function));
   });
 
+  it("resolves a bare string token (current Chrome runtime shape)", async () => {
+    identity.getAuthToken.mockImplementation((_: unknown, cb: (r: unknown) => void) => cb("TOK"));
+    await expect(getToken(true)).resolves.toBe("TOK");
+  });
+
   it("rejects when no token returned", async () => {
     (
       globalThis as unknown as { chrome: { runtime: { lastError?: { message: string } } } }
