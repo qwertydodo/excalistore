@@ -1,0 +1,77 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+  max-height: 70vh;
+  padding: 12px;
+  background: var(--es-bg);
+  color: var(--es-text);
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius);
+  box-shadow: var(--es-shadow);
+  font:
+    13px / 1.4 system-ui,
+    sans-serif;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.title {
+  margin: 0;
+  font-size: 14px;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.listRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.listRow > :first-child {
+  flex: 1;
+}
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  color: var(--es-muted);
+  font-size: 11px;
+}
+.renameBtn {
+  border: none;
+  background: none;
+  color: var(--es-accent);
+  cursor: pointer;
+  font-size: 11px;
+}
+.renameRow,
+.createRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--es-border);
+  padding-top: 8px;
+}
