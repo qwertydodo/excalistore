@@ -22,6 +22,7 @@ import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/a
 import { RequestError, sendToBackground } from "@/shared/api";
 import { THEME_ATTR } from "@/shared/config";
 import { ConfirmDialog } from "@/shared/ui";
+import { ConnectCard } from "@/widgets/connectCard";
 import { DiagramPanel } from "@/widgets/diagramPanel";
 // Import the panel + dialog styles so WXT injects them into the shadow root.
 import "@/shared/config/theme.css";
@@ -36,6 +37,8 @@ function PanelApp({ host }: { host: HTMLElement }) {
   const [loading, setLoading] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const revisionRef = useRef<string | null>(null);
 
   // Mirror Excalidraw's theme onto the shadow host.
@@ -209,12 +212,30 @@ function PanelApp({ host }: { host: HTMLElement }) {
     }
   }, [activeId]);
 
+  const onConnect = useCallback(
+    async (folderName: string) => {
+      if (connecting) return;
+      setConnecting(true);
+      setConnectError(null);
+      try {
+        // Interactive sign-in + folder find/create run in the background gateway.
+        const next = await sendToBackground<ConnectionStatus>({
+          type: "drive/connect",
+          folderName,
+        });
+        setStatus(next);
+        if (next.connected) await refresh();
+      } catch (e) {
+        setConnectError(e instanceof Error ? e.message : "Could not connect to Google Drive");
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [connecting, refresh],
+  );
+
   if (!status.connected) {
-    return (
-      <p className="es-disconnected">
-        Excalistore: open the extension popup to connect Google Drive.
-      </p>
-    );
+    return <ConnectCard busy={connecting} error={connectError} onConnect={onConnect} />;
   }
 
   return (
