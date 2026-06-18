@@ -5,13 +5,15 @@ import styles from "./PopupConnect.module.css";
 
 interface Props {
   status: ConnectionStatus;
+  busy?: boolean;
+  error?: string | null;
   onConnect: (folderName: string) => void;
   onSignOut: () => void;
 }
 
 const DEFAULT_FOLDER = "Excalidraw Diagrams";
 
-export function PopupConnect({ status, onConnect, onSignOut }: Props) {
+export function PopupConnect({ status, busy = false, error = null, onConnect, onSignOut }: Props) {
   const [name, setName] = useState(DEFAULT_FOLDER);
 
   return (
@@ -22,7 +24,7 @@ export function PopupConnect({ status, onConnect, onSignOut }: Props) {
           <p className={styles.folder}>
             Folder: <strong>{status.folderName ?? status.folderId}</strong>
           </p>
-          <Button variant="secondary" onClick={onSignOut}>
+          <Button variant="secondary" onClick={onSignOut} disabled={busy}>
             Sign out
           </Button>
         </>
@@ -44,9 +46,16 @@ export function PopupConnect({ status, onConnect, onSignOut }: Props) {
             onChange={(e) => setName(e.target.value)}
           />
           <p className={styles.hint}>The app creates this folder in your Drive (or reuses it).</p>
-          <Button type="submit">Connect Google Drive</Button>
+          <Button type="submit" disabled={busy}>
+            {busy ? "Connecting…" : "Connect Google Drive"}
+          </Button>
         </form>
       )}
+      {error ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
     </main>
   );
 }
