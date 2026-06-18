@@ -4,8 +4,13 @@ const KEY = "activeFile";
 
 // The active-file pointer survives the writeScene→reload via chrome.storage.local.
 export async function getActiveFile(): Promise<ActiveFile | null> {
-  const value = (await chrome.storage.local.get(KEY))[KEY];
-  return isActiveFile(value) ? value : null;
+  try {
+    const value = (await chrome.storage.local.get(KEY))[KEY];
+    return isActiveFile(value) ? value : null;
+  } catch {
+    // Storage can reject on extension-context invalidation; treat as no pointer.
+    return null;
+  }
 }
 
 export async function setActiveFile(file: ActiveFile): Promise<void> {
