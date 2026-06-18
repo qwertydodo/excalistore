@@ -967,7 +967,7 @@ git commit -m "feat: add background gateway routing typed messages to drive/auth
 - Create: `src/widgets/popupConnect/index.ts`
 - Modify: `entrypoints/popup/App.tsx`
 
-- [ ] **Step 1: Write the failing test `PopupConnect.test.tsx`**
+- [x] **Step 1: Write the failing test `PopupConnect.test.tsx`**
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -997,12 +997,12 @@ describe("PopupConnect", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `npx vitest run src/widgets/popupConnect/PopupConnect/PopupConnect.test.tsx`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write `PopupConnect.tsx`** (presentational; state/effects live in App)
+- [x] **Step 3: Write `PopupConnect.tsx`** (presentational; state/effects live in App)
 
 ```tsx
 import { Button } from "@/shared/ui";
@@ -1036,7 +1036,7 @@ export function PopupConnect({ status, onConnect, onSignOut }: Props) {
 }
 ```
 
-- [ ] **Step 4: Write `PopupConnect.module.css`**
+- [x] **Step 4: Write `PopupConnect.module.css`**
 
 ```css
 .root {
@@ -1056,17 +1056,17 @@ export function PopupConnect({ status, onConnect, onSignOut }: Props) {
 }
 ```
 
-- [ ] **Step 5: Barrels**
+- [x] **Step 5: Barrels**
 
 `src/widgets/popupConnect/PopupConnect/index.ts`: `export { PopupConnect } from "./PopupConnect";`
 `src/widgets/popupConnect/index.ts`: `export * from "./PopupConnect";`
 
-- [ ] **Step 6: Run component test to verify it passes**
+- [x] **Step 6: Run component test to verify it passes**
 
 Run: `npx vitest run src/widgets/popupConnect/PopupConnect/PopupConnect.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 7: Wire `entrypoints/popup/App.tsx`**
+- [x] **Step 7: Wire `entrypoints/popup/App.tsx`**
 
 ```tsx
 import { useEffect, useState } from "react";
@@ -1109,13 +1109,13 @@ export function App() {
 the gateway (`handleMessage` → `deps.setStore(req.status)` → return it). Update
 the gateway test with a case for it. This keeps all persistence in the gateway.
 
-- [ ] **Step 8: Add `drive/setConnection` to messages + gateway**
+- [x] **Step 8: Add `drive/setConnection` to messages + gateway**
 
 - Add to `Request` union: `| { type: "drive/setConnection"; status: ConnectionStatus }`.
 - Add a `handleMessage` case: `case "drive/setConnection": await deps.setStore(req.status); return { ok: true, data: req.status };`
 - Add a gateway test asserting it calls `setStore` and echoes the status.
 
-- [ ] **Step 9: Verify and commit**
+- [x] **Step 9: Verify and commit**
 
 Run: `npm run lint && npm run compile && npm run knip && npm test && npm run build`
 Expected: exit 0; all tests pass.
@@ -1132,7 +1132,10 @@ git commit -m "feat: add popup connect ui with sign-in, picker, sign-out"
 **Files:**
 - Modify: `docs/features.md`, `docs/development.md`
 
-- [ ] **Step 1: Manual E2E (requires real Google Cloud client)**
+- [x] **Step 1: Manual E2E (requires real Google Cloud client)** — documented
+  as an unchecked checklist in `docs/development.md`; not executed by the
+  agent (no real Google Cloud OAuth client id / Picker API key available in
+  this environment). Pending the user's run.
 
 With `WXT_OAUTH_CLIENT_ID` + `WXT_PICKER_API_KEY` set in `.env`:
 1. `npm run build`, load unpacked `.output/chrome-mv3`.
@@ -1145,19 +1148,19 @@ With `WXT_OAUTH_CLIENT_ID` + `WXT_PICKER_API_KEY` set in `.env`:
 
 Record results in `docs/development.md` "Manual E2E checklist".
 
-- [ ] **Step 2: Update `docs/features.md`**
+- [x] **Step 2: Update `docs/features.md`**
 
 Move "Connect Google Drive (OAuth, sign-in/out)" and "Browse folder file list
 (background)" into "Shipped" with short behavior notes. Leave open-diagram /
 create / rename / autosave under "Next to pick up" (Plan 3).
 
-- [ ] **Step 3: Update `docs/architecture.md`**
+- [x] **Step 3: Update `docs/architecture.md`**
 
 Add `entities/driveFile`, `features/{auth,pickFolder,driveGateway}`,
 `widgets/popupConnect` to the FSD layout, and note the message flow
 popup → gateway → auth/drive.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/features.md docs/development.md docs/architecture.md
