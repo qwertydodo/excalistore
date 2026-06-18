@@ -10,7 +10,14 @@ import {
   readTheme,
   writeScene,
 } from "@/features/sceneBridge";
-import { clearActiveFile, getActiveFile, setActiveFile } from "@/features/session";
+import {
+  clearActiveFile,
+  clearCachedFiles,
+  getActiveFile,
+  getCachedFiles,
+  setActiveFile,
+  setCachedFiles,
+} from "@/features/session";
 import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/api";
 import { RequestError, sendToBackground } from "@/shared/api";
 import { THEME_ATTR } from "@/shared/config";
@@ -44,6 +51,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
     try {
       const list = await sendToBackground<DriveFileMeta[]>({ type: "drive/list" });
       setFiles(list);
+      void setCachedFiles(list); // keep the fast-paint cache fresh
       return list;
     } catch (e) {
       if (e instanceof RequestError && e.code === "unauthorized") {
@@ -63,6 +71,12 @@ function PanelApp({ host }: { host: HTMLElement }) {
       );
       setStatus(s);
       const active = await getActiveFile();
+      // Paint the cached list immediately (no flicker after the reload), then
+      // revalidate against Drive in the background.
+      if (s.connected) {
+        const cached = await getCachedFiles();
+        if (cached.length) setFiles(cached);
+      }
       const list = s.connected ? await refresh() : [];
       if (active && list.some((f) => f.id === active.id)) {
         setActiveId(active.id);
@@ -186,6 +200,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
     try {
       await sendToBackground({ type: "auth/signOut" });
       await clearActiveFile();
+      await clearCachedFiles();
       setStatus({ connected: false });
       setActiveId(null);
       await clearScene(bridge); // clears canvas + reloads
