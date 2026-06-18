@@ -149,7 +149,11 @@ export function DiagramPanel({
                 </form>
               ) : (
                 <>
-                  <ListItem active={f.id === activeId} onClick={() => handleOpen(f.id)}>
+                  <ListItem
+                    active={f.id === activeId}
+                    disabled={f.id === activeId || openingId !== null}
+                    onClick={() => handleOpen(f.id)}
+                  >
                     <span className={styles.name}>{stripExt(f.name)}</span>
                     {openingId === f.id ? (
                       <Spinner size={14} />
