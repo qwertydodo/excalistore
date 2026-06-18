@@ -17,7 +17,14 @@ export type Request =
   | { type: "drive/get"; id: string }
   | { type: "drive/create"; name: string; content: string }
   | { type: "drive/update"; id: string; content: string; prevRevision: string }
-  | { type: "drive/rename"; id: string; name: string };
+  | { type: "drive/rename"; id: string; name: string }
+  | { type: "drive/setConnection"; status: ConnectionStatus };
+
+export interface ConnectionStatus {
+  connected: boolean;
+  folderId?: string;
+  folderName?: string;
+}
 
 export type Ok<T> = { ok: true; data: T };
 export type Err = { ok: false; error: string; code?: "conflict" | "unauthorized" | "unknown" };

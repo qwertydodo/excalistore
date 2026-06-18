@@ -24,8 +24,36 @@ src/
       lib/
         excalidrawFormat.ts, excalidrawFormat.test.ts, index.ts
       index.ts
-  (Plans 2-3 add: entities/{driveFile,scene}, features/{auth,autosave,
-   openDiagram,createDiagram,renameDiagram}, widgets/{diagramPanel,popupConnect})
+    driveFile/               (the Drive file domain entity)
+      model/
+        types.ts, index.ts             (DriveFile type)
+      api/
+        driveClient.ts, driveClient.test.ts, index.ts  (Drive REST v3 client,
+        fetch-injected: listFolder, getMeta, getContent, createFile,
+        updateFile [conflict-guarded], renameFile)
+      index.ts
+  features/
+    auth/                    (chrome.identity wrapper — background only)
+      api/
+        authClient.ts, authClient.test.ts, index.ts  (getToken, signOut)
+      index.ts
+    pickFolder/               (Google Picker wrapper — runs in the popup)
+      lib/
+        picker.ts, index.ts             (pickFolder(token, apiKey, appId))
+      index.ts
+    driveGateway/              (message router; the only consumer of auth +
+                                 driveFile from the background side)
+      lib/
+        handleMessage.ts, handleMessage.test.ts, index.ts
+      index.ts
+  widgets/
+    popupConnect/              (popup UI composed from shared/ui)
+      PopupConnect/
+        PopupConnect.tsx, PopupConnect.module.css, PopupConnect.test.tsx,
+        index.ts
+      index.ts
+  (Plan 3 adds: entities/scene, features/{autosave,openDiagram,createDiagram,
+   renameDiagram}, widgets/diagramPanel)
 ```
 
 Module files are camelCase; React components are PascalCase. Theme tokens are
@@ -59,6 +87,22 @@ CSS custom properties (`--es-*`) in `shared/config/theme.css`, applied to
 **Core principle:** all network access and token handling live **only** in the
 background service worker. The content script and panel never hold the OAuth
 token. Panel and background communicate over typed `chrome.runtime` messages.
+
+**Message flow (popup → gateway → auth/drive):** the popup (`widgets/popupConnect`,
+driven by `entrypoints/popup/App.tsx`) never calls Drive APIs directly. It
+either (a) calls `features/auth`'s `getToken`/`features/pickFolder`'s
+`pickFolder` locally — the one case where the popup briefly holds the OAuth
+token, scoped to the Picker session — and then sends the result to the
+background via `shared/api.sendToBackground({ type: "drive/setConnection",
+status })`, or (b) sends a typed request (`auth/status`, `auth/signOut`,
+`drive/list`, …) straight to the background. `entrypoints/background.ts`
+registers a single `chrome.runtime.onMessage` listener that hands every
+request to `features/driveGateway`'s `handleMessage(req, deps)`, a pure
+function injected with `getToken`/`signOut` (`features/auth`),
+`listFolder` (`entities/driveFile`), and `getStore`/`setStore`
+(`chrome.storage.local`). The gateway is the only thing in the background
+that touches `auth` or `driveFile`; it returns a typed `Response<T>` that
+`sendToBackground` unwraps (throwing on `{ ok: false }`).
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`

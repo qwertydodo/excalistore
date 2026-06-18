@@ -14,12 +14,37 @@
 
 ## Google OAuth (needed from Plan 2 on)
 - Create a Google Cloud project, enable the Drive API and Picker API.
-- Create an OAuth client ID of type "Chrome extension" with the extension ID.
+- Load the extension unpacked once (`npm run build`, load
+  `.output/chrome-mv3` at `chrome://extensions`) to get its extension ID —
+  shown on the extension's card.
+- Create an OAuth client ID of type "Chrome extension" bound to that
+  extension ID.
+- Create an API key for the Picker API.
 - Add the client id to `wxt.config.ts` manifest `oauth2` with scope
   `https://www.googleapis.com/auth/drive.file`.
+- Set `WXT_OAUTH_CLIENT_ID` (the OAuth client id) and `WXT_PICKER_API_KEY`
+  (the Picker API key) in a local `.env` file at the repo root — `.env` is
+  gitignored and never committed. `wxt.config.ts` reads
+  `import.meta.env.WXT_OAUTH_CLIENT_ID` at build time with a placeholder
+  fallback so the project still builds without it.
 
 ## Manual E2E checklist
-_(Filled in as features land in Plans 2–3.)_
+
+Requires `WXT_OAUTH_CLIENT_ID` and `WXT_PICKER_API_KEY` set in a local `.env`
+(see "Google OAuth" above). Pending the user's run on a real Google Cloud
+OAuth client — automated agents cannot execute this checklist (no real
+Google account, OAuth client, or Picker API key available in this
+environment).
+
+- [ ] `npm run build`, load `.output/chrome-mv3` as an unpacked extension.
+- [ ] Open the popup → click "Connect Google Drive" → complete Google
+      sign-in → Picker opens → choose a folder → popup shows the folder name.
+- [ ] Reopen the popup → still shows connected state (status persisted via
+      `chrome.storage.local`).
+- [ ] Add a `.excalidraw` file to the chosen Drive folder → confirm
+      `drive/list` returns it (check via the background service worker
+      console; the panel UI for this lands in Plan 3).
+- [ ] Click "Sign out" → popup returns to the disconnected / connect state.
 
 ## Skills not yet installed
 

@@ -1,26 +1,43 @@
+/* Color primitives — raw palette, referenced only by semantic tokens below. */
 :root,
 :host {
-  --es-bg: #ffffff;
-  --es-surface: #f1f0ff;
-  --es-text: #1b1b1f;
-  --es-muted: #6a6a75;
-  --es-border: #e0dfff;
-  --es-accent: #6965db;
-  --es-accent-text: #ffffff;
-  --es-danger: #e03131;
+  --es-color-white: #ffffff;
+  --es-color-violet-50: #f1f0ff;
+  --es-color-violet-100: #e0dfff;
+  --es-color-violet-300: #a8a5ff;
+  --es-color-violet-500: #6965db;
+  --es-color-ink-900: #1b1b1f;
+  --es-color-ink-700: #232329;
+  --es-color-ink-600: #2e2d39;
+  --es-color-ink-400: #3b3a47;
+  --es-color-ink-50: #e3e3e8;
+  --es-color-gray-500: #6a6a75;
+  --es-color-gray-300: #9a99a5;
+  --es-color-red-500: #e03131;
+  --es-color-red-300: #ff8787;
+
+  /* Semantic tokens (light) */
+  --es-bg: var(--es-color-white);
+  --es-surface: var(--es-color-violet-50);
+  --es-text: var(--es-color-ink-900);
+  --es-muted: var(--es-color-gray-500);
+  --es-border: var(--es-color-violet-100);
+  --es-accent: var(--es-color-violet-500);
+  --es-accent-text: var(--es-color-white);
+  --es-danger: var(--es-color-red-500);
   --es-radius: 8px;
   --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 :root[data-theme="dark"],
 :host([data-theme="dark"]) {
-  --es-bg: #232329;
-  --es-surface: #2e2d39;
-  --es-text: #e3e3e8;
-  --es-muted: #9a99a5;
-  --es-border: #3b3a47;
-  --es-accent: #a8a5ff;
-  --es-accent-text: #1b1b1f;
-  --es-danger: #ff8787;
+  --es-bg: var(--es-color-ink-700);
+  --es-surface: var(--es-color-ink-600);
+  --es-text: var(--es-color-ink-50);
+  --es-muted: var(--es-color-gray-300);
+  --es-border: var(--es-color-ink-400);
+  --es-accent: var(--es-color-violet-300);
+  --es-accent-text: var(--es-color-ink-900);
+  --es-danger: var(--es-color-red-300);
   --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
