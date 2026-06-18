@@ -60,10 +60,13 @@ export default defineConfig({
       client_id: env.WXT_OAUTH_CLIENT_ID ?? "REPLACE_WITH_OAUTH_CLIENT_ID",
       scopes: ["https://www.googleapis.com/auth/drive.file"],
     },
-    // Single sanctioned remote-script exception: Google Picker (first-party).
+    // MV3 locks extension_pages script-src to 'self' — remote scripts are not
+    // permitted here (Chrome rejects the manifest otherwise). The Google Picker,
+    // which needs apis.google.com, must run in a sandboxed page instead (see
+    // docs/security.md → Picker). frame-src may still reference Google's iframes.
     content_security_policy: {
       extension_pages:
-        "script-src 'self' https://apis.google.com; object-src 'self'; frame-src https://docs.google.com https://accounts.google.com;",
+        "script-src 'self'; object-src 'self'; frame-src https://docs.google.com https://accounts.google.com;",
     },
   },
 });
