@@ -8,7 +8,8 @@
     "src/shared/api/index.ts",
     "src/shared/config/index.ts",
     "src/entities/diagram/index.ts",
-    "src/entities/driveFile/index.ts"
+    "src/entities/driveFile/index.ts",
+    "src/features/auth/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "ignoreDependencies": ["@wxt-dev/module-react"]
