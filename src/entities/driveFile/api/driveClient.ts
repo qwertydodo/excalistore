@@ -16,6 +16,14 @@ function escapeQueryValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+// Abort any Drive request that stalls past this, so the autosave/save pipeline
+// can't wedge on a hung connection.
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function timed(init: RequestInit = {}): RequestInit {
+  return { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) };
+}
+
 async function asJson<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`Drive request failed: ${res.status}`);
   return (await res.json()) as T;
@@ -30,17 +38,19 @@ export async function listFolder(
     `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
   ).replace(/%20/g, "+");
   const url = `${DRIVE_API}/files?q=${q}&fields=files(${FIELDS})&orderBy=modifiedTime desc`;
-  const data = await asJson<{ files: DriveFile[] }>(await f(url, { headers: authHeaders(token) }));
+  const data = await asJson<{ files: DriveFile[] }>(
+    await f(url, timed({ headers: authHeaders(token) })),
+  );
   return data.files ?? [];
 }
 
 export async function getMeta(token: string, id: string, f: Fetch = fetch): Promise<DriveFile> {
   const url = `${DRIVE_API}/files/${id}?fields=${FIELDS}`;
-  return asJson<DriveFile>(await f(url, { headers: authHeaders(token) }));
+  return asJson<DriveFile>(await f(url, timed({ headers: authHeaders(token) })));
 }
 
 export async function getContent(token: string, id: string, f: Fetch = fetch): Promise<string> {
-  const res = await f(`${DRIVE_API}/files/${id}?alt=media`, { headers: authHeaders(token) });
+  const res = await f(`${DRIVE_API}/files/${id}?alt=media`, timed({ headers: authHeaders(token) }));
   if (!res.ok) throw new Error(`Drive content fetch failed: ${res.status}`);
   return res.text();
 }
@@ -60,11 +70,17 @@ export async function createFile(
     `--${boundary}\r\nContent-Type: ${DIAGRAM_MIME}\r\n\r\n` +
     `${content}\r\n--${boundary}--`;
   const url = `${DRIVE_UPLOAD}/files?uploadType=multipart&fields=${FIELDS}`;
-  const res = await f(url, {
-    method: "POST",
-    headers: { ...authHeaders(token), "Content-Type": `multipart/related; boundary=${boundary}` },
-    body,
-  });
+  const res = await f(
+    url,
+    timed({
+      method: "POST",
+      headers: {
+        ...authHeaders(token),
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    }),
+  );
   return asJson<DriveFile>(res);
 }
 
@@ -81,11 +97,14 @@ export async function updateFile(
     throw new Error("conflict: remote revision changed");
   }
   const url = `${DRIVE_UPLOAD}/files/${id}?uploadType=media&fields=${FIELDS}`;
-  const res = await f(url, {
-    method: "PATCH",
-    headers: { ...authHeaders(token), "Content-Type": DIAGRAM_MIME },
-    body: content,
-  });
+  const res = await f(
+    url,
+    timed({
+      method: "PATCH",
+      headers: { ...authHeaders(token), "Content-Type": DIAGRAM_MIME },
+      body: content,
+    }),
+  );
   return asJson<DriveFile>(res);
 }
 
@@ -96,11 +115,14 @@ export async function renameFile(
   f: Fetch = fetch,
 ): Promise<DriveFile> {
   const url = `${DRIVE_API}/files/${id}?fields=${FIELDS}`;
-  const res = await f(url, {
-    method: "PATCH",
-    headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
+  const res = await f(
+    url,
+    timed({
+      method: "PATCH",
+      headers: { ...authHeaders(token), "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  );
   return asJson<DriveFile>(res);
 }
 
@@ -117,17 +139,20 @@ export async function findOrCreateFolder(
   ).replace(/%20/g, "+");
   const listUrl = `${DRIVE_API}/files?q=${q}&fields=files(id,name)`;
   const listed = await asJson<{ files: Array<{ id: string; name: string }> }>(
-    await f(listUrl, { headers: authHeaders(token) }),
+    await f(listUrl, timed({ headers: authHeaders(token) })),
   );
   const existing = listed.files?.[0];
   if (existing) return { id: existing.id, name: existing.name };
 
   const created = await asJson<{ id: string; name: string }>(
-    await f(`${DRIVE_API}/files?fields=id,name`, {
-      method: "POST",
-      headers: { ...authHeaders(token), "Content-Type": "application/json" },
-      body: JSON.stringify({ name, mimeType: FOLDER_MIME }),
-    }),
+    await f(
+      `${DRIVE_API}/files?fields=id,name`,
+      timed({
+        method: "POST",
+        headers: { ...authHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ name, mimeType: FOLDER_MIME }),
+      }),
+    ),
   );
   return { id: created.id, name: created.name };
 }

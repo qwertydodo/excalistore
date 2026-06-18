@@ -12,6 +12,18 @@ function mockFetch(body: unknown, ok = true, status = 200) {
 
 afterEach(() => vi.restoreAllMocks());
 
+describe("request timeout", () => {
+  it("passes an abort signal to fetch", async () => {
+    let sawSignal = false;
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      sawSignal = init?.signal instanceof AbortSignal;
+      return { ok: true, status: 200, json: async () => ({ files: [] }) } as Response;
+    });
+    await listFolder(TOKEN, "F", fetchMock);
+    expect(sawSignal).toBe(true);
+  });
+});
+
 describe("listFolder", () => {
   it("requests the folder's files and maps them", async () => {
     const fetchMock = mockFetch({
