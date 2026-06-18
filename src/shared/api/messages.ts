@@ -19,7 +19,7 @@ export type Request =
   | { type: "auth/status" }
   | { type: "auth/signIn" }
   | { type: "auth/signOut" }
-  | { type: "drive/pickFolder" }
+  | { type: "drive/connect"; folderName: string }
   | { type: "drive/list" }
   | { type: "drive/get"; id: string }
   | { type: "drive/create"; name: string; content: string }
