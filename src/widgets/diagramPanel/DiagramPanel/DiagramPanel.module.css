@@ -35,6 +35,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -44,17 +45,21 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
 }
 .listRow > :first-child {
   flex: 1;
+  min-width: 0;
 }
 .name {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .meta {
+  flex-shrink: 0;
   color: var(--es-muted);
   font-size: 11px;
 }

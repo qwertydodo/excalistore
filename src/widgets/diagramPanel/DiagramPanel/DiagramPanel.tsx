@@ -37,6 +37,11 @@ function formatDate(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
 }
 
+// The .excalidraw extension is implied — hide it in the UI and re-add on save.
+function stripExt(name: string): string {
+  return name.replace(/\.excalidraw$/i, "");
+}
+
 export function DiagramPanel({
   files,
   activeId,
@@ -52,6 +57,21 @@ export function DiagramPanel({
   const [newName, setNewName] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [openingId, setOpeningId] = useState<string | null>(null);
+
+  // Stable order: sort by name so saving/opening a diagram never reshuffles the
+  // list (sorting by modifiedTime would jump the active item to the top).
+  const ordered = [...files].sort((a, b) => a.name.localeCompare(b.name));
+
+  async function handleOpen(id: string) {
+    if (openingId) return; // a switch is already in flight
+    setOpeningId(id);
+    try {
+      await onOpen(id); // resolves into a tab reload on success
+    } finally {
+      setOpeningId(null);
+    }
+  }
 
   function submitCreate() {
     const name = newName.trim();
@@ -94,7 +114,7 @@ export function DiagramPanel({
         </div>
       ) : (
         <ul className={styles.list}>
-          {files.map((f) => (
+          {ordered.map((f) => (
             <li key={f.id} className={styles.listRow}>
               {renamingId === f.id ? (
                 <form
@@ -114,18 +134,22 @@ export function DiagramPanel({
                 </form>
               ) : (
                 <>
-                  <ListItem active={f.id === activeId} onClick={() => onOpen(f.id)}>
-                    <span className={styles.name}>{f.name}</span>
-                    <span className={styles.meta}>{formatDate(f.modifiedTime)}</span>
+                  <ListItem active={f.id === activeId} onClick={() => handleOpen(f.id)}>
+                    <span className={styles.name}>{stripExt(f.name)}</span>
+                    {openingId === f.id ? (
+                      <Spinner size={14} />
+                    ) : (
+                      <span className={styles.meta}>{formatDate(f.modifiedTime)}</span>
+                    )}
                   </ListItem>
                   <button
                     type="button"
                     className={styles.renameBtn}
-                    aria-label={`Rename ${f.name}`}
+                    aria-label={`Rename ${stripExt(f.name)}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setRenamingId(f.id);
-                      setRenameValue(f.name);
+                      setRenameValue(stripExt(f.name));
                     }}
                   >
                     Rename

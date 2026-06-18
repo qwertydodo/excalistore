@@ -23,16 +23,17 @@ function props(over = {}) {
 }
 
 describe("DiagramPanel", () => {
-  it("lists files and marks the active one", () => {
+  it("lists files (without the .excalidraw extension) and marks the active one", () => {
     render(<DiagramPanel {...props()} />);
-    expect(screen.getByText("alpha.excalidraw")).toBeInTheDocument();
-    expect(screen.getByText("beta.excalidraw")).toBeInTheDocument();
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+    expect(screen.queryByText("alpha.excalidraw")).not.toBeInTheDocument();
   });
 
   it("opens a file on click", async () => {
     const onOpen = vi.fn();
     render(<DiagramPanel {...props({ onOpen })} />);
-    await userEvent.click(screen.getByText("beta.excalidraw"));
+    await userEvent.click(screen.getByText("beta"));
     expect(onOpen).toHaveBeenCalledWith("2");
   });
 
