@@ -19,6 +19,12 @@ export type Request =
   | { type: "drive/update"; id: string; content: string; prevRevision: string }
   | { type: "drive/rename"; id: string; name: string };
 
+export interface ConnectionStatus {
+  connected: boolean;
+  folderId?: string;
+  folderName?: string;
+}
+
 export type Ok<T> = { ok: true; data: T };
 export type Err = { ok: false; error: string; code?: "conflict" | "unauthorized" | "unknown" };
 export type Response<T> = Ok<T> | Err;

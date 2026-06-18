@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type DriveFileMeta, isErrorResponse } from "@/shared/api";
+import type { ConnectionStatus } from "./messages";
 
 describe("messages", () => {
   it("DriveFileMeta shape is usable", () => {
@@ -15,5 +16,10 @@ describe("messages", () => {
   it("isErrorResponse narrows error responses", () => {
     expect(isErrorResponse({ ok: false, error: "nope" })).toBe(true);
     expect(isErrorResponse({ ok: true, data: 1 })).toBe(false);
+  });
+
+  it("ConnectionStatus shape", () => {
+    const s: ConnectionStatus = { connected: true, folderId: "F", folderName: "Diagrams" };
+    expect(s.connected).toBe(true);
   });
 });
