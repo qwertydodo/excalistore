@@ -39,10 +39,11 @@ past `^6.x` until WXT itself upgrades.
   without it. No other Google API or key is needed — folder selection no
   longer uses the Picker (see `docs/security.md` → "Folder selection:
   app-owned folder").
-- `WXT_PUBLIC_KEY` is optional — overrides the manifest's `key` (which pins a
-  deterministic extension ID). Unset uses the project's own public key, so a
-  fresh clone builds with the same extension ID by default; set it only for
-  a fork or a different extension identity.
+- `WXT_PUBLIC_KEY` is required — it's the manifest's `key`, which pins a
+  deterministic extension ID. Ask a maintainer for the project's key, or set
+  your own for a fork or a different extension identity. The key used to
+  ship as a hardcoded fallback in `wxt.config.ts`; it now lives only in
+  `.env` (gitignored) so it isn't checked into source.
 
 ## Manual E2E checklist
 
