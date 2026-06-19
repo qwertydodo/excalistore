@@ -64,9 +64,23 @@ export default defineConfig({
     // permitted here (Chrome rejects the manifest otherwise). The Google Picker,
     // which needs apis.google.com, must run in a sandboxed page instead (see
     // docs/security.md → Picker). frame-src may still reference Google's iframes.
+    sandbox: {
+      pages: ["sandbox.html"],
+    },
     content_security_policy: {
       extension_pages:
         "script-src 'self'; object-src 'self'; frame-src https://docs.google.com https://accounts.google.com;",
+      // Sandboxed pages get their own CSP that MAY load remote scripts. This is
+      // where the Google Picker lives (apis.google.com). Tuned against real
+      // Picker traffic; widen a directive if the sandbox console shows a CSP
+      // violation. The OAuth token only reaches here via postMessage from the popup.
+      sandbox:
+        "sandbox allow-scripts allow-same-origin allow-popups allow-forms; " +
+        "script-src 'self' 'unsafe-inline' https://apis.google.com https://*.gstatic.com; " +
+        "frame-src https://*.google.com https://*.googleusercontent.com; " +
+        "connect-src https://*.googleapis.com https://*.google.com; " +
+        "img-src https://*.gstatic.com https://*.googleusercontent.com https://*.google.com data:; " +
+        "style-src 'self' 'unsafe-inline' https://*.gstatic.com;",
     },
   },
 });
