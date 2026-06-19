@@ -66,6 +66,10 @@ _(Move items here as they ship, with a short behavior description.)_
   `401`/`403` (e.g. "insufficient scopes") or a failed silent token refresh,
   classified as `unauthorized` — marks the panel disconnected without touching
   the local canvas, distinct from explicit sign-out, which clears it.
+- Persisted panel collapse: the panel's collapsed/expanded state is stored in
+  `chrome.storage.local` and restored on load, so collapsing the panel sticks
+  across the writeScene-triggered reloads from opening/creating/renaming a
+  diagram.
 - Theme mirror: the panel polls Excalidraw's `appState.theme` and mirrors it
   onto the Shadow DOM host's `data-theme` attribute so the panel's CSS
   variables track light/dark within ~1s.

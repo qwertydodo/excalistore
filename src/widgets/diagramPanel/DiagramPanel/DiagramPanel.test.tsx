@@ -14,10 +14,12 @@ function props(over = {}) {
     activeId: "1",
     saveStatus: "saved" as const,
     loading: false,
+    collapsed: false,
     onOpen: vi.fn(),
     onCreate: vi.fn(),
     onRename: vi.fn(),
     onSignOut: vi.fn(),
+    onToggleCollapse: vi.fn(),
     ...over,
   };
 }
@@ -63,13 +65,20 @@ describe("DiagramPanel", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
   });
 
-  it("collapses to a button and expands again", async () => {
-    render(<DiagramPanel {...props()} />);
-    expect(screen.getByText("alpha")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /collapse panel/i }));
+  it("renders collapsed as a fab button and calls onToggleCollapse", async () => {
+    const onToggleCollapse = vi.fn();
+    render(<DiagramPanel {...props({ collapsed: true, onToggleCollapse })} />);
     expect(screen.queryByText("alpha")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /open excalistore diagrams/i }));
+    expect(onToggleCollapse).toHaveBeenCalledOnce();
+  });
+
+  it("calls onToggleCollapse from the expanded panel's collapse button", async () => {
+    const onToggleCollapse = vi.fn();
+    render(<DiagramPanel {...props({ onToggleCollapse })} />);
     expect(screen.getByText("alpha")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /collapse panel/i }));
+    expect(onToggleCollapse).toHaveBeenCalledOnce();
   });
 
   it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {
