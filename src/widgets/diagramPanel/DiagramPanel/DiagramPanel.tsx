@@ -9,11 +9,13 @@ interface Props {
   activeId: string | null;
   saveStatus: SaveStatus;
   loading: boolean;
+  collapsed: boolean;
   error?: string | null;
   onOpen: (id: string) => void;
   onCreate: (name: string) => void;
   onRename: (id: string, name: string) => void;
   onSignOut: () => void;
+  onToggleCollapse: () => void;
 }
 
 const STATUS_TONE: Record<SaveStatus, "neutral" | "success" | "danger"> = {
@@ -47,11 +49,13 @@ export function DiagramPanel({
   activeId,
   saveStatus,
   loading,
+  collapsed,
   error,
   onOpen,
   onCreate,
   onRename,
   onSignOut,
+  onToggleCollapse,
 }: Props) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -60,7 +64,6 @@ export function DiagramPanel({
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [savingRenameId, setSavingRenameId] = useState<string | null>(null);
   const [creatingBusy, setCreatingBusy] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
   // list (sorting by modifiedTime would jump the active item to the top).
@@ -114,7 +117,7 @@ export function DiagramPanel({
         type="button"
         className={styles.fab}
         aria-label="Open Excalistore diagrams"
-        onClick={() => setCollapsed(false)}
+        onClick={onToggleCollapse}
         onKeyDown={(e) => e.stopPropagation()}
       >
         +
@@ -140,7 +143,7 @@ export function DiagramPanel({
             type="button"
             className={styles.toggle}
             aria-label="Collapse panel"
-            onClick={() => setCollapsed(true)}
+            onClick={onToggleCollapse}
           >
             −
           </button>

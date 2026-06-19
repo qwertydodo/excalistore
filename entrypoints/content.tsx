@@ -15,8 +15,10 @@ import {
   clearCachedFiles,
   getActiveFile,
   getCachedFiles,
+  getPanelCollapsed,
   setActiveFile,
   setCachedFiles,
+  setPanelCollapsed,
 } from "@/features/session";
 import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/api";
 import { RequestError, sendToBackground } from "@/shared/api";
@@ -39,6 +41,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const revisionRef = useRef<string | null>(null);
 
   // Mirror Excalidraw's theme onto the shadow host.
@@ -73,6 +76,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
         () => ({ connected: false }) as ConnectionStatus,
       );
       setStatus(s);
+      setCollapsed(await getPanelCollapsed());
       const active = await getActiveFile();
       // Paint the cached list immediately (no flicker after the reload), then
       // revalidate against Drive in the background.
@@ -253,11 +257,19 @@ function PanelApp({ host }: { host: HTMLElement }) {
         activeId={activeId}
         saveStatus={saveStatus}
         loading={loading}
+        collapsed={collapsed}
         error={actionError}
         onOpen={onOpen}
         onCreate={onCreate}
         onRename={onRename}
         onSignOut={() => setSignOutOpen(true)}
+        onToggleCollapse={() => {
+          setCollapsed((prev) => {
+            const next = !prev;
+            void setPanelCollapsed(next);
+            return next;
+          });
+        }}
       />
       {signOutOpen && (
         <ConfirmDialog
