@@ -8,6 +8,6 @@ const mergeHeadPath = execSync("git rev-parse --git-path MERGE_HEAD").toString()
 if (existsSync(mergeHeadPath)) process.exit(0);
 
 console.error(
-  "Direct commits to main are forbidden. Create a feature branch, then merge it into main."
+  "Direct commits to main are forbidden. Create a feature branch, then merge it into main.",
 );
 process.exit(1);

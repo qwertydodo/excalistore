@@ -1,6 +1,6 @@
 import styles from "./Spinner.module.css";
 
-export function Spinner({ size = 16 }: { size?: number }) {
+export const Spinner = ({ size = 16 }: { size?: number }) => {
   return (
     <span
       role="status"
@@ -10,4 +10,4 @@ export function Spinner({ size = 16 }: { size?: number }) {
       style={{ width: size, height: size }}
     />
   );
-}
+};

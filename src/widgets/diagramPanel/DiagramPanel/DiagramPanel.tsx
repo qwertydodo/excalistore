@@ -1,25 +1,30 @@
 import { useState } from "react";
 import type { SaveStatus } from "@/features/autosave";
 import type { DriveFileMeta } from "@/shared/api";
-import { formatDate } from "@/shared/lib";
-import { Badge, Button, ListItem, Spinner, TextField } from "@/shared/ui";
+import { Badge, Button, Spinner, type Tone } from "@/shared/ui";
+import { CreateDiagramForm } from "../CreateDiagramForm";
+import { DiagramRow } from "../DiagramRow";
 import styles from "./DiagramPanel.module.css";
 
-interface Props {
+type Diagram = {
   files: DriveFileMeta[];
   activeId: string | null;
   saveStatus: SaveStatus;
   loading: boolean;
   collapsed: boolean;
   error?: string | null;
-  onOpen: (id: string) => void;
-  onCreate: (name: string) => void;
-  onRename: (id: string, name: string) => void;
+  onOpen: (id: string) => Promise<void>;
+  onCreate: (name: string) => Promise<void>;
+  onRename: (id: string, name: string) => Promise<void>;
   onSignOut: () => void;
   onToggleCollapse: () => void;
-}
+};
 
-const STATUS_TONE: Record<SaveStatus, "neutral" | "success" | "danger"> = {
+type DiagramPanelProps = {
+  diagram: Diagram;
+};
+
+const STATUS_TONE: Record<SaveStatus, Tone> = {
   idle: "neutral",
   saving: "neutral",
   saved: "success",
@@ -35,30 +40,21 @@ const STATUS_LABEL: Record<SaveStatus, string> = {
   conflict: "Conflict — not saved",
 };
 
-// The .excalidraw extension is implied — hide it in the UI and re-add on save.
-function stripExt(name: string): string {
-  return name.replace(/\.excalidraw$/i, "");
-}
-
-export function DiagramPanel({
-  files,
-  activeId,
-  saveStatus,
-  loading,
-  collapsed,
-  error,
-  onOpen,
-  onCreate,
-  onRename,
-  onSignOut,
-  onToggleCollapse,
-}: Props) {
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
+export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
+  const {
+    files,
+    activeId,
+    saveStatus,
+    loading,
+    collapsed,
+    error,
+    onOpen,
+    onCreate,
+    onRename,
+    onSignOut,
+    onToggleCollapse,
+  } = diagram;
   const [openingId, setOpeningId] = useState<string | null>(null);
-  const [savingRenameId, setSavingRenameId] = useState<string | null>(null);
   const [creatingBusy, setCreatingBusy] = useState(false);
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
@@ -69,7 +65,7 @@ export function DiagramPanel({
   // second action can't race it.
   const rowsLocked = openingId !== null || creatingBusy;
 
-  async function handleOpen(id: string) {
+  const onRowOpen = async (id: string) => {
     if (openingId) return; // a switch is already in flight
     setOpeningId(id);
     try {
@@ -77,35 +73,9 @@ export function DiagramPanel({
     } finally {
       setOpeningId(null);
     }
-  }
+  };
 
-  async function submitCreate() {
-    const name = newName.trim();
-    if (!name) return;
-    setCreatingBusy(true);
-    try {
-      await onCreate(name); // resolves into a tab reload on success
-    } finally {
-      setCreatingBusy(false);
-      setNewName("");
-      setCreating(false);
-    }
-  }
-
-  async function submitRename(id: string) {
-    const name = renameValue.trim();
-    if (!name) {
-      setRenamingId(null);
-      return;
-    }
-    setSavingRenameId(id);
-    try {
-      await onRename(id, name); // optimistic in-place update in the container
-    } finally {
-      setSavingRenameId(null);
-      setRenamingId(null);
-    }
-  }
+  const onCreatingBusyChange = (busy: boolean) => setCreatingBusy(busy);
 
   if (collapsed) {
     return (
@@ -159,95 +129,29 @@ export function DiagramPanel({
       ) : (
         <ul className={styles.list}>
           {ordered.map((f) => (
-            <li key={f.id} className={styles.listRow}>
-              {renamingId === f.id ? (
-                <form
-                  className={styles.renameRow}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    submitRename(f.id);
-                  }}
-                >
-                  <TextField
-                    aria-label="Rename diagram"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    disabled={savingRenameId === f.id}
-                    autoFocus
-                  />
-                  {savingRenameId === f.id ? (
-                    <Spinner size={14} />
-                  ) : (
-                    <Button type="submit">Save</Button>
-                  )}
-                </form>
-              ) : (
-                <>
-                  <ListItem
-                    active={f.id === activeId}
-                    disabled={f.id === activeId || rowsLocked}
-                    onClick={() => handleOpen(f.id)}
-                  >
-                    <span className={styles.name}>{stripExt(f.name)}</span>
-                    {openingId === f.id ? (
-                      <Spinner size={14} />
-                    ) : (
-                      <span className={styles.meta}>{formatDate(f.modifiedTime)}</span>
-                    )}
-                  </ListItem>
-                  <button
-                    type="button"
-                    className={styles.renameBtn}
-                    aria-label={`Rename ${stripExt(f.name)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRenamingId(f.id);
-                      setRenameValue(stripExt(f.name));
-                    }}
-                  >
-                    Rename
-                  </button>
-                </>
-              )}
-            </li>
+            <DiagramRow
+              key={f.id}
+              file={f}
+              active={f.id === activeId}
+              locked={rowsLocked}
+              opening={openingId === f.id}
+              onOpen={onRowOpen}
+              onRename={onRename}
+            />
           ))}
         </ul>
       )}
 
       <footer className={styles.footer}>
-        {creating ? (
-          <form
-            className={styles.createRow}
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitCreate();
-            }}
-          >
-            <TextField
-              placeholder="Diagram name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              disabled={creatingBusy}
-              autoFocus
-            />
-            {creatingBusy ? (
-              <Spinner size={14} />
-            ) : (
-              <>
-                <Button type="submit">Create</Button>
-                <Button variant="secondary" onClick={() => setCreating(false)}>
-                  Cancel
-                </Button>
-              </>
-            )}
-          </form>
-        ) : (
-          <Button onClick={() => setCreating(true)}>New diagram</Button>
-        )}
+        <CreateDiagramForm
+          disabled={rowsLocked}
+          onCreate={onCreate}
+          onBusyChange={onCreatingBusyChange}
+        />
         <Button variant="secondary" onClick={onSignOut}>
           Sign out
         </Button>
       </footer>
     </section>
   );
-}
+};

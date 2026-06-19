@@ -10,79 +10,36 @@ Slices on the same layer never import each other. Each slice exposes a barrel
 
 ```
 src/
-  test-setup.ts
-  shared/                  (business-agnostic, reused everywhere)
-    ui/                    (primitive components; PascalCase + CSS Modules)
-      Button/, IconButton/, Dialog/, ConfirmDialog/, TextField/,
-      ListItem/, Badge/, Spinner/, index.ts
-    api/                   (cross-process RPC contracts + Drive REST client)
-      messages.ts, messages.test.ts, sendMessage.ts, sendMessage.test.ts,
-      index.ts
-      driveFile.ts            (DriveFile DTO type)
-      driveClient.ts, driveClient.test.ts  (Drive REST v3 client,
-        fetch-injected: listFolder, getMeta, getContent, createFile,
-        updateFile [conflict-guarded], renameFile, findOrCreateFolder — pure
-        CRUD with no business logic, so it lives in shared/api per FSD
-        rather than as its own entity)
-    config/                (design tokens / constants)
-      theme.css, theme.ts, index.ts
+  shared/        business-agnostic primitives reused everywhere
+    ui/          Button, Dialog/ConfirmDialog, TextField, ListItem, Badge,
+                 Spinner
+    api/         cross-process message contracts + the Drive REST v3 client
+    config/      design tokens (theme) and shared constants
   entities/
-    diagram/                (the .excalidraw business entity)
-      lib/
-        excalidrawFormat.ts, excalidrawFormat.test.ts, index.ts
-      model/
-        activeFile.ts, activeFile.test.ts, index.ts  (ActiveFile pointer:
-        which Drive file the canvas represents + the loadedRevision used by
-        the autosave conflict guard)
-      index.ts
+    diagram/     the .excalidraw business entity — format build/parse/
+                 validate, the ActiveFile pointer
   features/
-    auth/                    (chrome.identity wrapper — background only)
-      api/
-        authClient.ts, authClient.test.ts, index.ts  (getToken, signOut)
-      index.ts
-    driveGateway/              (message router; the only consumer of auth +
-                                 the Drive client from the background side)
-      lib/
-        handleMessage.ts, handleMessage.test.ts, index.ts
-      index.ts
-    sceneBridge/               (content-script transform between Excalidraw's
-                                 page storage and the validated .excalidraw
-                                 envelope)
-      lib/
-        sceneBridge.ts, sceneBridge.test.ts  (readScene/writeScene/clearScene/
-        readTheme/currentSceneHash — dependency-injected, unit-tested)
-        filesDb.ts            (idb-keyval adapter for the files-db IndexedDB
-                                store; the one manually-verified boundary)
-        index.ts
-      index.ts
-    autosave/                  (debounced autosave controller)
-      lib/
-        autosaveController.ts, autosaveController.test.ts, index.ts
-        (createAutosave: injectable getHash/save/now/tick; start() drives a
-        real interval, flush() forces an immediate save on sign-out)
-      index.ts
-    session/                   (active-file pointer persisted across reload)
-      lib/
-        activeFileStore.ts, activeFileStore.test.ts, index.ts
-        (getActiveFile/setActiveFile/clearActiveFile over
-        chrome.storage.local, validated with entities/diagram's isActiveFile)
-      index.ts
+    auth/          chrome.identity wrapper (background only)
+    driveGateway/  message router; only consumer of auth + the Drive client
+    sceneBridge/   content-script transform between page storage and the
+                   validated .excalidraw envelope
+    autosave/      debounced autosave controller
+    session/       active-file pointer persisted across reload
+    driveConnect/  FolderNameForm — connect-folder form shared by both
+                   connect widgets
   widgets/
-    popupConnect/              (popup UI composed from shared/ui)
-      PopupConnect/
-        PopupConnect.tsx, PopupConnect.module.css, PopupConnect.test.tsx,
-        index.ts
-      index.ts
-    diagramPanel/               (in-page panel UI composed from shared/ui)
-      DiagramPanel/
-        DiagramPanel.tsx, DiagramPanel.module.css, DiagramPanel.test.tsx,
-        index.ts
-      index.ts
+    popupConnect/  popup UI
+    diagramPanel/  in-page panel UI — DiagramPanel composes DiagramRow (one
+                   list row, owns its own rename state) and CreateDiagramForm
 entrypoints/
-  content.tsx                  (app layer: mounts diagramPanel in a Shadow
-                                 DOM on excalidraw.com and orchestrates
-                                 messaging + sceneBridge + autosave + session;
-                                 presentational widget stays framework-thin)
+  content/    mounts diagramPanel in a Shadow DOM on excalidraw.com; split
+              into mount wiring (index.tsx) and a composition root (App.tsx)
+              at the entrypoint root, one hook per concern under model/
+              (theme sync, file list, active-file + autosave + CRUD actions,
+              sign-out, connect), and the shared scene-bridge instance under
+              lib/
+  popup/      extension popup
+  background.ts  service worker; the only place holding the OAuth token
 ```
 
 Module files are camelCase; React components are PascalCase. Theme tokens are
@@ -154,21 +111,21 @@ revoked"), rather than string-matching a status code that happened to appear
 in the message. `listFolder` follows Drive's `nextPageToken`, so folders with
 more than one page of diagrams list completely.
 
-**Content-script mount (`entrypoints/content.tsx`):** the app-layer
-composition root for excalidraw.com. It calls WXT's `createShadowRootUi` with
-`cssInjectionMode: "ui"` (so `defineContentScript`'s bundled CSS, including
-`shared/config/theme.css` and the panel's CSS Module, is injected into the
-shadow root) and `position: "inline"` / `anchor: "body"`. `onMount` receives
-`(uiContainer, shadow, shadowHost)`: the React root is created on
-`uiContainer` (the element whose styles are isolated inside the shadow root),
-while `shadowHost` (the actual element WXT appends to the page DOM) is
-positioned fixed top-right via inline styles (genuinely dynamic — Shadow DOM
-hosts can't be targeted by a CSS Module from outside) and carries the
-`data-theme` attribute the theme mirror updates, so `:host([data-theme=...])`
-rules in `theme.css` apply. `PanelApp` wires `shared/api.sendToBackground` +
-`features/sceneBridge` + `features/autosave` + `features/session` together
-and renders `widgets/diagramPanel`'s `DiagramPanel`, keeping the widget itself
-presentational and FSD-clean.
+**Content-script mount (`entrypoints/content/`):** the app-layer composition
+root for excalidraw.com, split across files the same way `entrypoints/popup/`
+splits `main.tsx` from `App.tsx`. The mount wiring calls WXT's
+`createShadowRootUi` (`cssInjectionMode: "ui"`, `position: "inline"`) to
+render the panel into a Shadow DOM positioned fixed top-right, carrying the
+`data-theme` attribute the theme mirror updates so `:host([data-theme=...])`
+rules in `theme.css` apply. The composition component itself stays thin: each
+piece of state (file list, active-file + autosave + CRUD actions, sign-out,
+connect) lives in its own hook over a single shared `SceneBridgeDeps`
+instance, and renders `widgets/diagramPanel`'s `DiagramPanel`, keeping that
+widget presentational and FSD-clean. The active-file hook is the one that
+stays largest: `revisionRef` and `activeId` genuinely couple the
+open/create/rename actions to the autosave save callback, so splitting it
+further would just move that coupling into more prop-drilling without
+reducing it.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
@@ -226,9 +183,10 @@ in isolation.
   `writeScene`-triggered tab reload.
 - **`panel`** (`widgets/diagramPanel`, React, Shadow DOM) — presentational:
   file list (name + modified date), active-file indicator, save-status badge,
-  inline rename, and `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The
-  replace-canvas confirm and sign-out `ConfirmDialog` are rendered by the
-  container (`entrypoints/content.tsx`), not the widget, since they need
+  inline rename (each row owns its own rename-edit state), and
+  `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The replace-canvas
+  confirm and sign-out `ConfirmDialog` are rendered by the container
+  (`entrypoints/content/App.tsx`), not the widget, since they need
   orchestration. Mirrors Excalidraw's theme via the host's `data-theme`.
 
 ### Shared layer

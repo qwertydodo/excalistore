@@ -16,6 +16,20 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - **Tests are colocated** beside the code they test (e.g. `Button/Button.test.tsx`,
   `excalidraw-format.test.ts` next to `excalidraw-format.ts`). No top-level `tests/`
   directory.
+- **TypeScript style:** prefer `type` over `interface` everywhere; use
+  `interface` only when something specifically needs it (e.g. declaration
+  merging). A component's `XProps` type must be the type of the actual root
+  object the component receives as props — never the type of a nested field
+  inside it. If a component takes `{ diagram }`, `DiagramPanelProps` is
+  `{ diagram: Diagram }`; the nested shape gets its own name (`Diagram`), not
+  `DiagramPanelProps`.
+- **No raw `useState` setters across a boundary:** never pass a `useState`
+  setter directly as a prop, callback, or hook param — wrap it in a
+  same-shaped callback first. Keep the real setter named `setX` per React
+  convention; give the wrapper a new name and expose/pass that instead. Name
+  these wrappers `onXChange` — never `handleX` (rename around any collision
+  with a same-named prop instead, e.g. a local open-handler that forwards to
+  an `onOpen` prop becomes `onRowOpen`, not `handleOpen`).
 
 ## Architecture (FSD)
 - Follows Feature-Sliced Design v2.1 (`.agents/skills/feature-sliced-design`,

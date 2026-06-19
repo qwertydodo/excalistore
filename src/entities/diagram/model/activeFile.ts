@@ -1,12 +1,12 @@
 // Which Drive file the canvas currently represents. loadedRevision is the
 // headRevisionId at load time and feeds the autosave conflict guard.
-export interface ActiveFile {
+export type ActiveFile = {
   id: string;
   name: string;
   loadedRevision: string;
-}
+};
 
-export function isActiveFile(value: unknown): value is ActiveFile {
+export const isActiveFile = (value: unknown): value is ActiveFile => {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   // loadedRevision may legitimately be empty before the first save; id/name
@@ -18,4 +18,4 @@ export function isActiveFile(value: unknown): value is ActiveFile {
     v.name.length > 0 &&
     typeof v.loadedRevision === "string"
   );
-}
+};

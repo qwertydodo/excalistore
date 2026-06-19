@@ -2,7 +2,7 @@ import { Button } from "../Button";
 import { Dialog } from "../Dialog";
 import styles from "./ConfirmDialog.module.css";
 
-interface Props {
+type Props = {
   title: string;
   message: string;
   confirmLabel?: string;
@@ -10,9 +10,9 @@ interface Props {
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
-}
+};
 
-export function ConfirmDialog({
+export const ConfirmDialog = ({
   title,
   message,
   confirmLabel = "Confirm",
@@ -20,7 +20,7 @@ export function ConfirmDialog({
   danger = false,
   onConfirm,
   onCancel,
-}: Props) {
+}: Props) => {
   return (
     <Dialog title={title} onClose={onCancel}>
       <p className={styles.message}>{message}</p>
@@ -34,4 +34,4 @@ export function ConfirmDialog({
       </div>
     </Dialog>
   );
-}
+};

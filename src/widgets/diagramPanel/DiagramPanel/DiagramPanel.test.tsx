@@ -26,7 +26,7 @@ function props(over = {}) {
 
 describe("DiagramPanel", () => {
   it("lists files (without the .excalidraw extension) and marks the active one", () => {
-    render(<DiagramPanel {...props()} />);
+    render(<DiagramPanel diagram={props()} />);
     expect(screen.getByText("alpha")).toBeInTheDocument();
     expect(screen.getByText("beta")).toBeInTheDocument();
     expect(screen.queryByText("alpha.excalidraw")).not.toBeInTheDocument();
@@ -34,14 +34,14 @@ describe("DiagramPanel", () => {
 
   it("opens a file on click", async () => {
     const onOpen = vi.fn();
-    render(<DiagramPanel {...props({ onOpen })} />);
+    render(<DiagramPanel diagram={props({ onOpen })} />);
     await userEvent.click(screen.getByText("beta"));
     expect(onOpen).toHaveBeenCalledWith("2");
   });
 
   it("creates a new diagram with the entered name", async () => {
     const onCreate = vi.fn();
-    render(<DiagramPanel {...props({ onCreate })} />);
+    render(<DiagramPanel diagram={props({ onCreate })} />);
     await userEvent.click(screen.getByRole("button", { name: /new/i }));
     await userEvent.type(screen.getByPlaceholderText(/name/i), "gamma");
     await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
@@ -49,25 +49,25 @@ describe("DiagramPanel", () => {
   });
 
   it("shows a conflict badge", () => {
-    render(<DiagramPanel {...props({ saveStatus: "conflict" })} />);
+    render(<DiagramPanel diagram={props({ saveStatus: "conflict" })} />);
     expect(screen.getByText(/conflict/i)).toBeInTheDocument();
   });
 
   it("signs out", async () => {
     const onSignOut = vi.fn();
-    render(<DiagramPanel {...props({ onSignOut })} />);
+    render(<DiagramPanel diagram={props({ onSignOut })} />);
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });
 
   it("renders an error banner when error is set", () => {
-    render(<DiagramPanel {...props({ error: "Could not open diagram" })} />);
+    render(<DiagramPanel diagram={props({ error: "Could not open diagram" })} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
   });
 
   it("renders collapsed as a fab button and calls onToggleCollapse", async () => {
     const onToggleCollapse = vi.fn();
-    render(<DiagramPanel {...props({ collapsed: true, onToggleCollapse })} />);
+    render(<DiagramPanel diagram={props({ collapsed: true, onToggleCollapse })} />);
     expect(screen.queryByText("alpha")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /open excalistore diagrams/i }));
     expect(onToggleCollapse).toHaveBeenCalledOnce();
@@ -75,7 +75,7 @@ describe("DiagramPanel", () => {
 
   it("calls onToggleCollapse from the expanded panel's collapse button", async () => {
     const onToggleCollapse = vi.fn();
-    render(<DiagramPanel {...props({ onToggleCollapse })} />);
+    render(<DiagramPanel diagram={props({ onToggleCollapse })} />);
     expect(screen.getByText("alpha")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /collapse panel/i }));
     expect(onToggleCollapse).toHaveBeenCalledOnce();
@@ -84,7 +84,7 @@ describe("DiagramPanel", () => {
   it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {
     const onDocKeyDown = vi.fn();
     document.addEventListener("keydown", onDocKeyDown);
-    render(<DiagramPanel {...props()} />);
+    render(<DiagramPanel diagram={props()} />);
     fireEvent.keyDown(screen.getByLabelText("Excalistore diagrams"), { key: "r" });
     document.removeEventListener("keydown", onDocKeyDown);
     expect(onDocKeyDown).not.toHaveBeenCalled();
