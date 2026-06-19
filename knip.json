@@ -10,7 +10,6 @@
     "src/entities/diagram/index.ts",
     "src/entities/driveFile/index.ts",
     "src/features/auth/index.ts",
-    "src/features/pickFolder/index.ts",
     "src/features/sceneBridge/index.ts",
     "src/features/session/index.ts",
     "src/features/autosave/index.ts",

@@ -1,4 +1,4 @@
-import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD } from "@/shared/config";
+import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD, FOLDER_MIME } from "@/shared/config";
 import type { DriveFile } from "../model";
 
 // fetch is injected so the client stays pure and unit-testable.
@@ -94,4 +94,32 @@ export async function renameFile(
     body: JSON.stringify({ name }),
   });
   return asJson<DriveFile>(res);
+}
+
+// Find an app-owned folder by exact name, or create it. Under drive.file the
+// list only returns folders this app created, so this is idempotent per name.
+export async function findOrCreateFolder(
+  token: string,
+  name: string,
+  f: Fetch = fetch,
+): Promise<{ id: string; name: string }> {
+  const safe = name.replace(/'/g, "\\'");
+  const q = encodeURIComponent(
+    `mimeType='${FOLDER_MIME}' and name='${safe}' and trashed=false`,
+  ).replace(/%20/g, "+");
+  const listUrl = `${DRIVE_API}/files?q=${q}&fields=files(id,name)`;
+  const listed = await asJson<{ files: Array<{ id: string; name: string }> }>(
+    await f(listUrl, { headers: authHeaders(token) }),
+  );
+  const existing = listed.files?.[0];
+  if (existing) return { id: existing.id, name: existing.name };
+
+  const created = await asJson<{ id: string; name: string }>(
+    await f(`${DRIVE_API}/files?fields=id,name`, {
+      method: "POST",
+      headers: { ...authHeaders(token), "Content-Type": "application/json" },
+      body: JSON.stringify({ name, mimeType: FOLDER_MIME }),
+    }),
+  );
+  return { id: created.id, name: created.name };
 }

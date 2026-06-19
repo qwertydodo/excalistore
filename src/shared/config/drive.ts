@@ -7,3 +7,5 @@ export const OAUTH_REVOKE = "https://oauth2.googleapis.com/revoke";
 // Excalidraw scenes are stored as JSON with an .excalidraw name suffix.
 export const DIAGRAM_MIME = "application/json";
 export const DIAGRAM_EXT = ".excalidraw";
+// Google Drive's folder MIME type.
+export const FOLDER_MIME = "application/vnd.google-apps.folder";

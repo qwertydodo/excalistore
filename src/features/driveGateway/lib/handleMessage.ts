@@ -23,6 +23,7 @@ export interface GatewayDeps {
   renameFile: (token: string, id: string, name: string) => Promise<DriveFile>;
   getStore: () => Promise<ConnectionStatus>;
   setStore: (s: ConnectionStatus) => Promise<void>;
+  findOrCreateFolder: (token: string, name: string) => Promise<{ id: string; name: string }>;
 }
 
 function err(message: string): Extract<Response<never>, { ok: false }> {
@@ -91,6 +92,19 @@ export async function handleMessage(req: Request, deps: GatewayDeps): Promise<Re
         if (!store.connected) return err("not connected");
         const token = await deps.getToken(false);
         return { ok: true, data: await deps.renameFile(token, req.id, req.name) };
+      }
+
+      case "drive/connect": {
+        // Interactive sign-in happens here (first user gesture from the popup).
+        const token = await deps.getToken(true);
+        const folder = await deps.findOrCreateFolder(token, req.folderName);
+        const next: ConnectionStatus = {
+          connected: true,
+          folderId: folder.id,
+          folderName: folder.name,
+        };
+        await deps.setStore(next);
+        return { ok: true, data: next };
       }
 
       default:

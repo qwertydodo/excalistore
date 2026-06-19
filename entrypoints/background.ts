@@ -1,5 +1,6 @@
 import {
   createFile,
+  findOrCreateFolder,
   getContent,
   getMeta,
   listFolder,
@@ -25,6 +26,7 @@ const deps: GatewayDeps = {
   createFile,
   updateFile,
   renameFile,
+  findOrCreateFolder,
   getStore: async () =>
     ((await chrome.storage.local.get(STORE_KEY))[STORE_KEY] as ConnectionStatus) ?? {
       connected: false,
