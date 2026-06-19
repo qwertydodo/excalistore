@@ -22,7 +22,13 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   object the component receives as props — never the type of a nested field
   inside it. If a component takes `{ diagram }`, `DiagramPanelProps` is
   `{ diagram: Diagram }`; the nested shape gets its own name (`Diagram`), not
-  `DiagramPanelProps`.
+  `DiagramPanelProps`. When a type's fields are a subset of another type
+  already defined nearby (e.g. a hook's params vs. another hook's return
+  shape), derive it with `Pick`/`Omit` from that type instead of
+  hand-copying the fields.
+- **Boolean naming:** boolean variables, props, and state must start with
+  `is`/`are`/`should`/`has` etc. — e.g. `isLoading` not `loading`,
+  `isVisible` not `collapsed`.
 - **No raw `useState` setters across a boundary:** never pass a `useState`
   setter directly as a prop, callback, or hook param — wrap it in a
   same-shaped callback first. Keep the real setter named `setX` per React
@@ -30,6 +36,11 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   these wrappers `onXChange` — never `handleX` (rename around any collision
   with a same-named prop instead, e.g. a local open-handler that forwards to
   an `onOpen` prop becomes `onRowOpen`, not `handleOpen`).
+- **Own state where it's used:** don't thread state (or the hook that holds
+  it) through a parent/composition root if nothing above needs to read or
+  control it — call the hook directly in the component that needs it. e.g. a
+  panel's own open/collapsed state belongs in a hook the panel widget calls
+  itself, not in `entrypoints/*/App.tsx` passed down as props.
 
 ## Architecture (FSD)
 - Follows Feature-Sliced Design v2.1 (`.agents/skills/feature-sliced-design`,
@@ -65,6 +76,9 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   `docs/development.md`.
 - After shipping a feature, move it out of "Next to pick up" in
   `docs/features.md` and document its behavior.
+- After a big refactor that establishes a new convention not yet captured
+  here, ask the user whether to add it as a rule to this file — don't add it
+  unasked.
 
 ## Commits & branches
 - Commits: Conventional Commits — `type(scope): subject`; types
