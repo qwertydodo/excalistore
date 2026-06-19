@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SaveStatus } from "@/features/autosave";
 import type { DriveFileMeta } from "@/shared/api";
+import { formatDate } from "@/shared/lib";
 import { Badge, Button, ListItem, Spinner, TextField } from "@/shared/ui";
 import styles from "./DiagramPanel.module.css";
 
@@ -33,11 +34,6 @@ const STATUS_LABEL: Record<SaveStatus, string> = {
   error: "Save failed",
   conflict: "Conflict — not saved",
 };
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
-}
 
 // The .excalidraw extension is implied — hide it in the UI and re-add on save.
 function stripExt(name: string): string {
