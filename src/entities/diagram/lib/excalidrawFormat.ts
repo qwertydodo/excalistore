@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { EXCALIDRAW_ORIGIN } from "@/shared/config";
+
 // The .excalidraw file envelope. Elements/appState are validated structurally
 // (array / object) but not deeply — Excalidraw's element schema is large and
 // versioned. Envelope validation is the security boundary before we write
@@ -47,7 +49,7 @@ export function buildExcalidrawFile(
   const file: ExcalidrawFile = {
     type: "excalidraw",
     version: 2,
-    source: "https://excalidraw.com",
+    source: EXCALIDRAW_ORIGIN,
     elements,
     appState,
     files,

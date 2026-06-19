@@ -22,7 +22,7 @@ import {
 } from "@/features/session";
 import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/api";
 import { RequestError, sendToBackground } from "@/shared/api";
-import { THEME_ATTR } from "@/shared/config";
+import { EXCALIDRAW_ORIGIN, THEME_ATTR } from "@/shared/config";
 import { ConfirmDialog } from "@/shared/ui";
 import { ConnectCard } from "@/widgets/connectCard";
 import { DiagramPanel } from "@/widgets/diagramPanel";
@@ -286,7 +286,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
 }
 
 export default defineContentScript({
-  matches: ["https://excalidraw.com/*"],
+  matches: [`${EXCALIDRAW_ORIGIN}/*`],
   cssInjectionMode: "ui",
   async main(ctx) {
     const ui = await createShadowRootUi(ctx, {

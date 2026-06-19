@@ -1,7 +1,11 @@
 // Central Drive/OAuth constants. The OAuth client id is injected via the
-// manifest (Task 8); these are the API surface constants used by the client.
-export const DRIVE_API = "https://www.googleapis.com/drive/v3";
-export const DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3";
+// manifest; these are the API surface constants used by the client AND by
+// wxt.config.ts (host_permissions/oauth2.scopes), so this file is the single
+// source of truth for every googleapis.com URL in the project.
+export const GOOGLE_API_ORIGIN = "https://www.googleapis.com";
+export const DRIVE_API = `${GOOGLE_API_ORIGIN}/drive/v3`;
+export const DRIVE_UPLOAD = `${GOOGLE_API_ORIGIN}/upload/drive/v3`;
+export const DRIVE_FILE_SCOPE = `${GOOGLE_API_ORIGIN}/auth/drive.file`;
 export const OAUTH_REVOKE = "https://oauth2.googleapis.com/revoke";
 // Excalidraw scenes are stored as JSON with an .excalidraw name suffix.
 export const DIAGRAM_MIME = "application/json";

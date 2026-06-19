@@ -12,7 +12,7 @@ const ELEMENTS_KEY = "excalidraw";
 const STATE_KEY = "excalidraw-state";
 
 // All page-storage access is injected so the transform is unit-testable and the
-// fragile IndexedDB binding lives in one adapter (filesDb.ts, wired in Task 6).
+// fragile IndexedDB binding lives in one adapter (filesDb.ts).
 export interface SceneBridgeDeps {
   storage: Storage;
   loadFiles: () => Promise<Record<string, BinaryFile>>;
