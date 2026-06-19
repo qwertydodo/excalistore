@@ -1,3 +1,6 @@
+import { getToken, signOut } from "@/features/auth";
+import { type GatewayDeps, handleMessage, isAllowedSender } from "@/features/driveGateway";
+import type { ConnectionStatus, Request } from "@/shared/api";
 import {
   createFile,
   findOrCreateFolder,
@@ -6,10 +9,7 @@ import {
   listFolder,
   renameFile,
   updateFile,
-} from "@/entities/driveFile";
-import { getToken, signOut } from "@/features/auth";
-import { type GatewayDeps, handleMessage, isAllowedSender } from "@/features/driveGateway";
-import type { ConnectionStatus, Request } from "@/shared/api";
+} from "@/shared/api";
 
 // Background service worker — trusted core. Holds the only access to the
 // OAuth token and Drive APIs; routes typed messages through the gateway.

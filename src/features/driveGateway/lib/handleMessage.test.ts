@@ -75,7 +75,7 @@ describe("handleMessage", () => {
   });
 
   it("classifies a Drive 403 as unauthorized", async () => {
-    const { DriveError } = await import("@/entities/driveFile");
+    const { DriveError } = await import("@/shared/api");
     const d = deps({
       listFolder: vi.fn(async () => {
         throw new DriveError(403, "Drive request failed: 403");
