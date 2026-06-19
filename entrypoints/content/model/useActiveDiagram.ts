@@ -48,13 +48,15 @@ export const useActiveDiagram = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const revisionRef = useRef<string | null>(null);
 
-  const onActiveIdChange = (id: string | null) => setActiveId(id);
-  const onActionErrorChange = (error: string | null) => setActionError(error);
-  // Kept memoized (unlike its siblings above): referenced in the autosave
-  // effect's deps below. Biome's useExhaustiveDependencies isn't React
-  // Compiler-aware yet (biomejs/biome#5293), so it can't see the compiler
-  // already stabilizes this — without useCallback it'd flag a real-looking
-  // (but compiler-moot) "effect re-runs every render" warning.
+  // useCallback on all three below (not compiler-memoized — onOpen/onCreate/
+  // onRename further down all contain a ternary inside a catch, which bails
+  // the compiler for this whole hook; see "Known gap" in
+  // docs/development.md). onSaveStatusChange specifically is read by the
+  // autosave effect's deps just below, so it must stay stable; the other two
+  // are passed down as props, where an unstable identity just churns child
+  // re-renders.
+  const onActiveIdChange = useCallback((id: string | null) => setActiveId(id), []);
+  const onActionErrorChange = useCallback((error: string | null) => setActionError(error), []);
   const onSaveStatusChange = useCallback((status: SaveStatus) => setSaveStatus(status), []);
 
   // Initial load: connection status, file list, restore the active pointer.
@@ -115,36 +117,39 @@ export const useActiveDiagram = ({
     };
   }, [activeId, onSaveStatusChange]);
 
-  const onOpen = async (id: string) => {
-    if (id === activeId) return; // already open
-    setActionError(null);
-    try {
-      // Opening reloads the tab, so save the current diagram first — otherwise
-      // unsaved edits since the last autosave tick are lost. A failed save
-      // (e.g. conflict) aborts the switch so nothing is dropped silently.
-      if (activeId) {
-        const current = await readScene(bridge);
-        const saved = await sendToBackground<DriveFileMeta>({
-          type: REQUEST_TYPE.DRIVE_UPDATE,
-          id: activeId,
-          content: JSON.stringify(current),
-          prevRevision: revisionRef.current ?? "",
+  const onOpen = useCallback(
+    async (id: string) => {
+      if (id === activeId) return; // already open
+      setActionError(null);
+      try {
+        // Opening reloads the tab, so save the current diagram first — otherwise
+        // unsaved edits since the last autosave tick are lost. A failed save
+        // (e.g. conflict) aborts the switch so nothing is dropped silently.
+        if (activeId) {
+          const current = await readScene(bridge);
+          const saved = await sendToBackground<DriveFileMeta>({
+            type: REQUEST_TYPE.DRIVE_UPDATE,
+            id: activeId,
+            content: JSON.stringify(current),
+            prevRevision: revisionRef.current ?? "",
+          });
+          revisionRef.current = saved.headRevisionId;
+        }
+        const { meta, content } = await sendToBackground<DiagramContent>({
+          type: REQUEST_TYPE.DRIVE_GET,
+          id,
         });
-        revisionRef.current = saved.headRevisionId;
+        const file = parseExcalidrawFile(content); // validates before write
+        await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+        await writeScene(file, bridge); // reloads the tab
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to open diagram");
       }
-      const { meta, content } = await sendToBackground<DiagramContent>({
-        type: REQUEST_TYPE.DRIVE_GET,
-        id,
-      });
-      const file = parseExcalidrawFile(content); // validates before write
-      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-      await writeScene(file, bridge); // reloads the tab
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to open diagram");
-    }
-  };
+    },
+    [activeId],
+  );
 
-  const onCreate = async (name: string) => {
+  const onCreate = useCallback(async (name: string) => {
     setActionError(null);
     try {
       const fileName = ensureExcalidrawExtension(name);
@@ -159,26 +164,29 @@ export const useActiveDiagram = ({
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to create diagram");
     }
-  };
+  }, []);
 
-  const onRename = async (id: string, name: string) => {
-    setActionError(null);
-    try {
-      const fileName = ensureExcalidrawExtension(name);
-      const meta = await sendToBackground<DriveFileMeta>({
-        type: REQUEST_TYPE.DRIVE_RENAME,
-        id,
-        name: fileName,
-      });
-      // Patch the single row in place — no full re-fetch, so the list doesn't
-      // blank to the loading spinner.
-      const next = files.map((f) => (f.id === id ? meta : f));
-      onFilesChange(next);
-      setCachedFiles(next);
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to rename diagram");
-    }
-  };
+  const onRename = useCallback(
+    async (id: string, name: string) => {
+      setActionError(null);
+      try {
+        const fileName = ensureExcalidrawExtension(name);
+        const meta = await sendToBackground<DriveFileMeta>({
+          type: REQUEST_TYPE.DRIVE_RENAME,
+          id,
+          name: fileName,
+        });
+        // Patch the single row in place — no full re-fetch, so the list doesn't
+        // blank to the loading spinner.
+        const next = files.map((f) => (f.id === id ? meta : f));
+        onFilesChange(next);
+        setCachedFiles(next);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to rename diagram");
+      }
+    },
+    [files, onFilesChange],
+  );
 
   return {
     activeId,
