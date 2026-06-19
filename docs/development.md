@@ -16,12 +16,31 @@
 ## React Compiler
 React Compiler is enabled (`wxt.config.ts`'s `react.vite.babel` option, mirrored
 in `vitest.config.ts` so tests exercise the same compiled output) — manual
-`useCallback`/`useMemo` are unnecessary in new components. It runs through
-`@vitejs/plugin-react`'s `babel` option, which only exists on
+`useCallback`/`useMemo` are usually unnecessary in new components. It runs
+through `@vitejs/plugin-react`'s `babel` option, which only exists on
 `@vitejs/plugin-react@5.x` — v6 dropped Babel support for an Oxc/Rolldown-based
 React Refresh transform and requires Vite 8, which WXT (pinned to Vite 5/6)
 doesn't support yet. Don't bump `@vitejs/plugin-react` past `^5.2.0` or `vite`
 past `^6.x` until WXT itself upgrades.
+
+**Known gap:** `babel-plugin-react-compiler@1.0.0` (current `latest`) cannot
+lower *any* `finally` clause — with or without a `catch`, sync or async,
+empty or not. This is a confirmed, intentional bailout (try/catch/finally
+breaks the compiler's static control-flow analysis), tracked upstream at
+[facebook/react#34131](https://github.com/facebook/react/issues/34131); the
+silent (no build error) nature of it is its own tracked issue,
+[facebook/react#35644](https://github.com/facebook/react/issues/35644). It
+bails on the *whole enclosing hook/component*, leaving every value that hook
+returns unmemoized, with no build error. Several of this app's hooks use
+`try/finally` for async cleanup (e.g. `setIsLoading`), so don't assume
+memoization happened — if a returned function/value is read by another
+hook's `useEffect` deps array, verify its identity is actually stable (test
+with `renderHook` + `rerender()` + `toBe`) before relying on the compiler;
+wrap in `useCallback`/`useMemo` explicitly if the hook contains a `finally`.
+This caused a real infinite-reload hang once (`useDiagramLibrary`'s
+`refresh`/`onStatusChange`/`onFilesChange` feeding `useActiveDiagram`'s
+`loadInitial` effect deps) — re-check this section once upstream fixes
+#34131.
 
 ## Google OAuth (needed from Plan 2 on)
 - Create a Google Cloud project, enable the Drive API.
@@ -39,10 +58,11 @@ past `^6.x` until WXT itself upgrades.
   without it. No other Google API or key is needed — folder selection no
   longer uses the Picker (see `docs/security.md` → "Folder selection:
   app-owned folder").
-- `WXT_PUBLIC_KEY` is optional — overrides the manifest's `key` (which pins a
-  deterministic extension ID). Unset uses the project's own public key, so a
-  fresh clone builds with the same extension ID by default; set it only for
-  a fork or a different extension identity.
+- `WXT_PUBLIC_KEY` is required — it's the manifest's `key`, which pins a
+  deterministic extension ID. Ask a maintainer for the project's key, or set
+  your own for a fork or a different extension identity. The key used to
+  ship as a hardcoded fallback in `wxt.config.ts`; it now lives only in
+  `.env` (gitignored) so it isn't checked into source.
 
 ## Manual E2E checklist
 

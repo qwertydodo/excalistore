@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { ConnectionStatus } from "@/shared/api";
 import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
 import type { DiagramLibrary } from "./useDiagramLibrary";
@@ -17,24 +17,30 @@ export const useConnectFlow = ({ refresh, onStatusChange }: UseConnectFlowParams
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
-  const onConnect = async (folderName: string) => {
-    if (isConnecting) return;
-    setIsConnecting(true);
-    setConnectError(null);
-    try {
-      // Interactive sign-in + folder find/create run in the background gateway.
-      const next = await sendToBackground<ConnectionStatus>({
-        type: REQUEST_TYPE.DRIVE_CONNECT,
-        folderName,
-      });
-      onStatusChange(next);
-      if (next.connected) await refresh();
-    } catch (e) {
-      setConnectError(e instanceof Error ? e.message : "Could not connect to Google Drive");
-    } finally {
-      setIsConnecting(false);
-    }
-  };
+  // useCallback (not compiler-memoized — try/finally below, see "Known gap"
+  // in docs/development.md): onConnect is passed down as a prop, so an
+  // unstable identity churns child re-renders every render of this hook.
+  const onConnect = useCallback(
+    async (folderName: string) => {
+      if (isConnecting) return;
+      setIsConnecting(true);
+      setConnectError(null);
+      try {
+        // Interactive sign-in + folder find/create run in the background gateway.
+        const next = await sendToBackground<ConnectionStatus>({
+          type: REQUEST_TYPE.DRIVE_CONNECT,
+          folderName,
+        });
+        onStatusChange(next);
+        if (next.connected) await refresh();
+      } catch (e) {
+        setConnectError(e instanceof Error ? e.message : "Could not connect to Google Drive");
+      } finally {
+        setIsConnecting(false);
+      }
+    },
+    [isConnecting, refresh, onStatusChange],
+  );
 
   return { isConnecting, connectError, onConnect };
 };

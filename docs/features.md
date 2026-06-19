@@ -1,8 +1,21 @@
 # Features
 
 ## Next to pick up
+- Move the "Connect Google Drive" + folder-name UI from the popup into the
+  in-page panel (`entrypoints/content/ui/DiagramPanel`), so connect/folder/
+  diagram-list is all in one place; popup becomes thin status/shortcut or is
+  removed.
+- Fix connect UI styling — doesn't currently match the rest of the panel /
+  Excalidraw theme.
 - Change folder without disconnecting (currently: re-connect with a different
   folder name).
+- Create additional folders (beyond the single app-owned one) and organize
+  diagrams from the panel; open/close diagrams (clear active state) from the
+  panel.
+- Hover styling on panel items/buttons should match Excalidraw's native UI
+  (background, radius, transition) instead of looking bolted on.
+- Subfolders aren't shown — `listFolder` only returns direct children of the
+  connected folder, with no way to navigate into a subfolder.
 - Thumbnail previews.
 - Conflict resolution UI (currently blocks + warns; no reload-remote /
   overwrite / save-as flow yet).
