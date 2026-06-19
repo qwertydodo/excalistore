@@ -2,18 +2,17 @@ import { useState } from "react";
 import type { SaveStatus } from "@/features/autosave";
 import type { DriveFileMeta } from "@/shared/api";
 import { Badge, Button, Spinner, type Tone } from "@/shared/ui";
+import type { ActiveDiagram } from "../../model/useActiveDiagram";
+import { usePanelVisibility } from "../../model/usePanelVisibility";
 import { CreateDiagramForm } from "../CreateDiagramForm";
 import { DiagramRow } from "../DiagramRow";
-import { usePanelVisibility } from "../model";
 import styles from "./DiagramPanel.module.css";
 
-type Diagram = {
-  activeId: string | null;
-  saveStatus: SaveStatus;
+type Diagram = Pick<
+  ActiveDiagram,
+  "activeId" | "saveStatus" | "onOpen" | "onCreate" | "onRename"
+> & {
   error?: string | null;
-  onOpen: (id: string) => Promise<void>;
-  onCreate: (name: string) => Promise<void>;
-  onRename: (id: string, name: string) => Promise<void>;
 };
 
 type DiagramPanelProps = {

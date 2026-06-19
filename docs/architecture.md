@@ -3,10 +3,22 @@
 ## Source layout (simplified Feature-Sliced Design)
 
 `src/` is organized as simplified FSD. Layers import only from layers strictly
-below: `shared → entities → features → widgets`. `entrypoints/` (background,
-content, popup) is the app/composition root and may import from any layer.
-Slices on the same layer never import each other. Each slice exposes a barrel
+below: `shared → entities → features`. `entrypoints/` (background, content,
+popup) is the app/composition root and may import from any layer. Slices on
+the same layer never import each other. Each slice exposes a barrel
 `index.ts` as its public API.
+
+There is no `widgets` (or `pages`) layer in use: with three independent
+composition roots and no shared UI block reused across more than one of
+them, promoting a component to `widgets/` would just be ceremony. Each
+entrypoint owns its own page-local UI directly, under its own `ui/`
+(components) and `model/` (hooks) folders — e.g. `DiagramPanel` (composes
+`DiagramRow` and `CreateDiagramForm`) and `ConnectCard` live under
+`entrypoints/content/ui/`, `PopupConnect` under `entrypoints/popup/ui/`.
+Promote something to `src/widgets/` (or pull a piece out to
+`src/features/`) only once it's actually reused by a second composition
+root — until then it stays page-local and FSD's "is it imported by 2+
+slices" test for promotion just isn't met.
 
 ```
 src/
@@ -26,19 +38,18 @@ src/
     autosave/      debounced autosave controller
     session/       active-file pointer persisted across reload
     driveConnect/  FolderNameForm — connect-folder form shared by both
-                   connect widgets
-  widgets/
-    popupConnect/  popup UI
-    diagramPanel/  in-page panel UI — DiagramPanel composes DiagramRow (one
-                   list row, owns its own rename state) and CreateDiagramForm
+                   connect surfaces (panel + popup)
 entrypoints/
-  content/    mounts diagramPanel in a Shadow DOM on excalidraw.com; split
-              into mount wiring (index.tsx) and a composition root (App.tsx)
-              at the entrypoint root, one hook per concern under model/
-              (theme sync, file list, active-file + autosave + CRUD actions,
-              sign-out, connect), and the shared scene-bridge instance under
-              lib/
-  popup/      extension popup
+  content/    mounts the panel in a Shadow DOM on excalidraw.com; split into
+              mount wiring (index.tsx) and a composition root (App.tsx) at
+              the entrypoint root, one hook per concern under model/ (theme
+              sync, file list, active-file + autosave + CRUD actions,
+              panel visibility, sign-out, connect), page-local components
+              under ui/ (ConnectCard, DiagramPanel + its DiagramRow/
+              CreateDiagramForm sub-components), and the shared scene-bridge
+              instance under lib/
+  popup/      extension popup; composition root (App.tsx) + PopupConnect
+              under ui/
   background.ts  service worker; the only place holding the OAuth token
 ```
 
@@ -75,7 +86,7 @@ CSS custom properties (`--es-*`) in `shared/config/theme.css`, applied to
 background service worker. The content script and panel never hold the OAuth
 token. Panel and background communicate over typed `chrome.runtime` messages.
 
-**Message flow (popup → gateway → auth/drive):** the popup (`widgets/popupConnect`,
+**Message flow (popup → gateway → auth/drive):** the popup (`PopupConnect`,
 driven by `entrypoints/popup/App.tsx`) never calls Drive APIs directly and
 never holds the OAuth token. It collects a folder name from the user and
 sends a single typed request, `drive/connect { folderName }`, to the
@@ -119,20 +130,20 @@ render the panel into a Shadow DOM positioned fixed top-right, carrying the
 `data-theme` attribute the theme mirror updates so `:host([data-theme=...])`
 rules in `theme.css` apply. The composition component itself stays thin: each
 piece of state (file list, active-file + autosave + CRUD actions, sign-out,
-connect) lives in its own hook over a single shared `SceneBridgeDeps`
-instance, and renders `widgets/diagramPanel`'s `DiagramPanel`, keeping that
-widget presentational and FSD-clean. `files` and `isLoading` are passed to
-`DiagramPanel` as top-level props rather than folded into its `diagram` prop,
-since they belong to the file list, not to the single active diagram;
-likewise `onSignOut` is a top-level prop since sign-out is its own flow, not
-a diagram action. Whether the panel itself is shown or collapsed is owned
-entirely inside `DiagramPanel` via its own `usePanelVisibility` hook
-(`widgets/diagramPanel/model`) — that state has no dependency on the active
-diagram or the composition root, so it isn't threaded through `App` at all.
-The active-file hook is the one that stays largest: `revisionRef` and
-`activeId` genuinely couple the open/create/rename actions to the autosave
-save callback, so splitting it further would just move that coupling into
-more prop-drilling without reducing it.
+connect) lives in its own hook under `model/` over a single shared
+`SceneBridgeDeps` instance, and renders `ui/DiagramPanel`'s `DiagramPanel`,
+keeping that component presentational and FSD-clean. `files` and `isLoading`
+are passed to `DiagramPanel` as top-level props rather than folded into its
+`diagram` prop, since they belong to the file list, not to the single active
+diagram; likewise `onSignOut` is a top-level prop since sign-out is its own
+flow, not a diagram action. Whether the panel itself is shown or collapsed
+is owned entirely inside `DiagramPanel` via its own `usePanelVisibility` hook
+(`entrypoints/content/model/usePanelVisibility`) — that state has no
+dependency on the active diagram or the composition root, so it isn't
+threaded through `App` at all. The active-file hook is the one that stays
+largest: `revisionRef` and `activeId` genuinely couple the open/create/
+rename actions to the autosave save callback, so splitting it further would
+just move that coupling into more prop-drilling without reducing it.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
@@ -188,13 +199,14 @@ in isolation.
   `clearActiveFile` persist the `ActiveFile` pointer (`id`, `name`,
   `loadedRevision`) in `chrome.storage.local` so it survives the
   `writeScene`-triggered tab reload.
-- **`panel`** (`widgets/diagramPanel`, React, Shadow DOM) — presentational:
-  file list (name + modified date), active-file indicator, save-status badge,
-  inline rename (each row owns its own rename-edit state), and
-  `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The replace-canvas
-  confirm and sign-out `ConfirmDialog` are rendered by the container
-  (`entrypoints/content/App.tsx`), not the widget, since they need
-  orchestration. Mirrors Excalidraw's theme via the host's `data-theme`.
+- **`panel`** (`entrypoints/content/ui/DiagramPanel`, React, Shadow DOM) —
+  presentational: file list (name + modified date), active-file indicator,
+  save-status badge, inline rename (each row owns its own rename-edit
+  state), and `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The
+  replace-canvas confirm and sign-out `ConfirmDialog` are rendered by the
+  container (`entrypoints/content/App.tsx`), not the component, since they
+  need orchestration. Mirrors Excalidraw's theme via the host's
+  `data-theme`.
 
 ### Shared layer
 

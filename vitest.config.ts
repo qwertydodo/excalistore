@@ -20,7 +20,7 @@ export default defineConfig({
     setupFiles: ["src/test-setup.ts"],
     environmentMatchGlobs: [
       ["src/shared/ui/**", "jsdom"],
-      ["src/widgets/**", "jsdom"],
+      ["entrypoints/**/ui/**", "jsdom"],
     ],
     css: { modules: { classNameStrategy: "non-scoped" } },
     coverage: { provider: "v8", reporter: ["text", "lcov"] },

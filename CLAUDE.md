@@ -53,6 +53,15 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   This project has no `pages/` layer: it's a non-routed extension with three
   independent composition roots, not a multi-page app.
 - Slices on the same layer do not import each other.
+- `widgets/` stays empty until something is actually reused by a second
+  composition root (`entrypoints/content`, `entrypoints/popup`, ...). Until
+  then, page-local UI — components and the hooks they alone use — lives
+  directly under the owning entrypoint's own `ui/`/`model/` folders, not
+  under `src/widgets/`. A single-consumer composed block (e.g. a panel
+  composing several sub-components) is still page-local, not a widget —
+  reuse count decides the promotion, not size. Promote to `widgets/` (or
+  pull shared logic into `features/`) only once a second composition root
+  actually needs it.
 - Segments within a slice: `ui` (components), `api` (transport/contracts),
   `model` (types/state), `lib` (pure helpers), `config` (tokens/constants).
   Each segment exposes a barrel `index.ts` as its public API — import from the
