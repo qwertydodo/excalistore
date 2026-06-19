@@ -1,5 +1,5 @@
 import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD, FOLDER_MIME } from "@/shared/config";
-import type { DriveFile } from "../model";
+import type { DriveFile } from "./driveFile";
 
 // fetch is injected so the client stays pure and unit-testable.
 type Fetch = typeof fetch;

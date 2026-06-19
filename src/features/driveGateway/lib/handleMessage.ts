@@ -1,5 +1,5 @@
-import { DriveError, type DriveFile } from "@/entities/driveFile";
 import type { ConnectionStatus, DiagramContent, Request, Response } from "@/shared/api";
+import { DriveError, type DriveFile } from "@/shared/api";
 
 // Dependencies injected so the router is pure and testable. background.ts
 // supplies the real implementations.

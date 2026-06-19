@@ -18,17 +18,29 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   directory.
 
 ## Architecture (FSD)
+- Follows Feature-Sliced Design v2.1 (`.agents/skills/feature-sliced-design`,
+  installed via `npx skills add`) as the source of truth for where new code
+  belongs, on top of the project-specific conventions below.
 - Simplified Feature-Sliced Design under `src/`: layers `shared → entities →
   features → widgets` import only from layers strictly below (never sideways,
-  never up). `entrypoints/` is the app/composition root and may import any
-  layer.
+  never up). `entrypoints/` (background, content, popup) plays the role of
+  FSD's `app` layer — it's the composition root and may import any layer.
+  This project has no `pages/` layer: it's a non-routed extension with three
+  independent composition roots, not a multi-page app.
 - Slices on the same layer do not import each other.
 - Segments within a slice: `ui` (components), `api` (transport/contracts),
   `model` (types/state), `lib` (pure helpers), `config` (tokens/constants).
   Each segment exposes a barrel `index.ts` as its public API — import from the
   barrel, not internal files.
 - Module files are **camelCase** (`excalidrawFormat.ts`); React components are
-  **PascalCase** (`Button.tsx`).
+  **PascalCase** (`Button.tsx`). Name files by domain, never by technical role
+  (no `types.ts`/`utils.ts`/`helpers.ts` — e.g. `shared/api/driveFile.ts`, not
+  `model/types.ts`).
+- CRUD operations and thin DTO-only wrappers (no real business logic) belong
+  in `shared/api/`, not `entities/`. Only create an entity slice for a domain
+  model with real logic and multiple consumers (e.g. `entities/diagram`'s
+  `.excalidraw` envelope validation). A single-consumer CRUD client with no
+  domain logic — e.g. the Drive REST client — lives in `shared/api/` instead.
 - Theme tokens live in CSS custom properties (`src/shared/config/theme.css`),
   not JS objects — switch themes via the `data-theme` attribute, not by
   swapping a JS variable map.

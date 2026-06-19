@@ -15,8 +15,15 @@ src/
     ui/                    (primitive components; PascalCase + CSS Modules)
       Button/, IconButton/, Dialog/, ConfirmDialog/, TextField/,
       ListItem/, Badge/, Spinner/, index.ts
-    api/                   (cross-process RPC contracts)
-      messages.ts, messages.test.ts, index.ts
+    api/                   (cross-process RPC contracts + Drive REST client)
+      messages.ts, messages.test.ts, sendMessage.ts, sendMessage.test.ts,
+      index.ts
+      driveFile.ts            (DriveFile DTO type)
+      driveClient.ts, driveClient.test.ts  (Drive REST v3 client,
+        fetch-injected: listFolder, getMeta, getContent, createFile,
+        updateFile [conflict-guarded], renameFile, findOrCreateFolder — pure
+        CRUD with no business logic, so it lives in shared/api per FSD
+        rather than as its own entity)
     config/                (design tokens / constants)
       theme.css, theme.ts, index.ts
   entities/
@@ -28,21 +35,13 @@ src/
         which Drive file the canvas represents + the loadedRevision used by
         the autosave conflict guard)
       index.ts
-    driveFile/               (the Drive file domain entity)
-      model/
-        types.ts, index.ts             (DriveFile type)
-      api/
-        driveClient.ts, driveClient.test.ts, index.ts  (Drive REST v3 client,
-        fetch-injected: listFolder, getMeta, getContent, createFile,
-        updateFile [conflict-guarded], renameFile, findOrCreateFolder)
-      index.ts
   features/
     auth/                    (chrome.identity wrapper — background only)
       api/
         authClient.ts, authClient.test.ts, index.ts  (getToken, signOut)
       index.ts
     driveGateway/              (message router; the only consumer of auth +
-                                 driveFile from the background side)
+                                 the Drive client from the background side)
       lib/
         handleMessage.ts, handleMessage.test.ts, index.ts
       index.ts
@@ -131,11 +130,11 @@ background. `entrypoints/background.ts` registers a single
 `features/driveGateway`'s `handleMessage(req, deps)`, a pure function injected
 with `getToken`/`signOut` (`features/auth`),
 `listFolder`/`getFile`/`createFile`/`updateFile`/`renameFile`/
-`findOrCreateFolder` (`entities/driveFile`), and `getStore`/`setStore`
+`findOrCreateFolder` (`shared/api`), and `getStore`/`setStore`
 (`chrome.storage.local`). The gateway routes the full diagram read-write
 surface — `drive/get|create|update|rename`, the connect flow
 (`drive/connect`) — and `auth/*`, and is the only thing in the
-background that touches `auth` or `driveFile`; the OAuth token never leaves
+background that touches `auth` or Drive's REST client; the OAuth token never leaves
 the background worker. Before routing, the listener validates the message
 sender via `isAllowedSender` — the request must come from the extension's own
 popup page or a content script on `https://excalidraw.com/` (same
@@ -244,8 +243,10 @@ Reusable foundation everything else is built from:
   (`theme.css`) for light and dark, mirrored from Excalidraw's appState via the
   `data-theme` attribute (`THEME_ATTR`). Single source of styling for the
   primitives.
-- **`shared/api` (`messages`)** — typed request/response contracts
-  (discriminated unions) shared by content script and background.
+- **`shared/api` (`messages`, `driveClient`)** — typed request/response
+  contracts (discriminated unions) shared by content script and background,
+  plus the Drive REST v3 client (pure CRUD, fetch-injected, no business
+  logic).
 - **`entities/diagram` (`excalidrawFormat`)** — pure functions to build, parse,
   and validate the `.excalidraw` file format. No browser dependencies; fully
   unit-testable.

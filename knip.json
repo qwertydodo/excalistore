@@ -8,7 +8,6 @@
     "src/shared/api/index.ts",
     "src/shared/config/index.ts",
     "src/entities/diagram/index.ts",
-    "src/entities/driveFile/index.ts",
     "src/features/auth/index.ts",
     "src/features/sceneBridge/index.ts",
     "src/features/session/index.ts",

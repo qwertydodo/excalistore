@@ -57,7 +57,7 @@ user browse and pick an arbitrary existing folder.
 So there is no Picker. Instead, the user **types a folder name** in the popup,
 and the background gateway **finds or creates** an app-owned folder with that
 exact name via `drive.file` (`findOrCreateFolder` in
-`src/entities/driveFile/api/driveClient.ts`). The lookup only ever sees
+`src/shared/api/driveClient.ts`). The lookup only ever sees
 folders this app created, so calling connect again with the same name is
 idempotent — it reuses the existing folder rather than creating a duplicate.
 
