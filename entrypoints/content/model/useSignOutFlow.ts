@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useState } from "react";
+import { type RefObject, useState } from "react";
 import { clearScene, readScene } from "@/features/sceneBridge";
 import { clearActiveFile, clearCachedFiles } from "@/features/session";
 import type { ConnectionStatus } from "@/shared/api";
@@ -31,7 +31,7 @@ export const useSignOutFlow = ({
 }: UseSignOutFlowParams): SignOutFlow => {
   const [signOutOpen, setSignOutOpen] = useState(false);
 
-  const doSignOut = useCallback(async () => {
+  const doSignOut = async () => {
     setSignOutOpen(false);
     onActionErrorChange(null);
     // Flush the active file before clearing, per the safe sign-out contract.
@@ -58,10 +58,10 @@ export const useSignOutFlow = ({
     } catch (e) {
       onActionErrorChange(e instanceof Error ? e.message : "Failed to sign out");
     }
-  }, [activeId, revisionRef, onActiveIdChange, onStatusChange, onActionErrorChange]);
+  };
 
-  const openSignOut = useCallback(() => setSignOutOpen(true), []);
-  const cancelSignOut = useCallback(() => setSignOutOpen(false), []);
+  const openSignOut = () => setSignOutOpen(true);
+  const cancelSignOut = () => setSignOutOpen(false);
 
   return { signOutOpen, openSignOut, cancelSignOut, doSignOut };
 };

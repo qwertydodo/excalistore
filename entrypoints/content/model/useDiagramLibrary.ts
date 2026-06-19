@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { setCachedFiles } from "@/features/session";
 import type { ConnectionStatus, DriveFileMeta } from "@/shared/api";
 import { ERROR_CODE, REQUEST_TYPE, RequestError, sendToBackground } from "@/shared/api";
@@ -19,10 +19,10 @@ export const useDiagramLibrary = (): DiagramLibrary => {
   const [files, setFiles] = useState<DriveFileMeta[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const onStatusChange = useCallback((next: ConnectionStatus) => setStatus(next), []);
-  const onFilesChange = useCallback((next: DriveFileMeta[]) => setFiles(next), []);
+  const onStatusChange = (next: ConnectionStatus) => setStatus(next);
+  const onFilesChange = (next: DriveFileMeta[]) => setFiles(next);
 
-  const refresh = useCallback(async (): Promise<DriveFileMeta[]> => {
+  const refresh = async (): Promise<DriveFileMeta[]> => {
     setLoading(true);
     try {
       const list = await sendToBackground<DriveFileMeta[]>({ type: REQUEST_TYPE.DRIVE_LIST });
@@ -37,7 +37,7 @@ export const useDiagramLibrary = (): DiagramLibrary => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   return { status, onStatusChange, files, onFilesChange, loading, refresh };
 };
