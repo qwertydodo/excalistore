@@ -68,3 +68,53 @@ The trust boundary:
 
 No other remote script, style, or resource is permitted anywhere in the
 extension outside this sandboxed page.
+
+### Sandbox CSP constraints (MV3)
+
+Two non-obvious Chrome rules shape `content_security_policy.sandbox`:
+
+- **`allow-same-origin` is forbidden** alongside `allow-scripts` in an
+  extension sandbox — Chrome rejects the whole manifest ("Invalid value for
+  content_security_policy.sandbox") because that combination would let the
+  sandbox escape its isolation. The sandbox therefore runs with an **opaque
+  origin**, which is fine: Picker works without it and `postMessage` is
+  origin-independent.
+- **Only the `sandbox` / `script-src` / `child-src` directive family is
+  accepted.** `connect-src`, `img-src`, `style-src` cause the same "Invalid
+  value" rejection. Omitting them is intentional and *safe*: with no
+  `default-src` set, those resource types are simply unrestricted within the
+  already-isolated sandbox, which is what Picker's XHR/image/style traffic
+  needs.
+
+## Picker API key: threat model and restrictions
+
+The Google Picker requires a browser API key (`WXT_PICKER_API_KEY`), inlined
+into the build. Treat it as **public, not secret** — it ships inside the
+extension bundle and is extractable from any installed/published copy. That is
+acceptable because **the key is not a credential**: on its own it grants no
+access to any user's data. It only identifies the Cloud project to the Picker
+service for quota purposes. All actual Drive access flows through the per-user
+OAuth token (`drive.file`), which is separate from the key and never embedded
+in it.
+
+Worst case if the key is extracted: a third party can consume **this project's
+Picker API quota**. No Drive data, no other API, no billing surprise (if quota
+is capped). Defenses, in order of effectiveness:
+
+1. **API restriction → Google Picker API only.** Always set. Caps a leaked
+   key's reach to one harmless API.
+2. **Quota cap** (Cloud Console → Picker API → Quotas). The real safety lever —
+   bounds any abuse to a chosen ceiling. Set a low daily limit for a personal
+   deployment.
+3. **Application restriction does NOT apply here.** An HTTP-referrer
+   restriction such as `chrome-extension://<id>/*` **cannot** be used: the
+   Picker runs in the sandboxed page, whose **opaque origin** sends no matching
+   referrer, so Google rejects the key with *"The API developer key is
+   invalid."* The key's Application restriction must be **None**. This is not a
+   weakening — a referrer restriction was never real protection for a
+   client-side key bundled in the extension, and the sandbox makes it
+   technically impossible anyway.
+
+For a published release, defense-in-depth means a **separate key (or Cloud
+project) for prod** with its own quota + monitoring — not a referrer
+restriction.
