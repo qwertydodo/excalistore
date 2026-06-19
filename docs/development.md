@@ -2,7 +2,8 @@
 
 ## Setup
 1. `npm install`
-2. `npm run dev` — starts WXT dev; load `.output/chrome-mv3` as an unpacked
+2. `cp .env.example .env` and fill in values (see "Google OAuth" below).
+3. `npm run dev` — starts WXT dev; load `.output/chrome-mv3` as an unpacked
    extension at `chrome://extensions` (Developer mode on).
 
 ## Commands
@@ -22,11 +23,16 @@
 - Add the client id to `wxt.config.ts` manifest `oauth2` with scope
   `https://www.googleapis.com/auth/drive.file`.
 - Set `WXT_OAUTH_CLIENT_ID` (the OAuth client id) in a local `.env` file at
-  the repo root — `.env` is gitignored and never committed. `wxt.config.ts`
-  reads `import.meta.env.WXT_OAUTH_CLIENT_ID` at build time with a
-  placeholder fallback so the project still builds without it. No other
-  Google API or key is needed — folder selection no longer uses the Picker
-  (see `docs/security.md` → "Folder selection: app-owned folder").
+  the repo root — `.env` is gitignored and never committed (`.env.example`
+  documents both vars). `wxt.config.ts` reads `import.meta.env.WXT_OAUTH_CLIENT_ID`
+  at build time with a placeholder fallback so the project still builds
+  without it. No other Google API or key is needed — folder selection no
+  longer uses the Picker (see `docs/security.md` → "Folder selection:
+  app-owned folder").
+- `WXT_PUBLIC_KEY` is optional — overrides the manifest's `key` (which pins a
+  deterministic extension ID). Unset uses the project's own public key, so a
+  fresh clone builds with the same extension ID by default; set it only for
+  a fork or a different extension identity.
 
 ## Manual E2E checklist
 
