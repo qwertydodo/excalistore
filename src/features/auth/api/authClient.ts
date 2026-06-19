@@ -6,7 +6,7 @@ type Fetch = typeof fetch;
 // account — no client secret. lastError is checked to surface user denial.
 let inflightSilent: Promise<string> | null = null;
 
-export function getToken(interactive: boolean): Promise<string> {
+export const getToken = (interactive: boolean): Promise<string> => {
   // Dedupe concurrent silent refreshes — gateway messages each call getToken.
   if (!interactive && inflightSilent) return inflightSilent;
   const p = new Promise<string>((resolve, reject) => {
@@ -25,14 +25,14 @@ export function getToken(interactive: boolean): Promise<string> {
   });
   if (!interactive) {
     inflightSilent = p;
-    void p.finally(() => {
+    p.finally(() => {
       inflightSilent = null;
     });
   }
   return p;
-}
+};
 
-export function signOut(token: string, f: Fetch = fetch): Promise<void> {
+export const signOut = (token: string, f: Fetch = fetch): Promise<void> => {
   return new Promise((resolve) => {
     let settled = false;
     const done = () => {
@@ -44,7 +44,7 @@ export function signOut(token: string, f: Fetch = fetch): Promise<void> {
     const fallback = setTimeout(done, 3_000);
     chrome.identity.removeCachedAuthToken({ token }, () => {
       // Best-effort revoke; resolve regardless so sign-out always completes.
-      void f(`${OAUTH_REVOKE}?token=${token}`, { method: "POST" })
+      f(`${OAUTH_REVOKE}?token=${token}`, { method: "POST" })
         .catch(() => undefined)
         .finally(() => {
           clearTimeout(fallback);
@@ -52,4 +52,4 @@ export function signOut(token: string, f: Fetch = fetch): Promise<void> {
         });
     });
   });
-}
+};

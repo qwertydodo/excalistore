@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import styles from "./ListItem.module.css";
 
-interface Props {
+type Props = {
   active?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   children: ReactNode;
-}
+};
 
-export function ListItem({ active = false, disabled = false, onClick, children }: Props) {
+export const ListItem = ({ active = false, disabled = false, onClick, children }: Props) => {
   return (
     <button
       type="button"
@@ -19,4 +19,4 @@ export function ListItem({ active = false, disabled = false, onClick, children }
       {children}
     </button>
   );
-}
+};

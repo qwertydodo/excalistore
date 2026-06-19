@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import styles from "./Dialog.module.css";
 
-interface Props {
+type Props = {
   title: string;
   children: ReactNode;
   onClose?: () => void;
-}
+};
 
-export function Dialog({ title, children, onClose }: Props) {
+export const Dialog = ({ title, children, onClose }: Props) => {
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-dismiss is a mouse convenience; content is keyboard-dismissible via dialog buttons.
     <div
@@ -25,4 +25,4 @@ export function Dialog({ title, children, onClose }: Props) {
       </div>
     </div>
   );
-}
+};

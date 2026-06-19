@@ -88,6 +88,19 @@ field — can't type normally (e.g. pressing a letter selects a tool).
   input focus from Excalidraw's document-level shortcut listeners.
 - Verify across the folder-name field, create-diagram field, and rename field.
 
+## 8. `useThemeSync` polls every 1s — wasteful
+
+`useThemeSync` (`entrypoints/content/model/useThemeSync.ts`) mirrors Excalidraw's
+theme onto the shadow host via a 1s `setInterval` poll. This is necessary today
+— Excalidraw exposes no theme-change event — but wasteful for something that
+changes rarely (only on explicit user theme toggle).
+
+- Candidate fix: an event-driven rewrite, e.g. a `storage` event listener (if
+  Excalidraw's theme lives in `localStorage` and fires that event) instead of
+  polling.
+- Needs manual in-browser verification across isolated worlds (content script
+  vs. page) before changing — not done in this pass.
+
 ---
 
 ## Notes / open questions

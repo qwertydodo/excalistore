@@ -15,5 +15,10 @@
     "src/widgets/diagramPanel/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
-  "ignoreDependencies": ["@wxt-dev/module-react"]
+  "ignoreDependencies": [
+    "@wxt-dev/module-react",
+    "@babel/core",
+    "@types/babel__core",
+    "babel-plugin-react-compiler"
+  ]
 }

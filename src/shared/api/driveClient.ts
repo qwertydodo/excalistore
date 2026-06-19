@@ -6,23 +6,23 @@ type Fetch = typeof fetch;
 
 const FIELDS = "id,name,modifiedTime,headRevisionId";
 
-function authHeaders(token: string): Record<string, string> {
+const authHeaders = (token: string): Record<string, string> => {
   return { Authorization: `Bearer ${token}` };
-}
+};
 
 // Drive query strings wrap values in single quotes; escape backslash first,
 // then the quote, so a value can't break out of the quoted literal.
-function escapeQueryValue(value: string): string {
+const escapeQueryValue = (value: string): string => {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-}
+};
 
 // Abort any Drive request that stalls past this, so the autosave/save pipeline
 // can't wedge on a hung connection.
 const REQUEST_TIMEOUT_MS = 15_000;
 
-function timed(init: RequestInit = {}): RequestInit {
+const timed = (init: RequestInit = {}): RequestInit => {
   return { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) };
-}
+};
 
 // Carries the HTTP status so the gateway can classify auth failures (401/403)
 // without string-matching the message.
@@ -35,16 +35,16 @@ export class DriveError extends Error {
   }
 }
 
-async function asJson<T>(res: Response): Promise<T> {
+const asJson = async <T>(res: Response): Promise<T> => {
   if (!res.ok) throw new DriveError(res.status, `Drive request failed: ${res.status}`);
   return (await res.json()) as T;
-}
+};
 
-export async function listFolder(
+export const listFolder = async (
   token: string,
   folderId: string,
   f: Fetch = fetch,
-): Promise<DriveFile[]> {
+): Promise<DriveFile[]> => {
   const q = encodeURIComponent(
     `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
   ).replace(/%20/g, "+");
@@ -60,26 +60,26 @@ export async function listFolder(
     pageToken = data.nextPageToken;
   } while (pageToken);
   return out;
-}
+};
 
-export async function getMeta(token: string, id: string, f: Fetch = fetch): Promise<DriveFile> {
+export const getMeta = async (token: string, id: string, f: Fetch = fetch): Promise<DriveFile> => {
   const url = `${DRIVE_API}/files/${id}?fields=${FIELDS}`;
   return asJson<DriveFile>(await f(url, timed({ headers: authHeaders(token) })));
-}
+};
 
-export async function getContent(token: string, id: string, f: Fetch = fetch): Promise<string> {
+export const getContent = async (token: string, id: string, f: Fetch = fetch): Promise<string> => {
   const res = await f(`${DRIVE_API}/files/${id}?alt=media`, timed({ headers: authHeaders(token) }));
   if (!res.ok) throw new DriveError(res.status, `Drive content fetch failed: ${res.status}`);
   return res.text();
-}
+};
 
-export async function createFile(
+export const createFile = async (
   token: string,
   name: string,
   folderId: string,
   content: string,
   f: Fetch = fetch,
-): Promise<DriveFile> {
+): Promise<DriveFile> => {
   const boundary = `es-${crypto.randomUUID()}`;
   const metadata = { name, parents: [folderId], mimeType: DIAGRAM_MIME };
   const body =
@@ -100,15 +100,15 @@ export async function createFile(
     }),
   );
   return asJson<DriveFile>(res);
-}
+};
 
-export async function updateFile(
+export const updateFile = async (
   token: string,
   id: string,
   content: string,
   prevRevision: string,
   f: Fetch = fetch,
-): Promise<DriveFile> {
+): Promise<DriveFile> => {
   // Conflict guard: refuse to overwrite if remote moved since we loaded it.
   const current = await getMeta(token, id, f);
   if (current.headRevisionId !== prevRevision) {
@@ -124,14 +124,14 @@ export async function updateFile(
     }),
   );
   return asJson<DriveFile>(res);
-}
+};
 
-export async function renameFile(
+export const renameFile = async (
   token: string,
   id: string,
   name: string,
   f: Fetch = fetch,
-): Promise<DriveFile> {
+): Promise<DriveFile> => {
   const url = `${DRIVE_API}/files/${id}?fields=${FIELDS}`;
   const res = await f(
     url,
@@ -142,15 +142,15 @@ export async function renameFile(
     }),
   );
   return asJson<DriveFile>(res);
-}
+};
 
 // Find an app-owned folder by exact name, or create it. Under drive.file the
 // list only returns folders this app created, so this is idempotent per name.
-export async function findOrCreateFolder(
+export const findOrCreateFolder = async (
   token: string,
   name: string,
   f: Fetch = fetch,
-): Promise<{ id: string; name: string }> {
+): Promise<{ id: string; name: string }> => {
   const safe = escapeQueryValue(name);
   const q = encodeURIComponent(
     `mimeType='${FOLDER_MIME}' and name='${safe}' and trashed=false`,
@@ -173,4 +173,4 @@ export async function findOrCreateFolder(
     ),
   );
   return { id: created.id, name: created.name };
-}
+};

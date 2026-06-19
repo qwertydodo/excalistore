@@ -13,6 +13,16 @@
 - `npm run compile` — TypeScript typecheck.
 - `npm run knip` — dead-code check.
 
+## React Compiler
+React Compiler is enabled (`wxt.config.ts`'s `react.vite.babel` option, mirrored
+in `vitest.config.ts` so tests exercise the same compiled output) — manual
+`useCallback`/`useMemo` are unnecessary in new components. It runs through
+`@vitejs/plugin-react`'s `babel` option, which only exists on
+`@vitejs/plugin-react@5.x` — v6 dropped Babel support for an Oxc/Rolldown-based
+React Refresh transform and requires Vite 8, which WXT (pinned to Vite 5/6)
+doesn't support yet. Don't bump `@vitejs/plugin-react` past `^5.2.0` or `vite`
+past `^6.x` until WXT itself upgrades.
+
 ## Google OAuth (needed from Plan 2 on)
 - Create a Google Cloud project, enable the Drive API.
 - Load the extension unpacked once (`npm run build`, load

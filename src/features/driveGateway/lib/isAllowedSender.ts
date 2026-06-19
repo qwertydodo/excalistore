@@ -6,18 +6,18 @@ import { EXCALIDRAW_ORIGIN } from "@/shared/config";
 // would also pass startsWith.
 const EXCALIDRAW_ORIGIN_PREFIX = `${EXCALIDRAW_ORIGIN}/`;
 
-interface SenderLike {
+type SenderLike = {
   id?: string;
   url?: string;
-}
+};
 
-interface SenderOpts {
+type SenderOpts = {
   extensionId: string;
   popupUrl: string;
-}
+};
 
-export function isAllowedSender(sender: SenderLike, opts: SenderOpts): boolean {
+export const isAllowedSender = (sender: SenderLike, opts: SenderOpts): boolean => {
   if (sender.id !== opts.extensionId) return false;
   const url = sender.url ?? "";
   return url.startsWith(EXCALIDRAW_ORIGIN_PREFIX) || url.startsWith(opts.popupUrl);
-}
+};

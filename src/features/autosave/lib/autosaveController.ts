@@ -1,26 +1,36 @@
-export type SaveStatus = "idle" | "saving" | "saved" | "error" | "conflict";
+import type { ValueOf } from "@/shared/lib";
 
-export interface AutosaveOptions {
+export const SAVE_STATUS = {
+  IDLE: "idle",
+  SAVING: "saving",
+  SAVED: "saved",
+  ERROR: "error",
+  CONFLICT: "conflict",
+} as const;
+
+export type SaveStatus = ValueOf<typeof SAVE_STATUS>;
+
+export type AutosaveOptions = {
   getHash: () => Promise<string>;
   save: () => Promise<void>;
   onStatus: (status: SaveStatus) => void;
   delayMs?: number;
   pollMs?: number;
   now?: () => number;
-}
+};
 
-export interface AutosaveController {
+export type AutosaveController = {
   start: () => void;
   stop: () => void;
   tick: () => Promise<void>;
   flush: () => Promise<void>;
   markSaved: (hash: string) => void;
-}
+};
 
 // Debounced autosave: a change must persist for delayMs before we write, so we
 // don't spam Drive mid-stroke. Clock + tick are injectable for deterministic
 // tests; start() drives tick on a real interval.
-export function createAutosave(opts: AutosaveOptions): AutosaveController {
+export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
   const delayMs = opts.delayMs ?? 2500;
   const pollMs = opts.pollMs ?? 1000;
   const now = opts.now ?? Date.now;
@@ -30,22 +40,24 @@ export function createAutosave(opts: AutosaveOptions): AutosaveController {
   let saving = false;
   let timer: ReturnType<typeof setInterval> | null = null;
 
-  async function runSave(hash: string): Promise<void> {
+  const runSave = async (hash: string): Promise<void> => {
     saving = true;
-    opts.onStatus("saving");
+    opts.onStatus(SAVE_STATUS.SAVING);
     try {
       await opts.save();
       savedHash = hash;
       dirtySince = null;
-      opts.onStatus("saved");
+      opts.onStatus(SAVE_STATUS.SAVED);
     } catch (e) {
-      opts.onStatus(/conflict/i.test((e as Error).message) ? "conflict" : "error");
+      opts.onStatus(
+        /conflict/i.test((e as Error).message) ? SAVE_STATUS.CONFLICT : SAVE_STATUS.ERROR,
+      );
     } finally {
       saving = false;
     }
-  }
+  };
 
-  async function tick(): Promise<void> {
+  const tick = async (): Promise<void> => {
     if (saving) return;
     const hash = await opts.getHash();
     if (savedHash === null) {
@@ -58,17 +70,20 @@ export function createAutosave(opts: AutosaveOptions): AutosaveController {
     }
     if (dirtySince === null) dirtySince = now();
     if (now() - dirtySince >= delayMs) await runSave(hash);
-  }
+  };
 
-  async function flush(): Promise<void> {
+  const flush = async (): Promise<void> => {
     if (saving) return;
     const hash = await opts.getHash();
     if (savedHash !== null && hash !== savedHash) await runSave(hash);
-  }
+  };
 
   return {
     start() {
-      if (timer === null) timer = setInterval(() => void tick(), pollMs);
+      if (timer === null)
+        timer = setInterval(() => {
+          tick();
+        }, pollMs);
     },
     stop() {
       if (timer !== null) {
@@ -83,4 +98,4 @@ export function createAutosave(opts: AutosaveOptions): AutosaveController {
       dirtySince = null;
     },
   };
-}
+};

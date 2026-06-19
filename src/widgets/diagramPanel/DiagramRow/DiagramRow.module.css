@@ -1,0 +1,34 @@
+.listRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.listRow > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  flex-shrink: 0;
+  color: var(--es-muted);
+  font-size: 11px;
+}
+.renameBtn {
+  border: none;
+  background: none;
+  color: var(--es-accent);
+  cursor: pointer;
+  font-size: 11px;
+}
+.renameRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}

@@ -45,6 +45,20 @@ function srcAlias() {
 // host_permissions limited to excalidraw.com and Google APIs only.
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  // React Compiler auto-memoizes components/hooks, so app code shouldn't
+  // need manual useCallback/useMemo. @vitejs/plugin-react is pinned to ^5
+  // (devDependencies) specifically because v6 dropped this `babel` option in
+  // favor of a Rolldown-only integration WXT's bundled vite 6.x can't use;
+  // v5's `babel` option runs in both dev and prod. target: "19" uses React
+  // 19's built-in compiler runtime exports — no react-compiler-runtime
+  // polyfill needed.
+  react: {
+    vite: {
+      babel: {
+        plugins: [["babel-plugin-react-compiler", { target: "19" }]],
+      },
+    },
+  },
   vite: () => ({
     plugins: [srcAlias()],
   }),
