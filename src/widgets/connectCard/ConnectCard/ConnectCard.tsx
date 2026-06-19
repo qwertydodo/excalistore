@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DEFAULT_DIAGRAM_FOLDER_NAME } from "@/shared/config/drive";
 import { Button, TextField } from "@/shared/ui";
 import styles from "./ConnectCard.module.css";
 
@@ -8,13 +9,11 @@ interface Props {
   onConnect: (folderName: string) => void;
 }
 
-const DEFAULT_FOLDER = "Excalidraw Diagrams";
-
 // In-page (Shadow DOM) connect card shown on excalidraw.com before a folder is
 // connected. Keyboard events are stopped at the root so typing the folder name
 // doesn't trigger Excalidraw's tool shortcuts.
 export function ConnectCard({ busy = false, error = null, onConnect }: Props) {
-  const [name, setName] = useState(DEFAULT_FOLDER);
+  const [name, setName] = useState(DEFAULT_DIAGRAM_FOLDER_NAME);
 
   return (
     <section
@@ -29,7 +28,7 @@ export function ConnectCard({ busy = false, error = null, onConnect }: Props) {
         className={styles.form}
         onSubmit={(e) => {
           e.preventDefault();
-          if (!busy) onConnect(name.trim() || DEFAULT_FOLDER);
+          if (!busy) onConnect(name.trim() || DEFAULT_DIAGRAM_FOLDER_NAME);
         }}
       >
         <label className={styles.label} htmlFor="es-connect-folder">

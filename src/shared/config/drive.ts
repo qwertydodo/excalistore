@@ -12,3 +12,5 @@ export const DIAGRAM_MIME = "application/json";
 export const DIAGRAM_EXT = ".excalidraw";
 // Google Drive's folder MIME type.
 export const FOLDER_MIME = "application/vnd.google-apps.folder";
+// Default folder name offered when connecting (user may rename).
+export const DEFAULT_DIAGRAM_FOLDER_NAME = "Excalidraw Diagrams";
