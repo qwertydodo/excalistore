@@ -27,6 +27,7 @@ function readJson<T>(storage: Storage, key: string, fallback: T): T {
   try {
     return JSON.parse(raw) as T;
   } catch {
+    console.warn(`[excalistore] corrupt JSON in localStorage["${key}"]; using fallback`);
     return fallback;
   }
 }
@@ -43,9 +44,11 @@ export async function readScene(deps: SceneBridgeDeps): Promise<ExcalidrawFile> 
 // Excalidraw restores from storage. Validation is the security boundary.
 export async function writeScene(file: ExcalidrawFile, deps: SceneBridgeDeps): Promise<void> {
   validateExcalidrawFile(file);
+  // Persist binaries first: if this throws (quota/IDB), localStorage is left
+  // untouched so the next reload still reads a self-consistent old scene.
+  await deps.saveFiles(file.files);
   deps.storage.setItem(ELEMENTS_KEY, JSON.stringify(file.elements));
   deps.storage.setItem(STATE_KEY, JSON.stringify(file.appState));
-  await deps.saveFiles(file.files);
   deps.reload();
 }
 

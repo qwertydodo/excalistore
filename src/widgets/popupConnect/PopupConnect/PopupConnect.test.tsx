@@ -29,4 +29,18 @@ describe("PopupConnect", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });
+
+  it("disables the connect button and shows an error while busy/failed", () => {
+    render(
+      <PopupConnect
+        status={{ connected: false }}
+        busy
+        error="Sign-in was cancelled"
+        onConnect={vi.fn()}
+        onSignOut={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /connect/i })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Sign-in was cancelled");
+  });
 });

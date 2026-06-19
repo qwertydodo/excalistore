@@ -42,4 +42,11 @@ describe("activeFileStore", () => {
     await clearActiveFile();
     await expect(getActiveFile()).resolves.toBeNull();
   });
+
+  it("returns null when storage.get rejects", async () => {
+    local.get.mockImplementationOnce(async () => {
+      throw new Error("context invalidated");
+    });
+    await expect(getActiveFile()).resolves.toBeNull();
+  });
 });

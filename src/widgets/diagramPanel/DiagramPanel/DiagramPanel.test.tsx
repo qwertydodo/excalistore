@@ -56,4 +56,9 @@ describe("DiagramPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });
+
+  it("renders an error banner when error is set", () => {
+    render(<DiagramPanel {...props({ error: "Could not open diagram" })} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
+  });
 });

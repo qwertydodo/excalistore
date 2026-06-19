@@ -8,7 +8,7 @@ import {
   updateFile,
 } from "@/entities/driveFile";
 import { getToken, signOut } from "@/features/auth";
-import { type GatewayDeps, handleMessage } from "@/features/driveGateway";
+import { type GatewayDeps, handleMessage, isAllowedSender } from "@/features/driveGateway";
 import type { ConnectionStatus, Request } from "@/shared/api";
 
 // Background service worker — trusted core. Holds the only access to the
@@ -35,8 +35,17 @@ const deps: GatewayDeps = {
 };
 
 export default defineBackground(() => {
-  chrome.runtime.onMessage.addListener((req: Request, _sender, sendResponse) => {
-    handleMessage(req, deps).then(sendResponse);
+  const popupUrl = chrome.runtime.getURL("popup.html");
+  chrome.runtime.onMessage.addListener((req: Request, sender, sendResponse) => {
+    if (!isAllowedSender(sender, { extensionId: chrome.runtime.id, popupUrl })) {
+      sendResponse({ ok: false, error: "forbidden sender", code: "unknown" });
+      return false;
+    }
+    handleMessage(req, deps)
+      .then(sendResponse)
+      .catch((e: unknown) =>
+        sendResponse({ ok: false, error: (e as Error).message, code: "unknown" }),
+      );
     return true; // async response
   });
 });

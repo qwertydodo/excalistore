@@ -48,14 +48,24 @@ _(Move items here as they ship, with a short behavior description.)_
   ~2.5s, written to Drive via `drive/update` with the loaded revision as the
   conflict guard. If the remote `headRevisionId` no longer matches, the save
   is rejected and the badge shows "Conflict — not saved" — no silent
-  overwrite; conflict resolution UI is deferred.
+  overwrite; conflict resolution UI is deferred. Autosave also flushes any
+  pending change when the active file changes or the panel unmounts, so
+  switching diagrams doesn't drop debounced edits.
+- Action error feedback: failed open/create/rename/sign-out (and popup
+  connect/sign-out) surface the error message in-panel instead of failing
+  silently; the connect button is disabled while a connect is in flight, so a
+  double-click can't create duplicate folders.
+- Stale-pointer safety: on load, a restored active-file pointer is adopted only
+  if it's still in the connected folder's file list; otherwise it's dropped (so
+  a pointer from a previous account/folder can't drive saves to a stale id).
 - Safe sign-out: confirms with the user, flushes (saves) the active file,
   clears the local canvas (storage + IndexedDB binaries) and reloads, then
   revokes the cached OAuth token and clears the stored connection + active
   file.
-- Involuntary-logout handling: a `401` from the gateway (token expired or
-  revoked externally) marks the panel disconnected without touching the
-  local canvas — distinct from explicit sign-out, which clears it.
+- Involuntary-logout handling: an auth failure from the gateway — a Drive
+  `401`/`403` (e.g. "insufficient scopes") or a failed silent token refresh,
+  classified as `unauthorized` — marks the panel disconnected without touching
+  the local canvas, distinct from explicit sign-out, which clears it.
 - Theme mirror: the panel polls Excalidraw's `appState.theme` and mirrors it
   onto the Shadow DOM host's `data-theme` attribute so the panel's CSS
   variables track light/dark within ~1s.

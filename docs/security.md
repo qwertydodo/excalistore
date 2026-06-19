@@ -9,6 +9,20 @@
 - **Token never leaves the background worker**, is never logged, and is never
   exposed to the content script or the popup. Chrome owns the token cache.
 - **All Google API calls happen in the background worker only.**
+- **Message-sender allowlist.** The background `onMessage` listener validates
+  every request's sender (`isAllowedSender`) before acting: it must carry the
+  extension's own `chrome.runtime.id` and originate from the popup page or a
+  content script on `https://excalidraw.com/`. Other senders get `forbidden
+  sender`. The unused, unvalidated `drive/setConnection` message (which let any
+  caller overwrite the stored connection) has been removed entirely.
+- **Drive query escaping.** Folder names and ids interpolated into Drive `q`
+  search strings escape `\` then `'`, so a crafted name can't break out of the
+  quoted literal.
+- **Multipart upload integrity.** `createFile` uses a random per-request
+  boundary (`es-<uuid>`), so user `.excalidraw` content can't collide with or
+  inject into the multipart body.
+- **Request timeouts.** Every Drive `fetch` carries a 15s `AbortSignal.timeout`,
+  so a hung request can't wedge the autosave/save pipeline.
 - **No remote code anywhere.** `content_security_policy.extension_pages` is
   `script-src 'self'; object-src 'self';` — no per-origin exceptions, no
   sandboxed page, nothing loaded from a CDN or Google's own script hosts.
@@ -17,7 +31,12 @@
   validated against a schema before being written into page storage, preventing
   injection of malformed or hostile data into Excalidraw.
 - **Conflict guard:** `headRevisionId` is checked before `updateFile` — no silent
-  remote overwrite.
+  remote overwrite. **Known limitation:** this is best-effort optimistic
+  concurrency. The Drive v3 API has no `If-Match` precondition for
+  `files.update`, so a second writer that commits in the window between the
+  revision check and the `PATCH` can still clobber it — two tabs/devices editing
+  one file is effectively last-write-wins. The guard catches staleness known
+  before the request, not a concurrent writer racing that window.
 - **Destructive actions confirmed:** replace-canvas, sign-out (and later,
   delete).
 - **`web_accessible_resources` minimized** to only what the content script must

@@ -28,6 +28,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [loading, setLoading] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const revisionRef = useRef<string | null>(null);
 
   // Mirror Excalidraw's theme onto the shadow host.
@@ -38,15 +39,17 @@ function PanelApp({ host }: { host: HTMLElement }) {
     return () => clearInterval(id);
   }, [host]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<DriveFileMeta[]> => {
     setLoading(true);
     try {
       const list = await sendToBackground<DriveFileMeta[]>({ type: "drive/list" });
       setFiles(list);
+      return list;
     } catch (e) {
       if (e instanceof RequestError && e.code === "unauthorized") {
         setStatus({ connected: false });
       }
+      return [];
     } finally {
       setLoading(false);
     }
@@ -60,11 +63,14 @@ function PanelApp({ host }: { host: HTMLElement }) {
       );
       setStatus(s);
       const active = await getActiveFile();
-      if (active) {
+      const list = s.connected ? await refresh() : [];
+      if (active && list.some((f) => f.id === active.id)) {
         setActiveId(active.id);
         revisionRef.current = active.loadedRevision;
+      } else if (active) {
+        // Stale pointer (different account/folder, or deleted) — drop it.
+        await clearActiveFile();
       }
-      if (s.connected) await refresh();
     })();
   }, [refresh]);
 
@@ -86,41 +92,66 @@ function PanelApp({ host }: { host: HTMLElement }) {
       },
       onStatus: setSaveStatus,
     });
-    void currentSceneHash(bridge).then((h) => autosave.markSaved(h));
-    autosave.start();
-    return () => autosave.stop();
+    let stopped = false;
+    // Establish the saved baseline before the first tick can fire.
+    void currentSceneHash(bridge).then((h) => {
+      if (stopped) return;
+      autosave.markSaved(h);
+      autosave.start();
+    });
+    return () => {
+      stopped = true;
+      void autosave.flush();
+      autosave.stop();
+    };
   }, [activeId]);
 
   const onOpen = useCallback(async (id: string) => {
-    const { meta, content } = await sendToBackground<DiagramContent>({ type: "drive/get", id });
-    const file = parseExcalidrawFile(content); // validates before write
-    await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-    await writeScene(file, bridge); // reloads the tab
+    setActionError(null);
+    try {
+      const { meta, content } = await sendToBackground<DiagramContent>({ type: "drive/get", id });
+      const file = parseExcalidrawFile(content); // validates before write
+      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+      await writeScene(file, bridge); // reloads the tab
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to open diagram");
+    }
   }, []);
 
   const onCreate = useCallback(async (name: string) => {
-    const fileName = name.endsWith(".excalidraw") ? name : `${name}.excalidraw`;
-    const empty = buildExcalidrawFile([], { theme: readTheme(bridge) }, {});
-    const meta = await sendToBackground<DriveFileMeta>({
-      type: "drive/create",
-      name: fileName,
-      content: JSON.stringify(empty),
-    });
-    await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-    await writeScene(empty, bridge); // reloads
+    setActionError(null);
+    try {
+      const fileName = name.endsWith(".excalidraw") ? name : `${name}.excalidraw`;
+      const empty = buildExcalidrawFile([], { theme: readTheme(bridge) }, {});
+      const meta = await sendToBackground<DriveFileMeta>({
+        type: "drive/create",
+        name: fileName,
+        content: JSON.stringify(empty),
+      });
+      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+      await writeScene(empty, bridge); // reloads
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to create diagram");
+    }
   }, []);
 
   const onRename = useCallback(
     async (id: string, name: string) => {
-      const fileName = name.endsWith(".excalidraw") ? name : `${name}.excalidraw`;
-      await sendToBackground<DriveFileMeta>({ type: "drive/rename", id, name: fileName });
-      await refresh();
+      setActionError(null);
+      try {
+        const fileName = name.endsWith(".excalidraw") ? name : `${name}.excalidraw`;
+        await sendToBackground<DriveFileMeta>({ type: "drive/rename", id, name: fileName });
+        await refresh();
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to rename diagram");
+      }
     },
     [refresh],
   );
 
   const doSignOut = useCallback(async () => {
     setSignOutOpen(false);
+    setActionError(null);
     // Flush the active file before clearing, per the safe sign-out contract.
     if (activeId) {
       try {
@@ -135,19 +166,20 @@ function PanelApp({ host }: { host: HTMLElement }) {
         // Best-effort flush; sign-out proceeds regardless.
       }
     }
-    await sendToBackground({ type: "auth/signOut" });
-    await clearActiveFile();
-    setStatus({ connected: false });
-    setActiveId(null);
-    await clearScene(bridge); // clears canvas + reloads
+    try {
+      await sendToBackground({ type: "auth/signOut" });
+      await clearActiveFile();
+      setStatus({ connected: false });
+      setActiveId(null);
+      await clearScene(bridge); // clears canvas + reloads
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to sign out");
+    }
   }, [activeId]);
 
   if (!status.connected) {
     return (
-      // Dynamic-value exception (see CLAUDE.md): this disconnected state has no
-      // colocated CSS Module in the entrypoints/ app layer, and the rule needed
-      // here (panel-like padding + system font) isn't worth a one-off module.
-      <p style={{ padding: 12, font: "13px system-ui" }}>
+      <p className="es-disconnected">
         Excalistore: open the extension popup to connect Google Drive.
       </p>
     );
@@ -160,6 +192,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
         activeId={activeId}
         saveStatus={saveStatus}
         loading={loading}
+        error={actionError}
         onOpen={onOpen}
         onCreate={onCreate}
         onRename={onRename}

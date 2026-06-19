@@ -9,6 +9,7 @@ interface Props {
   activeId: string | null;
   saveStatus: SaveStatus;
   loading: boolean;
+  error?: string | null;
   onOpen: (id: string) => void;
   onCreate: (name: string) => void;
   onRename: (id: string, name: string) => void;
@@ -41,6 +42,7 @@ export function DiagramPanel({
   activeId,
   saveStatus,
   loading,
+  error,
   onOpen,
   onCreate,
   onRename,
@@ -71,6 +73,12 @@ export function DiagramPanel({
         <h2 className={styles.title}>Diagrams</h2>
         <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
       </header>
+
+      {error ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {loading ? (
         <div className={styles.loading}>

@@ -11,4 +11,8 @@ describe("isActiveFile", () => {
     expect(isActiveFile({ id: "1", name: "a" })).toBe(false);
     expect(isActiveFile({ id: 1, name: "a", loadedRevision: "r" })).toBe(false);
   });
+
+  it("rejects an object with empty id/name", () => {
+    expect(isActiveFile({ id: "", name: "", loadedRevision: "" })).toBe(false);
+  });
 });

@@ -17,15 +17,13 @@ export interface DiagramContent {
 
 export type Request =
   | { type: "auth/status" }
-  | { type: "auth/signIn" }
   | { type: "auth/signOut" }
   | { type: "drive/connect"; folderName: string }
   | { type: "drive/list" }
   | { type: "drive/get"; id: string }
   | { type: "drive/create"; name: string; content: string }
   | { type: "drive/update"; id: string; content: string; prevRevision: string }
-  | { type: "drive/rename"; id: string; name: string }
-  | { type: "drive/setConnection"; status: ConnectionStatus };
+  | { type: "drive/rename"; id: string; name: string };
 
 export interface ConnectionStatus {
   connected: boolean;

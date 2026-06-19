@@ -1,4 +1,4 @@
-import { clear, createStore, entries, set } from "idb-keyval";
+import { clear, createStore, del, entries, keys, set } from "idb-keyval";
 import type { BinaryFile } from "@/entities/diagram";
 import type { SceneBridgeDeps } from "./sceneBridge";
 
@@ -16,6 +16,11 @@ async function loadFiles(): Promise<Record<string, BinaryFile>> {
 }
 
 async function saveFiles(files: Record<string, BinaryFile>): Promise<void> {
+  const nextIds = new Set(Object.keys(files));
+  const existingIds = (await keys(filesStore)).map(String);
+  // Delete blobs no longer referenced by the scene being written, so orphaned
+  // images don't accumulate or bleed across opened diagrams.
+  await Promise.all(existingIds.filter((id) => !nextIds.has(id)).map((id) => del(id, filesStore)));
   await Promise.all(Object.entries(files).map(([id, file]) => set(id, file, filesStore)));
 }
 
