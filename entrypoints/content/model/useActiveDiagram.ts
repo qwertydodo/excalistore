@@ -10,28 +10,23 @@ import {
   clearActiveFile,
   getActiveFile,
   getCachedFiles,
-  getPanelCollapsed,
   setActiveFile,
   setCachedFiles,
-  setPanelCollapsed,
 } from "@/features/session";
 import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/api";
 import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
 import { bridge } from "../lib/bridge";
+import type { DiagramLibrary } from "./useDiagramLibrary";
 
-export type UseActiveDiagramParams = {
-  onStatusChange: (status: ConnectionStatus) => void;
-  files: DriveFileMeta[];
-  onFilesChange: (files: DriveFileMeta[]) => void;
-  refresh: () => Promise<DriveFileMeta[]>;
-};
+export type UseActiveDiagramParams = Pick<
+  DiagramLibrary,
+  "onStatusChange" | "files" | "onFilesChange" | "refresh"
+>;
 
 export type ActiveDiagram = {
   activeId: string | null;
   onActiveIdChange: (id: string | null) => void;
   revisionRef: RefObject<string | null>;
-  collapsed: boolean;
-  toggleCollapsed: () => void;
   saveStatus: SaveStatus;
   actionError: string | null;
   onActionErrorChange: (error: string | null) => void;
@@ -49,7 +44,6 @@ export const useActiveDiagram = ({
   refresh,
 }: UseActiveDiagramParams): ActiveDiagram => {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(SAVE_STATUS.IDLE);
   const [actionError, setActionError] = useState<string | null>(null);
   const revisionRef = useRef<string | null>(null);
@@ -70,7 +64,6 @@ export const useActiveDiagram = ({
         () => ({ connected: false }) as ConnectionStatus,
       );
       onStatusChange(s);
-      setCollapsed(await getPanelCollapsed());
       const active = await getActiveFile();
       // Paint the cached list immediately (no flicker after the reload), then
       // revalidate against Drive in the background.
@@ -187,20 +180,10 @@ export const useActiveDiagram = ({
     }
   };
 
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      setPanelCollapsed(next);
-      return next;
-    });
-  };
-
   return {
     activeId,
     onActiveIdChange,
     revisionRef,
-    collapsed,
-    toggleCollapsed,
     saveStatus,
     actionError,
     onActionErrorChange,

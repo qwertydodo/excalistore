@@ -10,7 +10,7 @@ import { useThemeSync } from "./model/useThemeSync";
 export const App = ({ host }: { host: HTMLElement }) => {
   useThemeSync(host);
 
-  const { status, onStatusChange, files, onFilesChange, loading, refresh } = useDiagramLibrary();
+  const { status, onStatusChange, files, onFilesChange, isLoading, refresh } = useDiagramLibrary();
   const activeDiagram = useActiveDiagram({ onStatusChange, files, onFilesChange, refresh });
   const signOut = useSignOutFlow({
     activeId: activeDiagram.activeId,
@@ -24,7 +24,7 @@ export const App = ({ host }: { host: HTMLElement }) => {
   if (!status.connected) {
     return (
       <ConnectCard
-        busy={connect.connecting}
+        busy={connect.isConnecting}
         error={connect.connectError}
         onConnect={connect.onConnect}
       />
@@ -34,21 +34,19 @@ export const App = ({ host }: { host: HTMLElement }) => {
   return (
     <>
       <DiagramPanel
+        files={files}
+        isLoading={isLoading}
+        onSignOut={signOut.openSignOut}
         diagram={{
-          files,
-          loading,
           activeId: activeDiagram.activeId,
           saveStatus: activeDiagram.saveStatus,
-          collapsed: activeDiagram.collapsed,
           error: activeDiagram.actionError,
           onOpen: activeDiagram.onOpen,
           onCreate: activeDiagram.onCreate,
           onRename: activeDiagram.onRename,
-          onSignOut: signOut.openSignOut,
-          onToggleCollapse: activeDiagram.toggleCollapsed,
         }}
       />
-      {signOut.signOutOpen && (
+      {signOut.isSignOutOpen && (
         <ConfirmDialog
           title="Sign out of Excalistore?"
           message="This saves the current diagram to Drive and clears the canvas. Continue?"

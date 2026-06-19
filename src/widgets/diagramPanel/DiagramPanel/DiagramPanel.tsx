@@ -4,24 +4,23 @@ import type { DriveFileMeta } from "@/shared/api";
 import { Badge, Button, Spinner, type Tone } from "@/shared/ui";
 import { CreateDiagramForm } from "../CreateDiagramForm";
 import { DiagramRow } from "../DiagramRow";
+import { usePanelVisibility } from "../model";
 import styles from "./DiagramPanel.module.css";
 
 type Diagram = {
-  files: DriveFileMeta[];
   activeId: string | null;
   saveStatus: SaveStatus;
-  loading: boolean;
-  collapsed: boolean;
   error?: string | null;
   onOpen: (id: string) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
   onRename: (id: string, name: string) => Promise<void>;
-  onSignOut: () => void;
-  onToggleCollapse: () => void;
 };
 
 type DiagramPanelProps = {
   diagram: Diagram;
+  files: DriveFileMeta[];
+  isLoading: boolean;
+  onSignOut: () => void;
 };
 
 const STATUS_TONE: Record<SaveStatus, Tone> = {
@@ -40,22 +39,11 @@ const STATUS_LABEL: Record<SaveStatus, string> = {
   conflict: "Conflict — not saved",
 };
 
-export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
-  const {
-    files,
-    activeId,
-    saveStatus,
-    loading,
-    collapsed,
-    error,
-    onOpen,
-    onCreate,
-    onRename,
-    onSignOut,
-    onToggleCollapse,
-  } = diagram;
+export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPanelProps) => {
+  const { activeId, saveStatus, error, onOpen, onCreate, onRename } = diagram;
+  const { isVisible, toggleVisibility } = usePanelVisibility();
   const [openingId, setOpeningId] = useState<string | null>(null);
-  const [creatingBusy, setCreatingBusy] = useState(false);
+  const [isCreatingBusy, setIsCreatingBusy] = useState(false);
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
   // list (sorting by modifiedTime would jump the active item to the top).
@@ -63,7 +51,7 @@ export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
 
   // Opening or creating replaces the canvas (tab reload) — lock the rows so a
   // second action can't race it.
-  const rowsLocked = openingId !== null || creatingBusy;
+  const areRowsLocked = openingId !== null || isCreatingBusy;
 
   const onRowOpen = async (id: string) => {
     if (openingId) return; // a switch is already in flight
@@ -75,15 +63,15 @@ export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
     }
   };
 
-  const onCreatingBusyChange = (busy: boolean) => setCreatingBusy(busy);
+  const onCreatingBusyChange = (isBusy: boolean) => setIsCreatingBusy(isBusy);
 
-  if (collapsed) {
+  if (!isVisible) {
     return (
       <button
         type="button"
         className={styles.fab}
         aria-label="Open Excalistore diagrams"
-        onClick={onToggleCollapse}
+        onClick={toggleVisibility}
         onKeyDown={(e) => e.stopPropagation()}
       >
         +
@@ -109,7 +97,7 @@ export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
             type="button"
             className={styles.toggle}
             aria-label="Collapse panel"
-            onClick={onToggleCollapse}
+            onClick={toggleVisibility}
           >
             −
           </button>
@@ -122,7 +110,7 @@ export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
         </p>
       ) : null}
 
-      {loading ? (
+      {isLoading ? (
         <div className={styles.loading}>
           <Spinner />
         </div>
@@ -133,7 +121,7 @@ export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
               key={f.id}
               file={f}
               active={f.id === activeId}
-              locked={rowsLocked}
+              locked={areRowsLocked}
               opening={openingId === f.id}
               onOpen={onRowOpen}
               onRename={onRename}
@@ -144,7 +132,7 @@ export const DiagramPanel = ({ diagram }: DiagramPanelProps) => {
 
       <footer className={styles.footer}>
         <CreateDiagramForm
-          disabled={rowsLocked}
+          disabled={areRowsLocked}
           onCreate={onCreate}
           onBusyChange={onCreatingBusyChange}
         />

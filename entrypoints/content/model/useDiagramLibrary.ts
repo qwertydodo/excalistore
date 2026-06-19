@@ -8,7 +8,7 @@ export type DiagramLibrary = {
   onStatusChange: (status: ConnectionStatus) => void;
   files: DriveFileMeta[];
   onFilesChange: (files: DriveFileMeta[]) => void;
-  loading: boolean;
+  isLoading: boolean;
   refresh: () => Promise<DriveFileMeta[]>;
 };
 
@@ -17,13 +17,13 @@ export type DiagramLibrary = {
 export const useDiagramLibrary = (): DiagramLibrary => {
   const [status, setStatus] = useState<ConnectionStatus>({ connected: false });
   const [files, setFiles] = useState<DriveFileMeta[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const onStatusChange = (next: ConnectionStatus) => setStatus(next);
   const onFilesChange = (next: DriveFileMeta[]) => setFiles(next);
 
   const refresh = async (): Promise<DriveFileMeta[]> => {
-    setLoading(true);
+    setIsLoading(true);
     try {
       const list = await sendToBackground<DriveFileMeta[]>({ type: REQUEST_TYPE.DRIVE_LIST });
       setFiles(list);
@@ -35,9 +35,9 @@ export const useDiagramLibrary = (): DiagramLibrary => {
       }
       return [];
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  return { status, onStatusChange, files, onFilesChange, loading, refresh };
+  return { status, onStatusChange, files, onFilesChange, isLoading, refresh };
 };

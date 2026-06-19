@@ -121,11 +121,18 @@ rules in `theme.css` apply. The composition component itself stays thin: each
 piece of state (file list, active-file + autosave + CRUD actions, sign-out,
 connect) lives in its own hook over a single shared `SceneBridgeDeps`
 instance, and renders `widgets/diagramPanel`'s `DiagramPanel`, keeping that
-widget presentational and FSD-clean. The active-file hook is the one that
-stays largest: `revisionRef` and `activeId` genuinely couple the
-open/create/rename actions to the autosave save callback, so splitting it
-further would just move that coupling into more prop-drilling without
-reducing it.
+widget presentational and FSD-clean. `files` and `isLoading` are passed to
+`DiagramPanel` as top-level props rather than folded into its `diagram` prop,
+since they belong to the file list, not to the single active diagram;
+likewise `onSignOut` is a top-level prop since sign-out is its own flow, not
+a diagram action. Whether the panel itself is shown or collapsed is owned
+entirely inside `DiagramPanel` via its own `usePanelVisibility` hook
+(`widgets/diagramPanel/model`) — that state has no dependency on the active
+diagram or the composition root, so it isn't threaded through `App` at all.
+The active-file hook is the one that stays largest: `revisionRef` and
+`activeId` genuinely couple the open/create/rename actions to the autosave
+save callback, so splitting it further would just move that coupling into
+more prop-drilling without reducing it.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`

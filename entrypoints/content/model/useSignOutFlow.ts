@@ -1,20 +1,19 @@
-import { type RefObject, useState } from "react";
+import { useState } from "react";
 import { clearScene, readScene } from "@/features/sceneBridge";
 import { clearActiveFile, clearCachedFiles } from "@/features/session";
-import type { ConnectionStatus } from "@/shared/api";
 import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
 import { bridge } from "../lib/bridge";
+import type { ActiveDiagram } from "./useActiveDiagram";
+import type { DiagramLibrary } from "./useDiagramLibrary";
 
-export type UseSignOutFlowParams = {
-  activeId: string | null;
-  revisionRef: RefObject<string | null>;
-  onActiveIdChange: (id: string | null) => void;
-  onStatusChange: (status: ConnectionStatus) => void;
-  onActionErrorChange: (error: string | null) => void;
-};
+export type UseSignOutFlowParams = Pick<
+  ActiveDiagram,
+  "activeId" | "revisionRef" | "onActiveIdChange" | "onActionErrorChange"
+> &
+  Pick<DiagramLibrary, "onStatusChange">;
 
 export type SignOutFlow = {
-  signOutOpen: boolean;
+  isSignOutOpen: boolean;
   openSignOut: () => void;
   cancelSignOut: () => void;
   doSignOut: () => Promise<void>;
@@ -29,10 +28,10 @@ export const useSignOutFlow = ({
   onStatusChange,
   onActionErrorChange,
 }: UseSignOutFlowParams): SignOutFlow => {
-  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   const doSignOut = async () => {
-    setSignOutOpen(false);
+    setIsSignOutOpen(false);
     onActionErrorChange(null);
     // Flush the active file before clearing, per the safe sign-out contract.
     if (activeId) {
@@ -60,8 +59,8 @@ export const useSignOutFlow = ({
     }
   };
 
-  const openSignOut = () => setSignOutOpen(true);
-  const cancelSignOut = () => setSignOutOpen(false);
+  const openSignOut = () => setIsSignOutOpen(true);
+  const cancelSignOut = () => setIsSignOutOpen(false);
 
-  return { signOutOpen, openSignOut, cancelSignOut, doSignOut };
+  return { isSignOutOpen, openSignOut, cancelSignOut, doSignOut };
 };
