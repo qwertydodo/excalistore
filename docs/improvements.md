@@ -15,8 +15,8 @@ The connect UI currently lives in the extension **popup**. It should be on the
 flow — connect, folder, diagram list — is in one place and the user never has to
 open the toolbar popup.
 
-- Move the "Connect Google Drive" + folder-name UI from `widgets/popupConnect`
-  (popup) into the in-page panel (`widgets/diagramPanel` / `entrypoints/content.tsx`).
+- Move the "Connect Google Drive" + folder-name UI from `entrypoints/popup/ui/PopupConnect`
+  into the in-page panel (`entrypoints/content/ui/DiagramPanel`).
 - The popup can become a thin status/shortcut, or be removed.
 - Note: interactive `getAuthToken` is triggered from the page via the background
   gateway (already how `drive/connect` works), so this is mostly a UI relocation.

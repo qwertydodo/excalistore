@@ -11,8 +11,7 @@
     "src/features/auth/index.ts",
     "src/features/sceneBridge/index.ts",
     "src/features/session/index.ts",
-    "src/features/autosave/index.ts",
-    "src/widgets/diagramPanel/index.ts"
+    "src/features/autosave/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "ignoreDependencies": [

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ConnectionStatus } from "@/shared/api";
 import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
-import { PopupConnect } from "@/widgets/popupConnect";
+import { PopupConnect } from "./ui/PopupConnect";
 
 export const App = () => {
   const [status, setStatus] = useState<ConnectionStatus>({ connected: false });

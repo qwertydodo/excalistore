@@ -1,11 +1,11 @@
 import { ConfirmDialog } from "@/shared/ui";
-import { ConnectCard } from "@/widgets/connectCard";
-import { DiagramPanel } from "@/widgets/diagramPanel";
 import { useActiveDiagram } from "./model/useActiveDiagram";
 import { useConnectFlow } from "./model/useConnectFlow";
 import { useDiagramLibrary } from "./model/useDiagramLibrary";
 import { useSignOutFlow } from "./model/useSignOutFlow";
 import { useThemeSync } from "./model/useThemeSync";
+import { ConnectCard } from "./ui/ConnectCard";
+import { DiagramPanel } from "./ui/DiagramPanel";
 
 export const App = ({ host }: { host: HTMLElement }) => {
   useThemeSync(host);
