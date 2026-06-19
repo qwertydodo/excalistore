@@ -10,11 +10,19 @@ import {
   readTheme,
   writeScene,
 } from "@/features/sceneBridge";
-import { clearActiveFile, getActiveFile, setActiveFile } from "@/features/session";
+import {
+  clearActiveFile,
+  clearCachedFiles,
+  getActiveFile,
+  getCachedFiles,
+  setActiveFile,
+  setCachedFiles,
+} from "@/features/session";
 import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/api";
 import { RequestError, sendToBackground } from "@/shared/api";
 import { THEME_ATTR } from "@/shared/config";
 import { ConfirmDialog } from "@/shared/ui";
+import { ConnectCard } from "@/widgets/connectCard";
 import { DiagramPanel } from "@/widgets/diagramPanel";
 // Import the panel + dialog styles so WXT injects them into the shadow root.
 import "@/shared/config/theme.css";
@@ -29,6 +37,8 @@ function PanelApp({ host }: { host: HTMLElement }) {
   const [loading, setLoading] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const revisionRef = useRef<string | null>(null);
 
   // Mirror Excalidraw's theme onto the shadow host.
@@ -44,6 +54,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
     try {
       const list = await sendToBackground<DriveFileMeta[]>({ type: "drive/list" });
       setFiles(list);
+      void setCachedFiles(list); // keep the fast-paint cache fresh
       return list;
     } catch (e) {
       if (e instanceof RequestError && e.code === "unauthorized") {
@@ -63,6 +74,12 @@ function PanelApp({ host }: { host: HTMLElement }) {
       );
       setStatus(s);
       const active = await getActiveFile();
+      // Paint the cached list immediately (no flicker after the reload), then
+      // revalidate against Drive in the background.
+      if (s.connected) {
+        const cached = await getCachedFiles();
+        if (cached.length) setFiles(cached);
+      }
       const list = s.connected ? await refresh() : [];
       if (active && list.some((f) => f.id === active.id)) {
         setActiveId(active.id);
@@ -106,17 +123,34 @@ function PanelApp({ host }: { host: HTMLElement }) {
     };
   }, [activeId]);
 
-  const onOpen = useCallback(async (id: string) => {
-    setActionError(null);
-    try {
-      const { meta, content } = await sendToBackground<DiagramContent>({ type: "drive/get", id });
-      const file = parseExcalidrawFile(content); // validates before write
-      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-      await writeScene(file, bridge); // reloads the tab
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to open diagram");
-    }
-  }, []);
+  const onOpen = useCallback(
+    async (id: string) => {
+      if (id === activeId) return; // already open
+      setActionError(null);
+      try {
+        // Opening reloads the tab, so save the current diagram first — otherwise
+        // unsaved edits since the last autosave tick are lost. A failed save
+        // (e.g. conflict) aborts the switch so nothing is dropped silently.
+        if (activeId) {
+          const current = await readScene(bridge);
+          const saved = await sendToBackground<DriveFileMeta>({
+            type: "drive/update",
+            id: activeId,
+            content: JSON.stringify(current),
+            prevRevision: revisionRef.current ?? "",
+          });
+          revisionRef.current = saved.headRevisionId;
+        }
+        const { meta, content } = await sendToBackground<DiagramContent>({ type: "drive/get", id });
+        const file = parseExcalidrawFile(content); // validates before write
+        await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+        await writeScene(file, bridge); // reloads the tab
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to open diagram");
+      }
+    },
+    [activeId],
+  );
 
   const onCreate = useCallback(async (name: string) => {
     setActionError(null);
@@ -140,13 +174,21 @@ function PanelApp({ host }: { host: HTMLElement }) {
       setActionError(null);
       try {
         const fileName = name.endsWith(".excalidraw") ? name : `${name}.excalidraw`;
-        await sendToBackground<DriveFileMeta>({ type: "drive/rename", id, name: fileName });
-        await refresh();
+        const meta = await sendToBackground<DriveFileMeta>({
+          type: "drive/rename",
+          id,
+          name: fileName,
+        });
+        // Patch the single row in place — no full re-fetch, so the list doesn't
+        // blank to the loading spinner.
+        const next = files.map((f) => (f.id === id ? meta : f));
+        setFiles(next);
+        void setCachedFiles(next);
       } catch (e) {
         setActionError(e instanceof Error ? e.message : "Failed to rename diagram");
       }
     },
-    [refresh],
+    [files],
   );
 
   const doSignOut = useCallback(async () => {
@@ -169,6 +211,7 @@ function PanelApp({ host }: { host: HTMLElement }) {
     try {
       await sendToBackground({ type: "auth/signOut" });
       await clearActiveFile();
+      await clearCachedFiles();
       setStatus({ connected: false });
       setActiveId(null);
       await clearScene(bridge); // clears canvas + reloads
@@ -177,12 +220,30 @@ function PanelApp({ host }: { host: HTMLElement }) {
     }
   }, [activeId]);
 
+  const onConnect = useCallback(
+    async (folderName: string) => {
+      if (connecting) return;
+      setConnecting(true);
+      setConnectError(null);
+      try {
+        // Interactive sign-in + folder find/create run in the background gateway.
+        const next = await sendToBackground<ConnectionStatus>({
+          type: "drive/connect",
+          folderName,
+        });
+        setStatus(next);
+        if (next.connected) await refresh();
+      } catch (e) {
+        setConnectError(e instanceof Error ? e.message : "Could not connect to Google Drive");
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [connecting, refresh],
+  );
+
   if (!status.connected) {
-    return (
-      <p className="es-disconnected">
-        Excalistore: open the extension popup to connect Google Drive.
-      </p>
-    );
+    return <ConnectCard busy={connecting} error={connectError} onConnect={onConnect} />;
   }
 
   return (

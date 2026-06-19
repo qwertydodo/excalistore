@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DiagramPanel } from "./DiagramPanel";
@@ -23,16 +23,17 @@ function props(over = {}) {
 }
 
 describe("DiagramPanel", () => {
-  it("lists files and marks the active one", () => {
+  it("lists files (without the .excalidraw extension) and marks the active one", () => {
     render(<DiagramPanel {...props()} />);
-    expect(screen.getByText("alpha.excalidraw")).toBeInTheDocument();
-    expect(screen.getByText("beta.excalidraw")).toBeInTheDocument();
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+    expect(screen.queryByText("alpha.excalidraw")).not.toBeInTheDocument();
   });
 
   it("opens a file on click", async () => {
     const onOpen = vi.fn();
     render(<DiagramPanel {...props({ onOpen })} />);
-    await userEvent.click(screen.getByText("beta.excalidraw"));
+    await userEvent.click(screen.getByText("beta"));
     expect(onOpen).toHaveBeenCalledWith("2");
   });
 
@@ -60,5 +61,23 @@ describe("DiagramPanel", () => {
   it("renders an error banner when error is set", () => {
     render(<DiagramPanel {...props({ error: "Could not open diagram" })} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
+  });
+
+  it("collapses to a button and expands again", async () => {
+    render(<DiagramPanel {...props()} />);
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /collapse panel/i }));
+    expect(screen.queryByText("alpha")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /open excalistore diagrams/i }));
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+  });
+
+  it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {
+    const onDocKeyDown = vi.fn();
+    document.addEventListener("keydown", onDocKeyDown);
+    render(<DiagramPanel {...props()} />);
+    fireEvent.keyDown(screen.getByLabelText("Excalistore diagrams"), { key: "r" });
+    document.removeEventListener("keydown", onDocKeyDown);
+    expect(onDocKeyDown).not.toHaveBeenCalled();
   });
 });

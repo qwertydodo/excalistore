@@ -37,6 +37,11 @@ function formatDate(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
 }
 
+// The .excalidraw extension is implied — hide it in the UI and re-add on save.
+function stripExt(name: string): string {
+  return name.replace(/\.excalidraw$/i, "");
+}
+
 export function DiagramPanel({
   files,
   activeId,
@@ -52,26 +57,94 @@ export function DiagramPanel({
   const [newName, setNewName] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [savingRenameId, setSavingRenameId] = useState<string | null>(null);
+  const [creatingBusy, setCreatingBusy] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  function submitCreate() {
-    const name = newName.trim();
-    if (!name) return;
-    onCreate(name);
-    setNewName("");
-    setCreating(false);
+  // Stable order: sort by name so saving/opening a diagram never reshuffles the
+  // list (sorting by modifiedTime would jump the active item to the top).
+  const ordered = [...files].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Opening or creating replaces the canvas (tab reload) — lock the rows so a
+  // second action can't race it.
+  const rowsLocked = openingId !== null || creatingBusy;
+
+  async function handleOpen(id: string) {
+    if (openingId) return; // a switch is already in flight
+    setOpeningId(id);
+    try {
+      await onOpen(id); // resolves into a tab reload on success
+    } finally {
+      setOpeningId(null);
+    }
   }
 
-  function submitRename(id: string) {
+  async function submitCreate() {
+    const name = newName.trim();
+    if (!name) return;
+    setCreatingBusy(true);
+    try {
+      await onCreate(name); // resolves into a tab reload on success
+    } finally {
+      setCreatingBusy(false);
+      setNewName("");
+      setCreating(false);
+    }
+  }
+
+  async function submitRename(id: string) {
     const name = renameValue.trim();
-    if (name) onRename(id, name);
-    setRenamingId(null);
+    if (!name) {
+      setRenamingId(null);
+      return;
+    }
+    setSavingRenameId(id);
+    try {
+      await onRename(id, name); // optimistic in-place update in the container
+    } finally {
+      setSavingRenameId(null);
+      setRenamingId(null);
+    }
+  }
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className={styles.fab}
+        aria-label="Open Excalistore diagrams"
+        onClick={() => setCollapsed(false)}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        +
+      </button>
+    );
   }
 
   return (
-    <section className={styles.root} aria-label="Excalistore diagrams">
+    // Excalidraw binds single-key tool shortcuts on the document, which would
+    // fire while typing in the panel's inputs. Stop keyboard events at the panel
+    // root so they never reach Excalidraw's global handlers.
+    <section
+      className={styles.root}
+      aria-label="Excalistore diagrams"
+      onKeyDown={(e) => e.stopPropagation()}
+      onKeyUp={(e) => e.stopPropagation()}
+    >
       <header className={styles.header}>
         <h2 className={styles.title}>Diagrams</h2>
-        <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
+        <div className={styles.headerRight}>
+          <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
+          <button
+            type="button"
+            className={styles.toggle}
+            aria-label="Collapse panel"
+            onClick={() => setCollapsed(true)}
+          >
+            −
+          </button>
+        </div>
       </header>
 
       {error ? (
@@ -86,7 +159,7 @@ export function DiagramPanel({
         </div>
       ) : (
         <ul className={styles.list}>
-          {files.map((f) => (
+          {ordered.map((f) => (
             <li key={f.id} className={styles.listRow}>
               {renamingId === f.id ? (
                 <form
@@ -100,24 +173,37 @@ export function DiagramPanel({
                     aria-label="Rename diagram"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
+                    disabled={savingRenameId === f.id}
                     autoFocus
                   />
-                  <Button type="submit">Save</Button>
+                  {savingRenameId === f.id ? (
+                    <Spinner size={14} />
+                  ) : (
+                    <Button type="submit">Save</Button>
+                  )}
                 </form>
               ) : (
                 <>
-                  <ListItem active={f.id === activeId} onClick={() => onOpen(f.id)}>
-                    <span className={styles.name}>{f.name}</span>
-                    <span className={styles.meta}>{formatDate(f.modifiedTime)}</span>
+                  <ListItem
+                    active={f.id === activeId}
+                    disabled={f.id === activeId || rowsLocked}
+                    onClick={() => handleOpen(f.id)}
+                  >
+                    <span className={styles.name}>{stripExt(f.name)}</span>
+                    {openingId === f.id ? (
+                      <Spinner size={14} />
+                    ) : (
+                      <span className={styles.meta}>{formatDate(f.modifiedTime)}</span>
+                    )}
                   </ListItem>
                   <button
                     type="button"
                     className={styles.renameBtn}
-                    aria-label={`Rename ${f.name}`}
+                    aria-label={`Rename ${stripExt(f.name)}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setRenamingId(f.id);
-                      setRenameValue(f.name);
+                      setRenameValue(stripExt(f.name));
                     }}
                   >
                     Rename
@@ -142,12 +228,19 @@ export function DiagramPanel({
               placeholder="Diagram name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              disabled={creatingBusy}
               autoFocus
             />
-            <Button type="submit">Create</Button>
-            <Button variant="secondary" onClick={() => setCreating(false)}>
-              Cancel
-            </Button>
+            {creatingBusy ? (
+              <Spinner size={14} />
+            ) : (
+              <>
+                <Button type="submit">Create</Button>
+                <Button variant="secondary" onClick={() => setCreating(false)}>
+                  Cancel
+                </Button>
+              </>
+            )}
           </form>
         ) : (
           <Button onClick={() => setCreating(true)}>New diagram</Button>
