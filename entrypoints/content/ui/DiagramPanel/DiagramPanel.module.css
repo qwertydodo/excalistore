@@ -1,36 +1,12 @@
-.error {
-  margin: 0 0 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-  color: var(--es-accent-text);
-  background: var(--es-danger);
-  border-radius: var(--es-radius);
-}
 .root {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   width: 260px;
   max-height: 70vh;
-  padding: 12px;
   background: var(--es-bg);
   color: var(--es-text);
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
   box-shadow: var(--es-shadow);
-  font:
-    13px / 1.4 system-ui,
-    sans-serif;
-}
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font: var(--es-font-size-base) / var(--es-line-height-base) var(--es-font-family);
 }
 .toggle {
   display: flex;
@@ -43,8 +19,8 @@
   border-radius: var(--es-radius);
   background: transparent;
   color: var(--es-text);
-  font-size: 16px;
-  line-height: 1;
+  font-size: var(--es-font-size-lg);
+  line-height: var(--es-line-height-tight);
   cursor: pointer;
 }
 .toggle:hover {
@@ -61,14 +37,16 @@
   border-radius: 50%;
   background: var(--es-accent);
   color: var(--es-accent-text);
-  font-size: 24px;
-  line-height: 1;
+  font-size: var(--es-font-size-xl);
+  line-height: var(--es-line-height-tight);
   cursor: pointer;
   box-shadow: var(--es-shadow);
 }
-.title {
-  margin: 0;
-  font-size: 14px;
+.error {
+  margin: 0 0 var(--es-space-2);
+  padding: var(--es-space-2) var(--es-space-3);
+  background: var(--es-danger);
+  border-radius: var(--es-radius);
 }
 .list {
   list-style: none;
@@ -76,19 +54,8 @@
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.loading {
-  display: flex;
-  justify-content: center;
-  padding: 16px;
 }
 .footer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   border-top: 1px solid var(--es-border);
-  padding-top: 8px;
+  padding-top: var(--es-space-2);
 }
