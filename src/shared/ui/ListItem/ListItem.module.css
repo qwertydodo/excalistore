@@ -6,7 +6,6 @@
   border: none;
   width: 100%;
   text-align: left;
-  border-radius: var(--es-radius);
   background: transparent;
   color: var(--es-text);
   cursor: pointer;

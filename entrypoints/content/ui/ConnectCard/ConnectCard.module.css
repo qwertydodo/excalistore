@@ -2,9 +2,6 @@
   width: 260px;
   background: var(--es-bg);
   color: var(--es-text);
-  border: 1px solid var(--es-border);
-  border-radius: var(--es-radius);
-  box-shadow: var(--es-shadow);
   font: var(--es-font-size-base) / var(--es-line-height-base) var(--es-font-family);
 }
 .title {

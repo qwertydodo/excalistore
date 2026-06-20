@@ -1,6 +1,6 @@
 export type { Tone } from "./Badge";
 export { Badge } from "./Badge";
-export type { BoxProps, Space } from "./Box";
+export type { BorderWidth, BoxProps, Radius, Shadow, Space } from "./Box";
 export { Box } from "./Box";
 export type { Variant } from "./Button";
 export { Button } from "./Button";

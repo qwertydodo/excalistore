@@ -9,10 +9,6 @@
 .panel {
   background: var(--es-bg);
   color: var(--es-text);
-  border: 1px solid var(--es-border);
-  border-radius: var(--es-radius);
-  box-shadow: var(--es-shadow);
-  padding: var(--es-space-5);
   min-width: 320px;
   max-width: 420px;
 }

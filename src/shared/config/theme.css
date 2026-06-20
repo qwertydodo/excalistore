@@ -25,8 +25,6 @@
   --es-accent: var(--es-color-violet-500);
   --es-accent-text: var(--es-color-white);
   --es-danger: var(--es-color-red-500);
-  --es-radius: 8px;
-  --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   --es-overlay: rgba(0, 0, 0, 0.4);
 
   /* Spacing scale (4px base; margin/padding/gap) */
@@ -36,6 +34,20 @@
   --es-space-4: 16px;
   --es-space-5: 20px;
   --es-space-6: 24px;
+
+  /* Border-radius scale (4px base) */
+  --es-radius-sm: 4px;
+  --es-radius-md: 8px;
+  --es-radius-lg: 12px;
+
+  /* Border-width scale */
+  --es-border-width-thin: 1px;
+  --es-border-width-thick: 2px;
+
+  /* Shadow scale (light) */
+  --es-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --es-shadow-md: 0 1px 4px rgba(0, 0, 0, 0.1);
+  --es-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
 
   /* Typography */
   --es-font-family: system-ui, sans-serif;
@@ -62,7 +74,9 @@
   --es-accent: var(--es-color-violet-300);
   --es-accent-text: var(--es-color-ink-900);
   --es-danger: var(--es-color-red-300);
-  --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --es-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --es-shadow-md: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --es-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
   --es-overlay: rgba(0, 0, 0, 0.6);
 }
 

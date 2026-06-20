@@ -1,6 +1,4 @@
 .button {
-  border: 1px solid var(--es-border);
-  border-radius: var(--es-radius);
   padding: var(--es-space-2) var(--es-space-3);
   font: inherit;
   cursor: pointer;

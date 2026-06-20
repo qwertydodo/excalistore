@@ -86,6 +86,9 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
       as="section"
       gap="2"
       padding="3"
+      border="thin"
+      radius="md"
+      shadow="md"
       className={styles.root}
       aria-label="Excalistore diagrams"
       onKeyDown={(e) => e.stopPropagation()}

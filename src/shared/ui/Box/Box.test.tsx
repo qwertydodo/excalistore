@@ -16,4 +16,12 @@ describe("Box", () => {
     expect(el.tagName).toBe("DIV");
     expect(el.className).toBe("");
   });
+
+  it("renders border/radius/shadow scale classes when requested", () => {
+    render(<Box border="thin" radius="lg" shadow="md" data-testid="box" />);
+    const el = screen.getByTestId("box");
+    expect(el.className).toContain("border-thin");
+    expect(el.className).toContain("radius-lg");
+    expect(el.className).toContain("shadow-md");
+  });
 });

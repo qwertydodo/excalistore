@@ -17,6 +17,9 @@ export const ConnectCard = ({ busy = false, error = null, onConnect }: Props) =>
       as="section"
       gap="2"
       padding="4"
+      border="thin"
+      radius="md"
+      shadow="md"
       className={styles.root}
       aria-label="Connect Excalistore"
       onKeyDown={(e) => e.stopPropagation()}

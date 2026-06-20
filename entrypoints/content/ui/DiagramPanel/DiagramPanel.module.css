@@ -3,9 +3,6 @@
   max-height: 70vh;
   background: var(--es-bg);
   color: var(--es-text);
-  border: 1px solid var(--es-border);
-  border-radius: var(--es-radius);
-  box-shadow: var(--es-shadow);
   font: var(--es-font-size-base) / var(--es-line-height-base) var(--es-font-family);
 }
 .toggle {
@@ -15,8 +12,8 @@
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--es-border);
-  border-radius: var(--es-radius);
+  border: var(--es-border-width-thin) solid var(--es-border);
+  border-radius: var(--es-radius-md);
   background: transparent;
   color: var(--es-text);
   font-size: var(--es-font-size-lg);
@@ -33,20 +30,20 @@
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid var(--es-border);
+  border: var(--es-border-width-thin) solid var(--es-border);
   border-radius: 50%;
   background: var(--es-accent);
   color: var(--es-accent-text);
   font-size: var(--es-font-size-xl);
   line-height: var(--es-line-height-tight);
   cursor: pointer;
-  box-shadow: var(--es-shadow);
+  box-shadow: var(--es-shadow-md);
 }
 .error {
   margin: 0 0 var(--es-space-2);
   padding: var(--es-space-2) var(--es-space-3);
   background: var(--es-danger);
-  border-radius: var(--es-radius);
+  border-radius: var(--es-radius-md);
 }
 .list {
   list-style: none;
