@@ -1,23 +1,15 @@
 .root {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   width: 260px;
-  padding: 16px;
   background: var(--es-bg);
   color: var(--es-text);
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
   box-shadow: var(--es-shadow);
-  font:
-    13px / 1.4 system-ui,
-    sans-serif;
+  font: var(--es-font-size-base) / var(--es-line-height-base) var(--es-font-family);
 }
 .title {
   margin: 0;
-  font-size: 16px;
 }
 .lead {
   margin: 0;
-  color: var(--es-muted);
 }
