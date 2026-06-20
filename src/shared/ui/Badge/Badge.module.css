@@ -1,5 +1,5 @@
 .badge {
-  font-size: 12px;
+  font-size: var(--es-font-size-sm);
 }
 .neutral {
   color: var(--es-muted);

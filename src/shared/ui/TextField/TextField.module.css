@@ -3,7 +3,7 @@
   color: var(--es-text);
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
-  padding: 6px 8px;
+  padding: var(--es-space-2) var(--es-space-2);
   font: inherit;
   width: 100%;
   box-sizing: border-box;
