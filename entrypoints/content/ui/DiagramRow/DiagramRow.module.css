@@ -1,7 +1,4 @@
 .listRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   min-width: 0;
 }
 .listRow > :first-child {
@@ -17,18 +14,9 @@
 }
 .meta {
   flex-shrink: 0;
-  color: var(--es-muted);
-  font-size: 11px;
 }
 .renameBtn {
   border: none;
   background: none;
-  color: var(--es-accent);
   cursor: pointer;
-  font-size: 11px;
-}
-.renameRow {
-  display: flex;
-  gap: 4px;
-  align-items: center;
 }
