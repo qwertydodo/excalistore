@@ -4,9 +4,9 @@ import styles from "./Box.module.css";
 export type Space = "1" | "2" | "3" | "4" | "5" | "6";
 
 type BoxOwnProps = {
-  padding?: Space;
-  className?: string;
-  children?: ReactNode;
+  padding?: Space | undefined;
+  className?: string | undefined;
+  children?: ReactNode | undefined;
 };
 
 export type BoxProps<T extends ElementType> = BoxOwnProps &

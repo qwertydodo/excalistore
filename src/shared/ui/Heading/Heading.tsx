@@ -5,7 +5,7 @@ type HeadingTag = "h1" | "h2";
 type HeadingSize = "md" | "lg";
 
 type HeadingOwnProps = {
-  as?: HeadingTag;
+  as?: HeadingTag | undefined;
   size: HeadingSize;
 };
 

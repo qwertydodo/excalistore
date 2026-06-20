@@ -5,10 +5,10 @@ export type TextSize = "xs" | "sm" | "base" | "md" | "lg" | "xl";
 export type TextColor = "text" | "muted" | "danger" | "accent" | "accent-text";
 
 type TextOwnProps = {
-  size?: TextSize;
-  color?: TextColor;
-  className?: string;
-  children?: ReactNode;
+  size?: TextSize | undefined;
+  color?: TextColor | undefined;
+  className?: string | undefined;
+  children?: ReactNode | undefined;
 };
 
 export type TextProps<T extends ElementType> = TextOwnProps &

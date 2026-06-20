@@ -7,10 +7,10 @@ type Align = "start" | "center" | "end" | "stretch";
 type Justify = "start" | "center" | "end" | "between";
 
 type StackOwnProps = {
-  direction?: Direction;
-  gap?: Space;
-  align?: Align;
-  justify?: Justify;
+  direction?: Direction | undefined;
+  gap?: Space | undefined;
+  align?: Align | undefined;
+  justify?: Justify | undefined;
 };
 
 export type StackProps<T extends ElementType> = StackOwnProps & BoxProps<T>;
