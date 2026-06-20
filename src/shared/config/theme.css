@@ -28,6 +28,28 @@
   --es-radius: 8px;
   --es-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   --es-overlay: rgba(0, 0, 0, 0.4);
+
+  /* Spacing scale (4px base; margin/padding/gap) */
+  --es-space-1: 4px;
+  --es-space-2: 8px;
+  --es-space-3: 12px;
+  --es-space-4: 16px;
+  --es-space-5: 20px;
+  --es-space-6: 24px;
+
+  /* Typography */
+  --es-font-family: system-ui, sans-serif;
+  --es-font-size-xs: 11px;
+  --es-font-size-sm: 12px;
+  --es-font-size-base: 13px;
+  --es-font-size-md: 14px;
+  --es-font-size-lg: 16px;
+  --es-font-size-xl: 24px;
+  --es-line-height-tight: 1;
+  --es-line-height-base: 1.4;
+
+  /* Z-index */
+  --es-z-max: 2147483647; /* stay above excalidraw.com's own DOM */
 }
 
 :root[data-theme="dark"],
@@ -45,6 +67,6 @@
 }
 
 .es-disconnected {
-  padding: 12px;
-  font: 13px system-ui;
+  padding: var(--es-space-3);
+  font: var(--es-font-size-base) var(--es-font-family);
 }
