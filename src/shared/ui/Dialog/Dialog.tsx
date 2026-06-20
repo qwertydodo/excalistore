@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Heading } from "../Heading";
 import styles from "./Dialog.module.css";
 
 type Props = {
@@ -20,7 +21,9 @@ export const Dialog = ({ title, children, onClose }: Props) => {
       }}
     >
       <div className={styles.panel}>
-        <h2 className={styles.title}>{title}</h2>
+        <Heading size="lg" className={styles.title}>
+          {title}
+        </Heading>
         {children}
       </div>
     </div>

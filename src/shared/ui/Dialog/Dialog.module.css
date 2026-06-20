@@ -4,7 +4,7 @@
   background: var(--es-overlay);
   display: grid;
   place-items: center;
-  z-index: 2147483647;
+  z-index: var(--es-z-max);
 }
 .panel {
   background: var(--es-bg);
@@ -12,11 +12,10 @@
   border: 1px solid var(--es-border);
   border-radius: var(--es-radius);
   box-shadow: var(--es-shadow);
-  padding: 20px;
+  padding: var(--es-space-5);
   min-width: 320px;
   max-width: 420px;
 }
 .title {
-  margin: 0 0 12px;
-  font-size: 16px;
+  margin: 0 0 var(--es-space-3);
 }
