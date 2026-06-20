@@ -1,9 +1,3 @@
 .message {
-  margin: 0 0 16px;
-  color: var(--es-muted);
-}
-.actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  margin: 0 0 var(--es-space-4);
 }
