@@ -118,3 +118,8 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - Commits: Conventional Commits — `type(scope): subject`; types
   `feat|fix|docs|chore|refactor|test|build|ci`. Enforced by commitlint.
 - Branches: `type/short-description` (e.g. `feat/drive-autosave`).
+- **Worktree workflow:** every task runs in a dedicated git worktree.
+  On task start: `git worktree add ../excalistore-<branch> -b <branch>`,
+  work there, then merge into `main` and remove the worktree:
+  `git worktree remove ../excalistore-<branch>`. Never work directly on
+  `main` (the pre-commit hook blocks it anyway).
