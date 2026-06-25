@@ -16,7 +16,7 @@
     "test:watch": "vitest",
     "knip": "knip",
     "postinstall": "wxt prepare",
-    "prepare": "lefthook install"
+    "prepare": "git config core.hooksPath .githooks && lefthook install"
   },
   "dependencies": {
     "clsx": "^2.1.1",
