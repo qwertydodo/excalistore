@@ -45,3 +45,11 @@
   background: var(--es-danger-hover);
   border-color: var(--es-danger-hover);
 }
+.ghost {
+  background: none;
+  border-color: transparent;
+  color: var(--es-accent);
+}
+.ghost:hover:not(:disabled) {
+  color: var(--es-accent-hover);
+}

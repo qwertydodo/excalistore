@@ -15,8 +15,7 @@ export default defineContentScript({
       position: "inline",
       anchor: "body",
       onMount(uiContainer, _shadow, shadowHost) {
-        // Position the shadow host fixed in a corner; it also carries the
-        // theme attr so `:host([data-theme="dark"])` rules in theme.css apply.
+        // Position the shadow host fixed in a corner.
         shadowHost.style.position = "fixed";
         shadowHost.style.top = "64px";
         shadowHost.style.right = "16px";
@@ -24,7 +23,7 @@ export default defineContentScript({
         const root = createRoot(uiContainer);
         root.render(
           <StrictMode>
-            <App host={shadowHost} />
+            <App />
           </StrictMode>,
         );
         return root;

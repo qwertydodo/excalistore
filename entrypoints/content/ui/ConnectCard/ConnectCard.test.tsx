@@ -15,7 +15,7 @@ describe("ConnectCard", () => {
   });
 
   it("disables the button and shows an error while busy/failed", () => {
-    render(<ConnectCard busy error="Sign-in was cancelled" onConnect={vi.fn()} />);
+    render(<ConnectCard isBusy error="Sign-in was cancelled" onConnect={vi.fn()} />);
     expect(screen.getByRole("button", { name: /connecting/i })).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent("Sign-in was cancelled");
   });

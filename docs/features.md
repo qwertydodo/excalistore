@@ -23,9 +23,9 @@
 - Self-hosted Excalidraw hosts.
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.
-- Theme mirror via a precise `MutationObserver` instead of the current 1s poll.
 - Debounce the autosave poll off real edit events if Excalidraw exposes them.
 - Add steiger (FSD lint) once features/widgets exist.
+- Add Storybook for shared/ui components.
 
 ## Shipped
 _(Move items here as they ship, with a short behavior description.)_
@@ -83,6 +83,3 @@ _(Move items here as they ship, with a short behavior description.)_
   `chrome.storage.local` and restored on load, so collapsing the panel sticks
   across the writeScene-triggered reloads from opening/creating/renaming a
   diagram.
-- Theme mirror: the panel polls Excalidraw's `appState.theme` and mirrors it
-  onto the Shadow DOM host's `data-theme` attribute so the panel's CSS
-  variables track light/dark within ~1s.

@@ -5,40 +5,6 @@
   color: var(--es-text);
   font: var(--es-font-size-base) / var(--es-line-height-base) var(--es-font-family);
 }
-.toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: var(--es-border-width-thin) solid var(--es-border);
-  border-radius: var(--es-radius-md);
-  background: transparent;
-  color: var(--es-text);
-  font-size: var(--es-font-size-lg);
-  line-height: var(--es-line-height-tight);
-  cursor: pointer;
-}
-.toggle:hover {
-  background: var(--es-surface);
-}
-.fab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: var(--es-border-width-thin) solid var(--es-border);
-  border-radius: 50%;
-  background: var(--es-accent);
-  color: var(--es-accent-text);
-  font-size: var(--es-font-size-xl);
-  line-height: var(--es-line-height-tight);
-  cursor: pointer;
-  box-shadow: var(--es-shadow-md);
-}
 .error {
   margin: 0 0 var(--es-space-2);
   padding: var(--es-space-2) var(--es-space-3);

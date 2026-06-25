@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 import styles from "./Text.module.css";
 
@@ -24,13 +25,11 @@ export const Text = <T extends ElementType = "span">({
   const Tag = (as ?? "span") as ElementType;
   return (
     <Tag
-      className={[
-        size ? styles[`size-${size}`] : null,
-        color ? styles[`color-${color}`] : null,
+      className={clsx(
+        size && styles[`size-${size}`],
+        color && styles[`color-${color}`],
         className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      )}
       {...(rest as TextProps<T>)}
     />
   );

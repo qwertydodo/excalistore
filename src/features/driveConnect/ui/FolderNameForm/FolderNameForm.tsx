@@ -5,14 +5,14 @@ import styles from "./FolderNameForm.module.css";
 
 type Props = {
   id: string;
-  busy?: boolean;
+  isBusy?: boolean;
   error?: string | null;
   onConnect: (folderName: string) => void;
 };
 
 // Shared folder-name entry form used by ConnectCard (in-page) and
 // PopupConnect (extension popup) to start a Drive connection.
-export const FolderNameForm = ({ id, busy = false, error = null, onConnect }: Props) => {
+export const FolderNameForm = ({ id, isBusy = false, error = null, onConnect }: Props) => {
   const [name, setName] = useState(DEFAULT_DIAGRAM_FOLDER_NAME);
 
   return (
@@ -21,7 +21,7 @@ export const FolderNameForm = ({ id, busy = false, error = null, onConnect }: Pr
       gap="2"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!busy) onConnect(name.trim() || DEFAULT_DIAGRAM_FOLDER_NAME);
+        if (!isBusy) onConnect(name.trim() || DEFAULT_DIAGRAM_FOLDER_NAME);
       }}
     >
       <Text as="label" size="sm" color="muted" htmlFor={id}>
@@ -33,7 +33,7 @@ export const FolderNameForm = ({ id, busy = false, error = null, onConnect }: Pr
         aria-label="Folder name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        disabled={busy}
+        disabled={isBusy}
       />
       <Text as="p" size="xs" color="muted" className={styles.hint}>
         The app creates this folder in your Drive (or reuses it).
@@ -43,8 +43,8 @@ export const FolderNameForm = ({ id, busy = false, error = null, onConnect }: Pr
           {error}
         </Text>
       ) : null}
-      <Button type="submit" disabled={busy}>
-        {busy ? "Connecting…" : "Connect Google Drive"}
+      <Button type="submit" disabled={isBusy}>
+        {isBusy ? "Connecting…" : "Connect Google Drive"}
       </Button>
     </Stack>
   );

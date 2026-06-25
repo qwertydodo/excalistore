@@ -4,13 +4,13 @@ import { Box } from "../Box";
 import styles from "./ListItem.module.css";
 
 type Props = {
-  active?: boolean;
+  isActive?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   children: ReactNode;
 };
 
-export const ListItem = ({ active = false, disabled = false, onClick, children }: Props) => {
+export const ListItem = ({ isActive = false, disabled = false, onClick, children }: Props) => {
   return (
     <Box
       as="button"
@@ -18,7 +18,7 @@ export const ListItem = ({ active = false, disabled = false, onClick, children }
       radius="md"
       onClick={onClick}
       disabled={disabled}
-      className={clsx(styles.listItem, active && styles.active)}
+      className={clsx(styles.listItem, isActive && styles.active)}
     >
       {children}
     </Box>

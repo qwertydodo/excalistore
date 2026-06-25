@@ -3,7 +3,7 @@ import { Heading, Stack, Text } from "@/shared/ui";
 import styles from "./ConnectCard.module.css";
 
 type Props = {
-  busy?: boolean;
+  isBusy?: boolean;
   error?: string | null;
   onConnect: (folderName: string) => void;
 };
@@ -11,7 +11,7 @@ type Props = {
 // In-page (Shadow DOM) connect card shown on excalidraw.com before a folder is
 // connected. Keyboard events are stopped at the root so typing the folder name
 // doesn't trigger Excalidraw's tool shortcuts.
-export const ConnectCard = ({ busy = false, error = null, onConnect }: Props) => {
+export const ConnectCard = ({ isBusy = false, error = null, onConnect }: Props) => {
   return (
     <Stack
       as="section"
@@ -31,7 +31,7 @@ export const ConnectCard = ({ busy = false, error = null, onConnect }: Props) =>
       <Text as="p" color="muted" className={styles.lead}>
         Save your diagrams to Google Drive.
       </Text>
-      <FolderNameForm id="es-connect-folder" busy={busy} error={error} onConnect={onConnect} />
+      <FolderNameForm id="es-connect-folder" isBusy={isBusy} error={error} onConnect={onConnect} />
     </Stack>
   );
 };

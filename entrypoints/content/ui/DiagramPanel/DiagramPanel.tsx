@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SaveStatus } from "@/features/autosave";
 import type { DriveFileMeta } from "@/shared/api";
-import { Badge, Button, Heading, Spinner, Stack, Text, type Tone } from "@/shared/ui";
+import { Badge, Button, Heading, IconButton, Spinner, Stack, Text, type Tone } from "@/shared/ui";
 import type { ActiveDiagram } from "../../model/useActiveDiagram";
 import { usePanelVisibility } from "../../model/usePanelVisibility";
 import { CreateDiagramForm } from "../CreateDiagramForm";
@@ -66,15 +66,16 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
 
   if (!isVisible) {
     return (
-      <button
-        type="button"
-        className={styles.fab}
+      <IconButton
+        variant="primary"
+        size="md"
+        shape="circle"
         aria-label="Open Excalistore diagrams"
         onClick={toggleVisibility}
         onKeyDown={(e) => e.stopPropagation()}
       >
         +
-      </button>
+      </IconButton>
     );
   }
 
@@ -98,14 +99,9 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         <Heading size="md">Diagrams</Heading>
         <Stack direction="row" align="center" gap="2">
           <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
-          <button
-            type="button"
-            className={styles.toggle}
-            aria-label="Collapse panel"
-            onClick={toggleVisibility}
-          >
+          <IconButton aria-label="Collapse panel" onClick={toggleVisibility}>
             −
-          </button>
+          </IconButton>
         </Stack>
       </Stack>
 
@@ -125,9 +121,9 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
             <DiagramRow
               key={f.id}
               file={f}
-              active={f.id === activeId}
-              locked={areRowsLocked}
-              opening={openingId === f.id}
+              isActive={f.id === activeId}
+              isLocked={areRowsLocked}
+              isOpening={openingId === f.id}
               onOpen={onRowOpen}
               onRename={onRename}
             />
@@ -137,7 +133,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
 
       <Stack as="footer" gap="2" className={styles.footer}>
         <CreateDiagramForm
-          disabled={areRowsLocked}
+          isDisabled={areRowsLocked}
           onCreate={onCreate}
           onBusyChange={onCreatingBusyChange}
         />

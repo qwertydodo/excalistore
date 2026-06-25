@@ -117,7 +117,6 @@ Requires `WXT_OAUTH_CLIENT_ID` in `.env`. Pending user run.
       disconnected message; token revoked.
 - [ ] Revoke the token externally (or let it expire) → next action shows the
       session as disconnected WITHOUT clearing the local canvas.
-- [ ] Toggle Excalidraw's dark mode → the panel follows within ~1s.
 
 ## Skills not yet installed
 

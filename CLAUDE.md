@@ -13,6 +13,17 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   (`ui/<Name>/<Name>.tsx` + `<Name>.module.css` + `index.ts`). Styling lives in
   **CSS Modules** referencing theme vars `var(--es-*)`. No inline `style` props
   except genuinely dynamic values that can't be a class (document the exception).
+- **`shared/ui` is the source of truth for interactive behaviour.** Never use
+  a raw `<button>`, `<input>`, or `<a>` in feature/entrypoint code when a
+  `shared/ui` component covers the use case (`Button`, `IconButton`, `ListItem`,
+  `TextField`, …). Focus rings, hover states, and disabled styles live in the
+  shared primitive's own CSS — adding them to feature CSS means they'll drift.
+  When no existing primitive fits, add one to `shared/ui` rather than styling
+  an ad-hoc element in place.
+- **`reset.css` is UA-reset only** (remove browser margins/padding/borders on
+  elements, set `box-sizing`, etc.). Custom design-token styles — even
+  universal ones — belong in the component that owns the element, not in
+  `reset.css`.
 - **Tests are colocated** beside the code they test (e.g. `Button/Button.test.tsx`,
   `excalidraw-format.test.ts` next to `excalidraw-format.ts`). No top-level `tests/`
   directory.
@@ -95,6 +106,8 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - After any change, update the corresponding doc: architecture change →
   `docs/architecture.md`; security change → `docs/security.md`; setup change →
   `docs/development.md`.
+- After any change that affects project description, stack, features, setup, or
+  security posture — update `README.md` accordingly.
 - After shipping a feature, move it out of "Next to pick up" in
   `docs/features.md` and document its behavior.
 - After a big refactor that establishes a new convention not yet captured
@@ -105,3 +118,8 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - Commits: Conventional Commits — `type(scope): subject`; types
   `feat|fix|docs|chore|refactor|test|build|ci`. Enforced by commitlint.
 - Branches: `type/short-description` (e.g. `feat/drive-autosave`).
+- **Worktree workflow:** every task runs in a dedicated git worktree.
+  On task start: `git worktree add ../excalistore-<branch> -b <branch>`,
+  work there, then merge into `main` and remove the worktree:
+  `git worktree remove ../excalistore-<branch>`. Never work directly on
+  `main` (the pre-commit hook blocks it anyway).

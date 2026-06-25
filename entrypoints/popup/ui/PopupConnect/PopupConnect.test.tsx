@@ -34,7 +34,7 @@ describe("PopupConnect", () => {
     render(
       <PopupConnect
         status={{ isConnected: false }}
-        busy
+        isBusy
         error="Sign-in was cancelled"
         onConnect={vi.fn()}
         onSignOut={vi.fn()}

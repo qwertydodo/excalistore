@@ -5,7 +5,7 @@ import styles from "./PopupConnect.module.css";
 
 type Props = {
   status: ConnectionStatus;
-  busy?: boolean;
+  isBusy?: boolean;
   error?: string | null;
   onConnect: (folderName: string) => void;
   onSignOut: () => void;
@@ -13,7 +13,7 @@ type Props = {
 
 export const PopupConnect = ({
   status,
-  busy = false,
+  isBusy = false,
   error = null,
   onConnect,
   onSignOut,
@@ -28,12 +28,12 @@ export const PopupConnect = ({
           <Text as="p" color="muted" className={styles.folder}>
             Folder: <strong>{status.folderName ?? status.folderId}</strong>
           </Text>
-          <Button variant="secondary" onClick={onSignOut} disabled={busy}>
+          <Button variant="secondary" onClick={onSignOut} disabled={isBusy}>
             Sign out
           </Button>
         </>
       ) : (
-        <FolderNameForm id="es-folder-name" busy={busy} error={error} onConnect={onConnect} />
+        <FolderNameForm id="es-folder-name" isBusy={isBusy} error={error} onConnect={onConnect} />
       )}
     </Box>
   );

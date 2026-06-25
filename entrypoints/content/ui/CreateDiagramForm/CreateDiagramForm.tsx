@@ -2,34 +2,34 @@ import { useState } from "react";
 import { Button, Spinner, Stack, TextField } from "@/shared/ui";
 
 type Props = {
-  disabled: boolean;
+  isDisabled: boolean;
   onCreate: (name: string) => Promise<void>;
-  onBusyChange: (busy: boolean) => void;
+  onBusyChange: (isBusy: boolean) => void;
 };
 
-export const CreateDiagramForm = ({ disabled, onCreate, onBusyChange }: Props) => {
-  const [creating, setCreating] = useState(false);
+export const CreateDiagramForm = ({ isDisabled, onCreate, onBusyChange }: Props) => {
+  const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
 
   const submitCreate = async () => {
     const name = newName.trim();
     if (!name) return;
-    setBusy(true);
+    setIsBusy(true);
     onBusyChange(true);
     try {
       await onCreate(name); // resolves into a tab reload on success
     } finally {
-      setBusy(false);
+      setIsBusy(false);
       onBusyChange(false);
       setNewName("");
-      setCreating(false);
+      setIsCreating(false);
     }
   };
 
-  if (!creating) {
+  if (!isCreating) {
     return (
-      <Button disabled={disabled} onClick={() => setCreating(true)}>
+      <Button disabled={isDisabled} onClick={() => setIsCreating(true)}>
         New diagram
       </Button>
     );
@@ -51,17 +51,17 @@ export const CreateDiagramForm = ({ disabled, onCreate, onBusyChange }: Props) =
         placeholder="Diagram name"
         value={newName}
         onChange={(e) => setNewName(e.target.value)}
-        disabled={busy}
+        disabled={isBusy}
         autoFocus
       />
-      {busy ? (
+      {isBusy ? (
         <Spinner size={14} />
       ) : (
         <>
-          <Button type="submit" disabled={disabled}>
+          <Button type="submit" disabled={isDisabled}>
             Create
           </Button>
-          <Button variant="secondary" onClick={() => setCreating(false)}>
+          <Button variant="secondary" onClick={() => setIsCreating(false)}>
             Cancel
           </Button>
         </>

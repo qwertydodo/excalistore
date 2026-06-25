@@ -7,17 +7,17 @@ import styles from "./DiagramRow.module.css";
 
 type Props = {
   file: DriveFileMeta;
-  active: boolean;
-  locked: boolean;
-  opening: boolean;
+  isActive: boolean;
+  isLocked: boolean;
+  isOpening: boolean;
   onOpen: (id: string) => void;
   onRename: (id: string, name: string) => Promise<void>;
 };
 
-export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: Props) => {
+export const DiagramRow = ({ file, isActive, isLocked, isOpening, onOpen, onRename }: Props) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const submitRename = async () => {
     const name = renameValue.trim();
@@ -25,11 +25,11 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
       setIsRenaming(false);
       return;
     }
-    setSaving(true);
+    setIsSaving(true);
     try {
       await onRename(file.id, name); // optimistic in-place update in the container
     } finally {
-      setSaving(false);
+      setIsSaving(false);
       setIsRenaming(false);
     }
   };
@@ -52,10 +52,10 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
             aria-label="Rename diagram"
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
-            disabled={saving}
+            disabled={isSaving}
             autoFocus
           />
-          {saving ? <Spinner size={14} /> : <Button type="submit">Save</Button>}
+          {isSaving ? <Spinner size={14} /> : <Button type="submit">Save</Button>}
         </Stack>
       </Stack>
     );
@@ -63,9 +63,9 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
 
   return (
     <Stack as="li" direction="row" gap="1" align="center" className={styles.listRow}>
-      <ListItem active={active} disabled={active || locked} onClick={() => onOpen(file.id)}>
+      <ListItem isActive={isActive} disabled={isActive || isLocked} onClick={() => onOpen(file.id)}>
         <span className={styles.name}>{stripExcalidrawExtension(file.name)}</span>
-        {opening ? (
+        {isOpening ? (
           <Spinner size={14} />
         ) : (
           <Text size="xs" color="muted" className={styles.meta}>
@@ -73,12 +73,8 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
           </Text>
         )}
       </ListItem>
-      <Text
-        as="button"
-        type="button"
-        size="xs"
-        color="accent"
-        className={styles.renameBtn}
+      <Button
+        variant="ghost"
         aria-label={`Rename ${stripExcalidrawExtension(file.name)}`}
         onClick={(e) => {
           e.stopPropagation();
@@ -87,7 +83,7 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
         }}
       >
         Rename
-      </Text>
+      </Button>
     </Stack>
   );
 };

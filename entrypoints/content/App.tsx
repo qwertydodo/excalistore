@@ -3,13 +3,10 @@ import { useActiveDiagram } from "./model/useActiveDiagram";
 import { useConnectFlow } from "./model/useConnectFlow";
 import { useDiagramLibrary } from "./model/useDiagramLibrary";
 import { useSignOutFlow } from "./model/useSignOutFlow";
-import { useThemeSync } from "./model/useThemeSync";
 import { ConnectCard } from "./ui/ConnectCard";
 import { DiagramPanel } from "./ui/DiagramPanel";
 
-export const App = ({ host }: { host: HTMLElement }) => {
-  useThemeSync(host);
-
+export const App = () => {
   const { status, onStatusChange, files, onFilesChange, isLoading, refresh } = useDiagramLibrary();
   const activeDiagram = useActiveDiagram({ onStatusChange, files, onFilesChange, refresh });
   const signOut = useSignOutFlow({
@@ -24,7 +21,7 @@ export const App = ({ host }: { host: HTMLElement }) => {
   if (!status.isConnected) {
     return (
       <ConnectCard
-        busy={connect.isConnecting}
+        isBusy={connect.isConnecting}
         error={connect.connectError}
         onConnect={connect.onConnect}
       />
@@ -51,7 +48,7 @@ export const App = ({ host }: { host: HTMLElement }) => {
           title="Sign out of Excalistore?"
           message="This saves the current diagram to Drive and clears the canvas. Continue?"
           confirmLabel="Save & sign out"
-          danger
+          isDanger
           onConfirm={signOut.doSignOut}
           onCancel={signOut.cancelSignOut}
         />

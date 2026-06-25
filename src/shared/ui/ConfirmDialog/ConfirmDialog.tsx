@@ -9,7 +9,7 @@ type Props = {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  danger?: boolean;
+  isDanger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -19,7 +19,7 @@ export const ConfirmDialog = ({
   message,
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
-  danger = false,
+  isDanger = false,
   onConfirm,
   onCancel,
 }: Props) => {
@@ -32,7 +32,7 @@ export const ConfirmDialog = ({
         <Button variant="secondary" onClick={onCancel}>
           {cancelLabel}
         </Button>
-        <Button variant={danger ? "danger" : "primary"} onClick={onConfirm}>
+        <Button variant={isDanger ? "danger" : "primary"} onClick={onConfirm}>
           {confirmLabel}
         </Button>
       </Stack>
