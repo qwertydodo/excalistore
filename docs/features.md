@@ -25,10 +25,13 @@
 - Playwright E2E.
 - Debounce the autosave poll off real edit events if Excalidraw exposes them.
 - Add steiger (FSD lint) once features/widgets exist.
-- Add Storybook for shared/ui components.
 
 ## Shipped
 _(Move items here as they ship, with a short behavior description.)_
+
+- Storybook for shared/ui: `.storybook/` config with light/dark theme toggle and autodocs;
+  stories for all 12 primitives (Badge, Box, Button, ConfirmDialog, Dialog, Heading,
+  IconButton, ListItem, Spinner, Stack, Text, TextField). Run with `npm run storybook`.
 
 - Foundation: repo scaffold, tooling, shared layer (messages, excalidraw-format,
   theme, ui primitives). No user-facing features yet.

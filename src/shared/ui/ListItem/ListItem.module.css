@@ -7,23 +7,23 @@
   width: 100%;
   text-align: left;
   background: transparent;
-  color: var(--es-text);
+  color: var(--es-color-text-primary);
   cursor: pointer;
   font: inherit;
   transition: background var(--es-transition-fast);
 }
 .active {
-  background: var(--es-surface);
+  background: var(--es-color-bg-surface);
 }
 .listItem:hover:not(:disabled) {
-  background: var(--es-surface-hover);
+  background: var(--es-color-bg-surface-hover);
 }
 /* active state wins over hover */
 .listItem.active:hover:not(:disabled) {
-  background: var(--es-surface);
+  background: var(--es-color-bg-surface);
 }
 .listItem:focus-visible {
-  outline: var(--es-focus-ring-width) solid var(--es-focus-ring-color);
+  outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);
   outline-offset: var(--es-focus-ring-offset);
 }
 .listItem:disabled {

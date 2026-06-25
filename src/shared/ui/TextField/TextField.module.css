@@ -1,18 +1,18 @@
 .textField {
-  background: var(--es-bg);
-  color: var(--es-text);
+  background: var(--es-color-bg-page);
+  color: var(--es-color-text-primary);
   padding: var(--es-space-2) var(--es-space-2);
   font: inherit;
   width: 100%;
   box-sizing: border-box;
 }
 .textField::placeholder {
-  color: var(--es-muted);
+  color: var(--es-color-text-secondary);
   opacity: 1;
 }
 .textField:focus-visible {
   position: relative;
   z-index: 1;
-  outline: var(--es-focus-ring-width) solid var(--es-focus-ring-color);
+  outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);
   outline-offset: var(--es-focus-ring-offset);
 }

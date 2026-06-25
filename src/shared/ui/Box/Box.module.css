@@ -17,10 +17,10 @@
   padding: var(--es-space-6);
 }
 .border-thin {
-  border: var(--es-border-width-thin) solid var(--es-border);
+  border: var(--es-border-width-thin) solid var(--es-color-border);
 }
 .border-thick {
-  border: var(--es-border-width-thick) solid var(--es-border);
+  border: var(--es-border-width-thick) solid var(--es-color-border);
 }
 .radius-sm {
   border-radius: var(--es-radius-sm);

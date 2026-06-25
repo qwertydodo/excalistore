@@ -4,6 +4,6 @@
 .error {
   margin: 0;
   padding: var(--es-space-2) var(--es-space-3);
-  background: var(--es-danger);
+  background: var(--es-color-status-danger);
   border-radius: var(--es-radius-md);
 }

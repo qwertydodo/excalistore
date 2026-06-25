@@ -218,11 +218,22 @@ Reusable foundation everything else is built from:
   through it instead of repeating `border`/`border-radius`/`box-shadow`
   per-component. The panel and every dialog (replace-canvas, sign-out,
   rename, conflict) are composed from these.
-- **`shared/config` (`theme`)** — design tokens as CSS custom properties
-  (`theme.css`). Theme-dependent (light/dark via the `data-theme` attribute): color,
-  `shadow-{sm,md,lg}`, overlay. Flat, theme-independent scales: spacing, typography, z-index,
-  `radius-{sm,md,lg}`, `border-width-{thin,thick}`.
-  Single source of styling for the primitives.
+- **`shared/config` (`theme`)** — design tokens as CSS custom properties in
+  `theme.css`, following a two-layer architecture:
+  - **Primitive tokens** (`--es-color-*`) — raw hex palette values; never used
+    directly in components.
+  - **Semantic tokens** (`--es-color-bg-*`, `--es-color-text-*`,
+    `--es-color-border*`, `--es-color-interactive-*`, `--es-color-status-*`,
+    `--es-color-overlay`) — purpose-named, reference primitives, switch per
+    theme. These are the only tokens components consume.
+  Theme switching (light/dark) is done via the `data-theme` attribute on
+  `:root`/`:host`; only semantic tokens change between themes. Flat,
+  theme-independent scales live alongside: spacing (`--es-space-*`), typography
+  (`--es-font-*`, `--es-line-height-*`), radius (`--es-radius-*`), border-width
+  (`--es-border-width-*`), shadow (`--es-shadow-*`), z-index, transitions,
+  focus-ring geometry.
+  Component-level tokens are intentionally avoided — semantic tokens are
+  expressive enough for all current components.
 - **`shared/api` (`messages`, `driveClient`)** — typed request/response
   contracts (discriminated unions) shared by content script and background,
   plus the Drive REST v3 client (pure CRUD, fetch-injected, no business

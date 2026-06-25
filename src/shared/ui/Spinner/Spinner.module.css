@@ -9,8 +9,8 @@
 
 .spinner {
   display: inline-block;
-  border: var(--es-border-width-thick) solid var(--es-border);
-  border-top-color: var(--es-accent);
+  border: var(--es-border-width-thick) solid var(--es-color-border);
+  border-top-color: var(--es-color-interactive-primary);
   border-radius: 50%;
   animation: es-spin 0.7s linear infinite;
 }
@@ -18,6 +18,6 @@
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
-    border-color: var(--es-accent);
+    border-color: var(--es-color-interactive-primary);
   }
 }

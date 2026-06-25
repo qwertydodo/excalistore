@@ -17,17 +17,17 @@
   font-size: var(--es-font-size-xl);
 }
 .color-text {
-  color: var(--es-text);
+  color: var(--es-color-text-primary);
 }
 .color-muted {
-  color: var(--es-muted);
+  color: var(--es-color-text-secondary);
 }
 .color-danger {
-  color: var(--es-danger);
+  color: var(--es-color-status-danger);
 }
 .color-accent {
-  color: var(--es-accent);
+  color: var(--es-color-interactive-primary);
 }
 .color-accent-text {
-  color: var(--es-accent-text);
+  color: var(--es-color-text-on-interactive);
 }

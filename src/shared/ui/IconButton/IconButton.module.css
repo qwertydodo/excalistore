@@ -15,7 +15,7 @@
   cursor: not-allowed;
 }
 .iconButton:focus-visible {
-  outline: var(--es-focus-ring-width) solid var(--es-focus-ring-color);
+  outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);
   outline-offset: var(--es-focus-ring-offset);
 }
 
@@ -42,22 +42,22 @@
 /* Variant */
 .ghost {
   background: transparent;
-  border-color: var(--es-border);
-  color: var(--es-text);
+  border-color: var(--es-color-border);
+  color: var(--es-color-text-primary);
 }
 .ghost:hover:not(:disabled) {
-  background: var(--es-surface);
+  background: var(--es-color-bg-surface);
 }
 .primary {
-  background: var(--es-accent);
-  border-color: var(--es-accent);
-  color: var(--es-accent-text);
+  background: var(--es-color-interactive-primary);
+  border-color: var(--es-color-interactive-primary);
+  color: var(--es-color-text-on-interactive);
   box-shadow: var(--es-shadow-md);
 }
 .primary:hover:not(:disabled) {
-  background: var(--es-accent-hover);
-  border-color: var(--es-accent-hover);
+  background: var(--es-color-interactive-primary-hover);
+  border-color: var(--es-color-interactive-primary-hover);
 }
 .primary:focus-visible {
-  outline-color: var(--es-accent-text);
+  outline-color: var(--es-color-text-on-interactive);
 }
