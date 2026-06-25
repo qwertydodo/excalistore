@@ -1,0 +1,4 @@
+#!/bin/sh
+# Delegate to lefthook (installed separately in .git/hooks/)
+hook="$(git rev-parse --git-dir)/hooks/commit-msg"
+[ -x "$hook" ] && exec "$hook" "$@"
