@@ -14,3 +14,10 @@
   border-radius: 50%;
   animation: es-spin 0.7s linear infinite;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-color: var(--es-accent);
+  }
+}
