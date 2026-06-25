@@ -18,10 +18,6 @@
     "@wxt-dev/module-react",
     "@babel/core",
     "@types/babel__core",
-    "babel-plugin-react-compiler",
-    "storybook",
-    "@storybook/react-vite",
-    "@storybook/react",
-    "@storybook/addon-a11y"
+    "babel-plugin-react-compiler"
   ]
 }
