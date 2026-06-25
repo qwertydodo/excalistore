@@ -1,0 +1,33 @@
+.size-xs {
+  font-size: var(--es-font-size-xs);
+}
+.size-sm {
+  font-size: var(--es-font-size-sm);
+}
+.size-base {
+  font-size: var(--es-font-size-base);
+}
+.size-md {
+  font-size: var(--es-font-size-md);
+}
+.size-lg {
+  font-size: var(--es-font-size-lg);
+}
+.size-xl {
+  font-size: var(--es-font-size-xl);
+}
+.color-text {
+  color: var(--es-text);
+}
+.color-muted {
+  color: var(--es-muted);
+}
+.color-danger {
+  color: var(--es-danger);
+}
+.color-accent {
+  color: var(--es-accent);
+}
+.color-accent-text {
+  color: var(--es-accent-text);
+}

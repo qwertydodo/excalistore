@@ -1,5 +1,7 @@
 import { Button } from "../Button";
 import { Dialog } from "../Dialog";
+import { Stack } from "../Stack";
+import { Text } from "../Text";
 import styles from "./ConfirmDialog.module.css";
 
 type Props = {
@@ -23,15 +25,17 @@ export const ConfirmDialog = ({
 }: Props) => {
   return (
     <Dialog title={title} onClose={onCancel}>
-      <p className={styles.message}>{message}</p>
-      <div className={styles.actions}>
+      <Text as="p" color="muted" className={styles.message}>
+        {message}
+      </Text>
+      <Stack direction="row" gap="2" justify="end">
         <Button variant="secondary" onClick={onCancel}>
           {cancelLabel}
         </Button>
         <Button variant={danger ? "danger" : "primary"} onClick={onConfirm}>
           {confirmLabel}
         </Button>
-      </div>
+      </Stack>
     </Dialog>
   );
 };

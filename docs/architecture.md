@@ -213,13 +213,21 @@ in isolation.
 Reusable foundation everything else is built from:
 
 - **`shared/ui`** — primitive components rendered in Shadow DOM: `Button`,
-  `IconButton`, `Dialog`/`ConfirmDialog`, `TextField`, `ListItem`, `Badge`,
-  `Spinner`. The panel and every dialog (replace-canvas, sign-out, rename,
-  conflict) are composed from these.
+  `Dialog`/`ConfirmDialog`, `TextField`, `ListItem`, `Badge`, `Spinner`, plus
+  the layout/typography primitives `Box`, `Stack`, `Text`, `Heading` (all
+  polymorphic via an `as` prop; `Stack` composes `Box`, `Heading` composes
+  `Text`). `Box` owns the `padding`/`border`/`radius`/`shadow` token scales —
+  every bordered/rounded/shadowed surface (`Button`, `TextField`, `ListItem`,
+  `Dialog`'s panel, `ConnectCard`/`DiagramPanel`'s root via `Stack`) goes
+  through it instead of repeating `border`/`border-radius`/`box-shadow`
+  per-component. The panel and every dialog (replace-canvas, sign-out,
+  rename, conflict) are composed from these.
 - **`shared/config` (`theme`)** — design tokens as CSS custom properties
-  (`theme.css`) for light and dark, mirrored from Excalidraw's appState via the
-  `data-theme` attribute (`THEME_ATTR`). Single source of styling for the
-  primitives.
+  (`theme.css`). Theme-dependent (light/dark via the `data-theme` attribute,
+  `THEME_ATTR`, mirrored from Excalidraw's appState): color, `shadow-{sm,md,lg}`,
+  overlay. Flat, theme-independent scales: spacing, typography, z-index,
+  `radius-{sm,md,lg}`, `border-width-{thin,thick}`.
+  Single source of styling for the primitives.
 - **`shared/api` (`messages`, `driveClient`)** — typed request/response
   contracts (discriminated unions) shared by content script and background,
   plus the Drive REST v3 client (pure CRUD, fetch-injected, no business

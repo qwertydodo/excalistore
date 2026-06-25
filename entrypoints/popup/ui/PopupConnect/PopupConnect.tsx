@@ -1,6 +1,6 @@
 import { FolderNameForm } from "@/features/driveConnect";
 import type { ConnectionStatus } from "@/shared/api";
-import { Button } from "@/shared/ui";
+import { Box, Button, Heading, Text } from "@/shared/ui";
 import styles from "./PopupConnect.module.css";
 
 type Props = {
@@ -19,13 +19,15 @@ export const PopupConnect = ({
   onSignOut,
 }: Props) => {
   return (
-    <main className={styles.root}>
-      <h1 className={styles.title}>Excalistore</h1>
+    <Box as="main" padding="4" className={styles.root}>
+      <Heading as="h1" size="lg" className={styles.title}>
+        Excalistore
+      </Heading>
       {status.connected ? (
         <>
-          <p className={styles.folder}>
+          <Text as="p" color="muted" className={styles.folder}>
             Folder: <strong>{status.folderName ?? status.folderId}</strong>
-          </p>
+          </Text>
           <Button variant="secondary" onClick={onSignOut} disabled={busy}>
             Sign out
           </Button>
@@ -33,6 +35,6 @@ export const PopupConnect = ({
       ) : (
         <FolderNameForm id="es-folder-name" busy={busy} error={error} onConnect={onConnect} />
       )}
-    </main>
+    </Box>
   );
 };

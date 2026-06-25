@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Button, Spinner, TextField } from "@/shared/ui";
-import styles from "./CreateDiagramForm.module.css";
+import { Button, Spinner, Stack, TextField } from "@/shared/ui";
 
 type Props = {
   disabled: boolean;
@@ -37,8 +36,11 @@ export const CreateDiagramForm = ({ disabled, onCreate, onBusyChange }: Props) =
   }
 
   return (
-    <form
-      className={styles.createRow}
+    <Stack
+      as="form"
+      direction="row"
+      gap="1"
+      align="center"
       onSubmit={(e) => {
         e.preventDefault();
         submitCreate();
@@ -63,6 +65,6 @@ export const CreateDiagramForm = ({ disabled, onCreate, onBusyChange }: Props) =
           </Button>
         </>
       )}
-    </form>
+    </Stack>
   );
 };
