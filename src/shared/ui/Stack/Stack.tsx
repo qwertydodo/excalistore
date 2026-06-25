@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import type { ElementType } from "react";
 import { Box, type BoxProps, type Space } from "../Box";
 import styles from "./Stack.module.css";
@@ -25,16 +26,14 @@ export const Stack = <T extends ElementType = "div">({
 }: StackProps<T>) => {
   return (
     <Box
-      className={[
+      className={clsx(
         styles.stack,
         direction === "row" ? styles.row : styles.column,
-        gap ? styles[`gap-${gap}`] : null,
-        align ? styles[`align-${align}`] : null,
-        justify ? styles[`justify-${justify}`] : null,
+        gap && styles[`gap-${gap}`],
+        align && styles[`align-${align}`],
+        justify && styles[`justify-${justify}`],
         className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      )}
       {...(rest as BoxProps<T>)}
     />
   );

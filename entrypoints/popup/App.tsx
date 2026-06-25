@@ -5,7 +5,7 @@ import { PopupConnect } from "./ui/PopupConnect";
 
 export const App = () => {
   const [status, setStatus] = useState<ConnectionStatus>({ isConnected: false });
-  const [busy, setBusy] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,8 +15,8 @@ export const App = () => {
   }, []);
 
   const onConnect = async (folderName: string) => {
-    if (busy) return;
-    setBusy(true);
+    if (isBusy) return;
+    setIsBusy(true);
     setError(null);
     try {
       // Interactive sign-in + folder find/create happen in the background gateway.
@@ -28,13 +28,13 @@ export const App = () => {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not connect to Google Drive");
     } finally {
-      setBusy(false);
+      setIsBusy(false);
     }
   };
 
   const onSignOut = async () => {
-    if (busy) return;
-    setBusy(true);
+    if (isBusy) return;
+    setIsBusy(true);
     setError(null);
     try {
       const next = await sendToBackground<ConnectionStatus>({ type: REQUEST_TYPE.AUTH_SIGN_OUT });
@@ -42,14 +42,14 @@ export const App = () => {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not sign out");
     } finally {
-      setBusy(false);
+      setIsBusy(false);
     }
   };
 
   return (
     <PopupConnect
       status={status}
-      busy={busy}
+      isBusy={isBusy}
       error={error}
       onConnect={onConnect}
       onSignOut={onSignOut}

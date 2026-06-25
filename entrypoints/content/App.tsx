@@ -21,7 +21,7 @@ export const App = () => {
   if (!status.isConnected) {
     return (
       <ConnectCard
-        busy={connect.isConnecting}
+        isBusy={connect.isConnecting}
         error={connect.connectError}
         onConnect={connect.onConnect}
       />
@@ -48,7 +48,7 @@ export const App = () => {
           title="Sign out of Excalistore?"
           message="This saves the current diagram to Drive and clears the canvas. Continue?"
           confirmLabel="Save & sign out"
-          danger
+          isDanger
           onConfirm={signOut.doSignOut}
           onCancel={signOut.cancelSignOut}
         />

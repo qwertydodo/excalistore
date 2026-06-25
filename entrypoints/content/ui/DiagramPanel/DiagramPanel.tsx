@@ -121,9 +121,9 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
             <DiagramRow
               key={f.id}
               file={f}
-              active={f.id === activeId}
-              locked={areRowsLocked}
-              opening={openingId === f.id}
+              isActive={f.id === activeId}
+              isLocked={areRowsLocked}
+              isOpening={openingId === f.id}
               onOpen={onRowOpen}
               onRename={onRename}
             />
@@ -133,7 +133,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
 
       <Stack as="footer" gap="2" className={styles.footer}>
         <CreateDiagramForm
-          disabled={areRowsLocked}
+          isDisabled={areRowsLocked}
           onCreate={onCreate}
           onBusyChange={onCreatingBusyChange}
         />
