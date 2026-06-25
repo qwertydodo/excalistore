@@ -1,0 +1,42 @@
+.p-1 {
+  padding: var(--es-space-1);
+}
+.p-2 {
+  padding: var(--es-space-2);
+}
+.p-3 {
+  padding: var(--es-space-3);
+}
+.p-4 {
+  padding: var(--es-space-4);
+}
+.p-5 {
+  padding: var(--es-space-5);
+}
+.p-6 {
+  padding: var(--es-space-6);
+}
+.border-thin {
+  border: var(--es-border-width-thin) solid var(--es-border);
+}
+.border-thick {
+  border: var(--es-border-width-thick) solid var(--es-border);
+}
+.radius-sm {
+  border-radius: var(--es-radius-sm);
+}
+.radius-md {
+  border-radius: var(--es-radius-md);
+}
+.radius-lg {
+  border-radius: var(--es-radius-lg);
+}
+.shadow-sm {
+  box-shadow: var(--es-shadow-sm);
+}
+.shadow-md {
+  box-shadow: var(--es-shadow-md);
+}
+.shadow-lg {
+  box-shadow: var(--es-shadow-lg);
+}

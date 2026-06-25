@@ -1,9 +1,16 @@
 export type { Tone } from "./Badge";
 export { Badge } from "./Badge";
+export type { BorderWidth, BoxProps, Radius, Shadow, Space } from "./Box";
+export { Box } from "./Box";
 export type { Variant } from "./Button";
 export { Button } from "./Button";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { Dialog } from "./Dialog";
+export { Heading } from "./Heading";
 export { ListItem } from "./ListItem";
 export { Spinner } from "./Spinner";
+export type { StackProps } from "./Stack";
+export { Stack } from "./Stack";
+export type { TextColor, TextProps, TextSize } from "./Text";
+export { Text } from "./Text";
 export { TextField } from "./TextField";

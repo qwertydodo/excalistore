@@ -2,7 +2,7 @@ import { useState } from "react";
 import { stripExcalidrawExtension } from "@/entities/diagram";
 import type { DriveFileMeta } from "@/shared/api";
 import { formatDate } from "@/shared/lib";
-import { Button, ListItem, Spinner, TextField } from "@/shared/ui";
+import { Button, ListItem, Spinner, Stack, Text, TextField } from "@/shared/ui";
 import styles from "./DiagramRow.module.css";
 
 type Props = {
@@ -36,9 +36,12 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
 
   if (isRenaming) {
     return (
-      <li className={styles.listRow}>
-        <form
-          className={styles.renameRow}
+      <Stack as="li" direction="row" gap="1" align="center" className={styles.listRow}>
+        <Stack
+          as="form"
+          direction="row"
+          gap="1"
+          align="center"
           onSubmit={(e) => {
             e.preventDefault();
             submitRename();
@@ -52,23 +55,28 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
             autoFocus
           />
           {saving ? <Spinner size={14} /> : <Button type="submit">Save</Button>}
-        </form>
-      </li>
+        </Stack>
+      </Stack>
     );
   }
 
   return (
-    <li className={styles.listRow}>
+    <Stack as="li" direction="row" gap="1" align="center" className={styles.listRow}>
       <ListItem active={active} disabled={active || locked} onClick={() => onOpen(file.id)}>
         <span className={styles.name}>{stripExcalidrawExtension(file.name)}</span>
         {opening ? (
           <Spinner size={14} />
         ) : (
-          <span className={styles.meta}>{formatDate(file.modifiedTime)}</span>
+          <Text size="xs" color="muted" className={styles.meta}>
+            {formatDate(file.modifiedTime)}
+          </Text>
         )}
       </ListItem>
-      <button
+      <Text
+        as="button"
         type="button"
+        size="xs"
+        color="accent"
         className={styles.renameBtn}
         aria-label={`Rename ${stripExcalidrawExtension(file.name)}`}
         onClick={(e) => {
@@ -78,7 +86,7 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
         }}
       >
         Rename
-      </button>
-    </li>
+      </Text>
+    </Stack>
   );
 };

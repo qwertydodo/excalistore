@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SaveStatus } from "@/features/autosave";
 import type { DriveFileMeta } from "@/shared/api";
-import { Badge, Button, Spinner, type Tone } from "@/shared/ui";
+import { Badge, Button, Heading, Spinner, Stack, Text, type Tone } from "@/shared/ui";
 import type { ActiveDiagram } from "../../model/useActiveDiagram";
 import { usePanelVisibility } from "../../model/usePanelVisibility";
 import { CreateDiagramForm } from "../CreateDiagramForm";
@@ -82,15 +82,21 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
     // Excalidraw binds single-key tool shortcuts on the document, which would
     // fire while typing in the panel's inputs. Stop keyboard events at the panel
     // root so they never reach Excalidraw's global handlers.
-    <section
+    <Stack
+      as="section"
+      gap="2"
+      padding="3"
+      border="thin"
+      radius="md"
+      shadow="md"
       className={styles.root}
       aria-label="Excalistore diagrams"
       onKeyDown={(e) => e.stopPropagation()}
       onKeyUp={(e) => e.stopPropagation()}
     >
-      <header className={styles.header}>
-        <h2 className={styles.title}>Diagrams</h2>
-        <div className={styles.headerRight}>
+      <Stack as="header" direction="row" align="center" justify="between">
+        <Heading size="md">Diagrams</Heading>
+        <Stack direction="row" align="center" gap="2">
           <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
           <button
             type="button"
@@ -100,21 +106,21 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
           >
             −
           </button>
-        </div>
-      </header>
+        </Stack>
+      </Stack>
 
       {error ? (
-        <p className={styles.error} role="alert">
+        <Text as="p" size="sm" color="accent-text" role="alert" className={styles.error}>
           {error}
-        </p>
+        </Text>
       ) : null}
 
       {isLoading ? (
-        <div className={styles.loading}>
+        <Stack direction="row" justify="center" padding="4">
           <Spinner />
-        </div>
+        </Stack>
       ) : (
-        <ul className={styles.list}>
+        <Stack as="ul" gap="1" className={styles.list}>
           {ordered.map((f) => (
             <DiagramRow
               key={f.id}
@@ -126,10 +132,10 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
               onRename={onRename}
             />
           ))}
-        </ul>
+        </Stack>
       )}
 
-      <footer className={styles.footer}>
+      <Stack as="footer" gap="2" className={styles.footer}>
         <CreateDiagramForm
           disabled={areRowsLocked}
           onCreate={onCreate}
@@ -138,7 +144,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         <Button variant="secondary" onClick={onSignOut}>
           Sign out
         </Button>
-      </footer>
-    </section>
+      </Stack>
+    </Stack>
   );
 };
