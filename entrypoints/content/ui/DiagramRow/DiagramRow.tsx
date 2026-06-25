@@ -48,6 +48,7 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
           }}
         >
           <TextField
+            name="diagramName"
             aria-label="Rename diagram"
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}

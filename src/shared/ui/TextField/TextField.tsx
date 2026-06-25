@@ -3,8 +3,7 @@ import type { InputHTMLAttributes } from "react";
 import { Box } from "../Box";
 import styles from "./TextField.module.css";
 
-type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "aria-label"> &
-  ({ name: string; "aria-label"?: string } | { name?: string; "aria-label": string });
+type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name"> & { name: string };
 
 export const TextField = ({ className, ...rest }: TextFieldProps) => {
   return (
