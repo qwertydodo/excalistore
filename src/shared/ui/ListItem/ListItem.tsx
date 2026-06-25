@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import type { ReactNode } from "react";
 import { Box } from "../Box";
 import styles from "./ListItem.module.css";
@@ -17,7 +18,7 @@ export const ListItem = ({ active = false, disabled = false, onClick, children }
       radius="md"
       onClick={onClick}
       disabled={disabled}
-      className={[styles.listItem, active ? styles.active : null].filter(Boolean).join(" ")}
+      className={clsx(styles.listItem, active && styles.active)}
     >
       {children}
     </Box>

@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 import styles from "./Box.module.css";
 
@@ -30,15 +31,13 @@ export const Box = <T extends ElementType = "div">({
   const Tag = (as ?? "div") as ElementType;
   return (
     <Tag
-      className={[
-        padding ? styles[`p-${padding}`] : null,
-        border ? styles[`border-${border}`] : null,
-        radius ? styles[`radius-${radius}`] : null,
-        shadow ? styles[`shadow-${shadow}`] : null,
+      className={clsx(
+        padding && styles[`p-${padding}`],
+        border && styles[`border-${border}`],
+        radius && styles[`radius-${radius}`],
+        shadow && styles[`shadow-${shadow}`],
         className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      )}
       {...rest}
     />
   );
