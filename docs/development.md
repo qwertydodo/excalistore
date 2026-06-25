@@ -1,6 +1,9 @@
 # Development
 
 ## Setup
+
+Requires **Node.js 24**.
+
 1. `npm install`
 2. `cp .env.example .env` and fill in values (see "Google OAuth" below).
 3. `npm run dev` — starts WXT dev; load `.output/chrome-mv3` as an unpacked

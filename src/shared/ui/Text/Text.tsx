@@ -25,11 +25,7 @@ export const Text = <T extends ElementType = "span">({
   const Tag = (as ?? "span") as ElementType;
   return (
     <Tag
-      className={clsx(
-        size && styles[`size-${size}`],
-        color && styles[`color-${color}`],
-        className,
-      )}
+      className={clsx(size && styles[`size-${size}`], color && styles[`color-${color}`], className)}
       {...(rest as TextProps<T>)}
     />
   );
