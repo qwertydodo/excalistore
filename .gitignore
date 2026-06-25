@@ -6,5 +6,6 @@ dist/
 .DS_Store
 stats.html
 coverage/
+storybook-static/
 .env
 .keys/

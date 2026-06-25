@@ -96,7 +96,14 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   domain logic — e.g. the Drive REST client — lives in `shared/api/` instead.
 - Theme tokens live in CSS custom properties (`src/shared/config/theme.css`),
   not JS objects — switch themes via the `data-theme` attribute, not by
-  swapping a JS variable map.
+  swapping a JS variable map. Two layers: **primitive** (`--es-color-*`, raw
+  hex, never used in components) and **semantic** (purpose-named, reference
+  primitives, switch per theme). Semantic naming convention:
+  `--es-color-bg-*` (backgrounds), `--es-color-text-*` (text),
+  `--es-color-border*` (borders), `--es-color-interactive-*` (action/brand),
+  `--es-color-status-*` (status foregrounds), `--es-color-overlay`.
+  Components consume semantic tokens only. Component-level tokens are
+  intentionally avoided — add a semantic token instead.
 - **CSS reset:** `src/shared/config/reset.css` is imported first in every
   entrypoint (`content/index.tsx`, `popup/main.tsx`). It resets UA defaults
   for `ul`/`ol`, headings, `p`, form elements, etc. Never re-reset these

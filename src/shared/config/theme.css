@@ -7,35 +7,49 @@
   --es-color-violet-300: #a8a5ff;
   --es-color-violet-500: #6965db;
   --es-color-violet-700: #5450bf;
+  --es-color-violet-900: #333343;
   --es-color-ink-900: #1b1b1f;
   --es-color-ink-700: #232329;
   --es-color-ink-600: #2e2d39;
   --es-color-ink-400: #3b3a47;
   --es-color-ink-50: #e3e3e8;
+  --es-color-gray-50: #f0f0f1;
   --es-color-gray-500: #6a6a75;
   --es-color-gray-300: #9a99a5;
+  --es-color-gray-900: #313138;
+  --es-color-red-50: #fceaea;
   --es-color-red-700: #c92a2a;
   --es-color-red-500: #e03131;
   --es-color-red-400: #fa5252;
   --es-color-red-300: #ff8787;
+  --es-color-red-900: #3d2f34;
 
   /* Semantic tokens (light) */
   color-scheme: light;
-  --es-bg: var(--es-color-white);
-  --es-surface: var(--es-color-violet-50);
-  --es-surface-hover: var(--es-color-violet-100);
-  --es-text: var(--es-color-ink-900);
-  --es-muted: var(--es-color-gray-500);
-  --es-border: var(--es-color-violet-100);
-  --es-accent: var(--es-color-violet-500);
-  --es-accent-hover: var(--es-color-violet-700);
-  --es-accent-text: var(--es-color-white);
-  --es-danger: var(--es-color-red-500);
-  --es-danger-hover: var(--es-color-red-700);
-  --es-overlay: rgba(0, 0, 0, 0.4);
+  --es-color-bg-page: var(--es-color-white);
+  --es-color-bg-surface: var(--es-color-violet-50);
+  --es-color-bg-surface-hover: var(--es-color-violet-100);
+  --es-color-text-primary: var(--es-color-ink-900);
+  --es-color-text-secondary: var(--es-color-gray-500);
+  --es-color-border: var(--es-color-violet-100);
+  --es-color-interactive-primary: var(--es-color-violet-500);
+  --es-color-interactive-primary-hover: var(--es-color-violet-700);
+  --es-color-text-on-interactive: var(--es-color-white);
+  --es-color-status-danger: var(--es-color-red-500);
+  --es-color-status-danger-hover: var(--es-color-red-700);
+  --es-color-overlay: rgba(0, 0, 0, 0.4);
+
+  /* Status surface backgrounds */
+  --es-color-bg-status-neutral: var(--es-color-gray-50);
+  --es-color-bg-status-success: var(--es-color-violet-50);
+  --es-color-bg-status-danger: var(--es-color-red-50);
+
+  /* Status foreground colors */
+  --es-color-status-neutral: var(--es-color-text-secondary);
+  --es-color-status-success: var(--es-color-interactive-primary);
 
   /* Focus ring tokens */
-  --es-focus-ring-color: var(--es-color-violet-500);
+  --es-color-border-focus: var(--es-color-violet-500);
   --es-focus-ring-width: 2px;
   --es-focus-ring-offset: 2px;
 
@@ -82,22 +96,25 @@
 :root[data-theme="dark"],
 :host([data-theme="dark"]) {
   color-scheme: dark;
-  --es-bg: var(--es-color-ink-700);
-  --es-surface: var(--es-color-ink-600);
-  --es-surface-hover: var(--es-color-ink-400);
-  --es-text: var(--es-color-ink-50);
-  --es-muted: var(--es-color-gray-300);
-  --es-border: var(--es-color-ink-400);
-  --es-accent: var(--es-color-violet-300);
-  --es-accent-hover: var(--es-color-violet-100);
-  --es-accent-text: var(--es-color-ink-900);
-  --es-danger: var(--es-color-red-300);
-  --es-danger-hover: var(--es-color-red-400);
-  --es-focus-ring-color: var(--es-color-violet-300);
+  --es-color-bg-page: var(--es-color-ink-700);
+  --es-color-bg-surface: var(--es-color-ink-600);
+  --es-color-bg-surface-hover: var(--es-color-ink-400);
+  --es-color-text-primary: var(--es-color-ink-50);
+  --es-color-text-secondary: var(--es-color-gray-300);
+  --es-color-border: var(--es-color-ink-400);
+  --es-color-interactive-primary: var(--es-color-violet-300);
+  --es-color-interactive-primary-hover: var(--es-color-violet-100);
+  --es-color-text-on-interactive: var(--es-color-ink-900);
+  --es-color-status-danger: var(--es-color-red-300);
+  --es-color-status-danger-hover: var(--es-color-red-400);
+  --es-color-border-focus: var(--es-color-violet-300);
   --es-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --es-shadow-md: 0 1px 4px rgba(0, 0, 0, 0.4);
   --es-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --es-overlay: rgba(0, 0, 0, 0.6);
+  --es-color-overlay: rgba(0, 0, 0, 0.6);
+  --es-color-bg-status-neutral: var(--es-color-gray-900);
+  --es-color-bg-status-success: var(--es-color-violet-900);
+  --es-color-bg-status-danger: var(--es-color-red-900);
 }
 
 .es-disconnected {

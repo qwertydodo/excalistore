@@ -11,45 +11,45 @@
   cursor: not-allowed;
 }
 .button:focus-visible {
-  outline: var(--es-focus-ring-width) solid var(--es-focus-ring-color);
+  outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);
   outline-offset: var(--es-focus-ring-offset);
 }
 .primary {
-  background: var(--es-accent);
-  color: var(--es-accent-text);
-  border-color: var(--es-accent);
+  background: var(--es-color-interactive-primary);
+  color: var(--es-color-text-on-interactive);
+  border-color: var(--es-color-interactive-primary);
 }
 /* Colored backgrounds need a contrasting ring (accent ring = same color as bg) */
 .primary:focus-visible,
 .danger:focus-visible {
-  outline-color: var(--es-accent-text);
+  outline-color: var(--es-color-text-on-interactive);
 }
 .primary:hover:not(:disabled) {
-  background: var(--es-accent-hover);
-  border-color: var(--es-accent-hover);
+  background: var(--es-color-interactive-primary-hover);
+  border-color: var(--es-color-interactive-primary-hover);
 }
 .secondary {
-  background: var(--es-surface);
-  color: var(--es-text);
+  background: var(--es-color-bg-surface);
+  color: var(--es-color-text-primary);
 }
 .secondary:hover:not(:disabled) {
-  background: var(--es-surface-hover);
-  border-color: var(--es-accent);
+  background: var(--es-color-bg-surface-hover);
+  border-color: var(--es-color-interactive-primary);
 }
 .danger {
-  background: var(--es-danger);
-  color: var(--es-accent-text);
-  border-color: var(--es-danger);
+  background: var(--es-color-status-danger);
+  color: var(--es-color-text-on-interactive);
+  border-color: var(--es-color-status-danger);
 }
 .danger:hover:not(:disabled) {
-  background: var(--es-danger-hover);
-  border-color: var(--es-danger-hover);
+  background: var(--es-color-status-danger-hover);
+  border-color: var(--es-color-status-danger-hover);
 }
 .ghost {
   background: none;
   border-color: transparent;
-  color: var(--es-accent);
+  color: var(--es-color-interactive-primary);
 }
 .ghost:hover:not(:disabled) {
-  color: var(--es-accent-hover);
+  color: var(--es-color-interactive-primary-hover);
 }

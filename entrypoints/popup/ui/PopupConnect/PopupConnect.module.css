@@ -1,7 +1,7 @@
 .root {
   width: 280px;
-  background: var(--es-bg);
-  color: var(--es-text);
+  background: var(--es-color-bg-page);
+  color: var(--es-color-text-primary);
   font: var(--es-font-size-md) / var(--es-line-height-base) var(--es-font-family);
 }
 .title {
