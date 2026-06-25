@@ -2,20 +2,46 @@
   padding: var(--es-space-2) var(--es-space-3);
   font: inherit;
   cursor: pointer;
+  transition:
+    background var(--es-transition-fast),
+    border-color var(--es-transition-fast);
 }
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.button:focus-visible {
+  outline: var(--es-focus-ring-width) solid var(--es-focus-ring-color);
+  outline-offset: var(--es-focus-ring-offset);
+}
 .primary {
   background: var(--es-accent);
   color: var(--es-accent-text);
+  border-color: var(--es-accent);
+}
+/* Colored backgrounds need a contrasting ring (accent ring = same color as bg) */
+.primary:focus-visible,
+.danger:focus-visible {
+  outline-color: var(--es-accent-text);
+}
+.primary:hover:not(:disabled) {
+  background: var(--es-accent-hover);
+  border-color: var(--es-accent-hover);
 }
 .secondary {
   background: var(--es-surface);
   color: var(--es-text);
 }
+.secondary:hover:not(:disabled) {
+  background: var(--es-surface-hover);
+  border-color: var(--es-accent);
+}
 .danger {
   background: var(--es-danger);
   color: var(--es-accent-text);
+  border-color: var(--es-danger);
+}
+.danger:hover:not(:disabled) {
+  background: var(--es-danger-hover);
+  border-color: var(--es-danger-hover);
 }

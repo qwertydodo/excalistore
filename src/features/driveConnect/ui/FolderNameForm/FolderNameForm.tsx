@@ -29,6 +29,7 @@ export const FolderNameForm = ({ id, busy = false, error = null, onConnect }: Pr
       </Text>
       <TextField
         id={id}
+        name="folderName"
         aria-label="Folder name"
         value={name}
         onChange={(e) => setName(e.target.value)}
