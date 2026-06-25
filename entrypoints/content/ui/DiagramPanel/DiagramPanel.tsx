@@ -120,7 +120,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
           <Spinner />
         </Stack>
       ) : (
-        <Stack as="ul" gap="1" className={styles.list}>
+        <Stack as="ul" gap="1">
           {ordered.map((f) => (
             <DiagramRow
               key={f.id}
