@@ -15,8 +15,3 @@
 .meta {
   flex-shrink: 0;
 }
-.renameBtn {
-  border: none;
-  background: none;
-  cursor: pointer;
-}

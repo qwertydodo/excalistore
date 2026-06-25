@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { Box } from "../Box";
 import styles from "./Button.module.css";
 
-export type Variant = "primary" | "secondary" | "danger";
+export type Variant = "primary" | "secondary" | "danger" | "ghost";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;

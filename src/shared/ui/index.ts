@@ -7,6 +7,8 @@ export { Button } from "./Button";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { Dialog } from "./Dialog";
 export { Heading } from "./Heading";
+export type { IconButtonProps } from "./IconButton";
+export { IconButton } from "./IconButton";
 export { ListItem } from "./ListItem";
 export { Spinner } from "./Spinner";
 export type { StackProps } from "./Stack";

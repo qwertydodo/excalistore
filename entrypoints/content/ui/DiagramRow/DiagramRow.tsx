@@ -73,12 +73,8 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
           </Text>
         )}
       </ListItem>
-      <Text
-        as="button"
-        type="button"
-        size="xs"
-        color="accent"
-        className={styles.renameBtn}
+      <Button
+        variant="ghost"
         aria-label={`Rename ${stripExcalidrawExtension(file.name)}`}
         onClick={(e) => {
           e.stopPropagation();
@@ -87,7 +83,7 @@ export const DiagramRow = ({ file, active, locked, opening, onOpen, onRename }: 
         }}
       >
         Rename
-      </Text>
+      </Button>
     </Stack>
   );
 };

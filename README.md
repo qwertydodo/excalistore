@@ -53,43 +53,21 @@ All network access and OAuth token handling live exclusively in the background s
 
 ### Source layout
 
-The project follows [Feature-Sliced Design v2.1](https://feature-sliced.design/). Layers import only downward (`shared → entities → features`). `entrypoints/` is the composition root (equivalent to FSD's `app` layer).
+The project follows [Feature-Sliced Design v2.1](https://feature-sliced.design/). Layers import only downward: `shared → entities → features`. `entrypoints/` is the composition root (FSD's `app` layer) and may import from any layer.
 
 ```
 src/
-  shared/           Business-agnostic primitives reused everywhere
-    ui/             Button, Dialog/ConfirmDialog, TextField, ListItem,
-                    Badge, Spinner, Box, Stack, Text, Heading
-    api/            Typed chrome.runtime message contracts +
-                    Drive REST v3 client
-    config/         Design tokens (theme.css, --es-* CSS vars) +
-                    shared constants
-  entities/
-    diagram/        .excalidraw format: build / parse / validate
-  features/
-    auth/           chrome.identity wrapper (background only)
-    driveGateway/   Message router; sole consumer of auth + Drive client
-    sceneBridge/    Content-script bridge between Excalidraw's storage
-                    and the .excalidraw envelope
-    autosave/       Debounced autosave controller
-    session/        Active-file pointer persisted across tab reloads
-    driveConnect/   Folder-name form (shared by panel + popup)
+  shared/      primitives reused everywhere (ui, api contracts, theme tokens)
+  entities/    diagram — .excalidraw format: build / parse / validate
+  features/    auth, driveGateway, sceneBridge, autosave, session, driveConnect
 
 entrypoints/
-  content/          Mounts the Shadow DOM panel on excalidraw.com
-    App.tsx         Composition root
-    model/          Hooks: file list, active diagram + CRUD, autosave,
-                    sign-out, connect, panel visibility, theme sync
-    ui/             ConnectCard, DiagramPanel, DiagramRow,
-                    CreateDiagramForm
-    lib/            Shared SceneBridgeDeps instance
-  popup/            Extension popup
-    App.tsx         Composition root
-    ui/             PopupConnect
-  background.ts     Service worker; holds the OAuth token
+  content/     Shadow DOM panel on excalidraw.com (hooks under model/, UI under ui/)
+  popup/       extension popup
+  background.ts  service worker; holds the OAuth token
 ```
 
-Module files are camelCase; React components are PascalCase. Theme tokens are CSS custom properties (`--es-*`) in `shared/config/theme.css`, switched via the `data-theme` attribute on the Shadow DOM host.
+See `docs/architecture.md` for the full breakdown.
 
 ## Setup
 
@@ -170,8 +148,3 @@ See `docs/security.md` for the full security record.
 | `docs/security.md` | Full security posture record |
 | `docs/development.md` | OAuth setup, manual E2E checklist, React Compiler notes |
 
-## Contributing
-
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): subject` — enforced by commitlint on pre-commit. Branch names follow the same pattern: `feat/short-description`, `fix/short-description`, etc.
-
-Pre-commit hooks (lefthook) run `biome check` on staged files, `tsc --noEmit`, and `knip` before every commit.
