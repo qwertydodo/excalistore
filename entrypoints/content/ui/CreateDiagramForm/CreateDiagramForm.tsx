@@ -47,6 +47,7 @@ export const CreateDiagramForm = ({ disabled, onCreate, onBusyChange }: Props) =
       }}
     >
       <TextField
+        name="diagramName"
         placeholder="Diagram name"
         value={newName}
         onChange={(e) => setNewName(e.target.value)}
