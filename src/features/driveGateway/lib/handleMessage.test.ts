@@ -29,7 +29,7 @@ function deps(over: Partial<GatewayDeps> = {}): GatewayDeps {
       modifiedTime: "t2",
       headRevisionId: "r",
     })),
-    getStore: vi.fn(async () => ({ connected: true, folderId: "F", folderName: "Diagrams" })),
+    getStore: vi.fn(async () => ({ isConnected: true, folderId: "F", folderName: "Diagrams" })),
     setStore: vi.fn(async () => undefined),
     findOrCreateFolder: vi.fn(async () => ({ id: "F", name: "Diagrams" })),
     ...over,
@@ -41,7 +41,7 @@ describe("handleMessage", () => {
     const res = await handleMessage({ type: "auth/status" }, deps());
     expect(res).toEqual({
       ok: true,
-      data: { connected: true, folderId: "F", folderName: "Diagrams" },
+      data: { isConnected: true, folderId: "F", folderName: "Diagrams" },
     });
   });
 
@@ -57,7 +57,7 @@ describe("handleMessage", () => {
   });
 
   it("drive/list errors when not connected", async () => {
-    const d = deps({ getStore: vi.fn(async () => ({ connected: false })) });
+    const d = deps({ getStore: vi.fn(async () => ({ isConnected: false })) });
     const res = await handleMessage({ type: "drive/list" }, d);
     expect(res).toEqual({
       ok: false,
@@ -70,8 +70,8 @@ describe("handleMessage", () => {
     const d = deps();
     const res = await handleMessage({ type: "auth/signOut" }, d);
     expect(d.signOut).toHaveBeenCalled();
-    expect(d.setStore).toHaveBeenCalledWith({ connected: false });
-    expect(res).toEqual({ ok: true, data: { connected: false } });
+    expect(d.setStore).toHaveBeenCalledWith({ isConnected: false });
+    expect(res).toEqual({ ok: true, data: { isConnected: false } });
   });
 
   it("classifies a Drive 403 as unauthorized", async () => {
@@ -120,7 +120,7 @@ describe("handleMessage", () => {
   });
 
   it("drive/get errors when not connected", async () => {
-    const d = deps({ getStore: vi.fn(async () => ({ connected: false })) });
+    const d = deps({ getStore: vi.fn(async () => ({ isConnected: false })) });
     const res = await handleMessage({ type: "drive/get", id: "1" }, d);
     expect(res).toEqual({
       ok: false,
@@ -143,7 +143,7 @@ describe("handleMessage", () => {
   });
 
   it("drive/create errors without a folder", async () => {
-    const d = deps({ getStore: vi.fn(async () => ({ connected: true })) });
+    const d = deps({ getStore: vi.fn(async () => ({ isConnected: true })) });
     const res = await handleMessage({ type: "drive/create", name: "n", content: "{}" }, d);
     expect(res).toEqual({
       ok: false,
@@ -188,13 +188,13 @@ describe("handleMessage", () => {
     expect(d.getToken).toHaveBeenCalledWith(true);
     expect(d.findOrCreateFolder).toHaveBeenCalledWith("TOK", "Diagrams");
     expect(d.setStore).toHaveBeenCalledWith({
-      connected: true,
+      isConnected: true,
       folderId: "F",
       folderName: "Diagrams",
     });
     expect(res).toEqual({
       ok: true,
-      data: { connected: true, folderId: "F", folderName: "Diagrams" },
+      data: { isConnected: true, folderId: "F", folderName: "Diagrams" },
     });
   });
 

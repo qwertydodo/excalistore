@@ -32,7 +32,7 @@ export const useConnectFlow = ({ refresh, onStatusChange }: UseConnectFlowParams
           folderName,
         });
         onStatusChange(next);
-        if (next.connected) await refresh();
+        if (next.isConnected) await refresh();
       } catch (e) {
         setConnectError(e instanceof Error ? e.message : "Could not connect to Google Drive");
       } finally {

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/shared/api")>()),
-  sendToBackground: vi.fn(async () => ({ connected: false })),
+  sendToBackground: vi.fn(async () => ({ isConnected: false })),
 }));
 vi.mock("@/features/session", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/session")>()),

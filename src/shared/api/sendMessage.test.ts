@@ -10,8 +10,10 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("sendToBackground", () => {
   it("resolves data on ok response", async () => {
-    runtime.sendMessage.mockResolvedValue({ ok: true, data: { connected: false } });
-    await expect(sendToBackground({ type: "auth/status" })).resolves.toEqual({ connected: false });
+    runtime.sendMessage.mockResolvedValue({ ok: true, data: { isConnected: false } });
+    await expect(sendToBackground({ type: "auth/status" })).resolves.toEqual({
+      isConnected: false,
+    });
   });
 
   it("throws RequestError carrying the code on error response", async () => {

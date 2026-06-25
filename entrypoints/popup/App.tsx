@@ -4,7 +4,7 @@ import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
 import { PopupConnect } from "./ui/PopupConnect";
 
 export const App = () => {
-  const [status, setStatus] = useState<ConnectionStatus>({ connected: false });
+  const [status, setStatus] = useState<ConnectionStatus>({ isConnected: false });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

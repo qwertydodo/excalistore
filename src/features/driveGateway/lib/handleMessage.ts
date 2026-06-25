@@ -54,28 +54,28 @@ export const handleMessage = async (
       case REQUEST_TYPE.AUTH_SIGN_OUT: {
         const token = await deps.getToken(false).catch(() => "");
         if (token) await deps.signOut(token);
-        const next: ConnectionStatus = { connected: false };
+        const next: ConnectionStatus = { isConnected: false };
         await deps.setStore(next);
         return { ok: true, data: next };
       }
 
       case REQUEST_TYPE.DRIVE_LIST: {
         const store = await deps.getStore();
-        if (!store.connected || !store.folderId) return err("not connected");
+        if (!store.isConnected || !store.folderId) return err("not connected");
         const token = await deps.getToken(false);
         return { ok: true, data: await deps.listFolder(token, store.folderId) };
       }
 
       case REQUEST_TYPE.DRIVE_GET: {
         const store = await deps.getStore();
-        if (!store.connected) return err("not connected");
+        if (!store.isConnected) return err("not connected");
         const token = await deps.getToken(false);
         return { ok: true, data: await deps.getFile(token, req.id) };
       }
 
       case REQUEST_TYPE.DRIVE_CREATE: {
         const store = await deps.getStore();
-        if (!store.connected || !store.folderId) return err("not connected: no folder");
+        if (!store.isConnected || !store.folderId) return err("not connected: no folder");
         const token = await deps.getToken(false);
         return {
           ok: true,
@@ -85,7 +85,7 @@ export const handleMessage = async (
 
       case REQUEST_TYPE.DRIVE_UPDATE: {
         const store = await deps.getStore();
-        if (!store.connected) return err("not connected");
+        if (!store.isConnected) return err("not connected");
         const token = await deps.getToken(false);
         return {
           ok: true,
@@ -95,7 +95,7 @@ export const handleMessage = async (
 
       case REQUEST_TYPE.DRIVE_RENAME: {
         const store = await deps.getStore();
-        if (!store.connected) return err("not connected");
+        if (!store.isConnected) return err("not connected");
         const token = await deps.getToken(false);
         return { ok: true, data: await deps.renameFile(token, req.id, req.name) };
       }
@@ -105,7 +105,7 @@ export const handleMessage = async (
         const token = await deps.getToken(true);
         const folder = await deps.findOrCreateFolder(token, req.folderName);
         const next: ConnectionStatus = {
-          connected: true,
+          isConnected: true,
           folderId: folder.id,
           folderName: folder.name,
         };

@@ -7,7 +7,7 @@ describe("PopupConnect", () => {
   it("connects with the entered folder name", async () => {
     const onConnect = vi.fn();
     render(
-      <PopupConnect status={{ connected: false }} onConnect={onConnect} onSignOut={vi.fn()} />,
+      <PopupConnect status={{ isConnected: false }} onConnect={onConnect} onSignOut={vi.fn()} />,
     );
     const input = screen.getByLabelText(/folder name/i);
     await userEvent.clear(input);
@@ -20,7 +20,7 @@ describe("PopupConnect", () => {
     const onSignOut = vi.fn();
     render(
       <PopupConnect
-        status={{ connected: true, folderId: "F", folderName: "Diagrams" }}
+        status={{ isConnected: true, folderId: "F", folderName: "Diagrams" }}
         onConnect={vi.fn()}
         onSignOut={onSignOut}
       />,
@@ -33,7 +33,7 @@ describe("PopupConnect", () => {
   it("disables the connect button and shows an error while busy/failed", () => {
     render(
       <PopupConnect
-        status={{ connected: false }}
+        status={{ isConnected: false }}
         busy
         error="Sign-in was cancelled"
         onConnect={vi.fn()}
