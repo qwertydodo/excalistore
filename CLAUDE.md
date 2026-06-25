@@ -42,8 +42,16 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   panel's own open/collapsed state belongs in a hook the panel widget calls
   itself, not in `entrypoints/*/App.tsx` passed down as props.
 
+## Claude Code skills
+- `.claude/skills/` is the only source of truth for installed skills — never
+  let `npx skills add` (or anything else) create or repopulate a top-level
+  `.agents/` folder. If a future `skills add` symlinks a skill into
+  `.agents/skills/*` instead of writing it directly under `.claude/skills/*`,
+  dereference the symlink (copy the real files into `.claude/skills/<name>`,
+  delete the symlink) and delete `.agents/` again.
+
 ## Architecture (FSD)
-- Follows Feature-Sliced Design v2.1 (`.agents/skills/feature-sliced-design`,
+- Follows Feature-Sliced Design v2.1 (`.claude/skills/feature-sliced-design`,
   installed via `npx skills add`) as the source of truth for where new code
   belongs, on top of the project-specific conventions below.
 - Simplified Feature-Sliced Design under `src/`: layers `shared → entities →
