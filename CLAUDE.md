@@ -86,6 +86,10 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - Theme tokens live in CSS custom properties (`src/shared/config/theme.css`),
   not JS objects — switch themes via the `data-theme` attribute, not by
   swapping a JS variable map.
+- **CSS reset:** `src/shared/config/reset.css` is imported first in every
+  entrypoint (`content/index.tsx`, `popup/main.tsx`). It resets UA defaults
+  for `ul`/`ol`, headings, `p`, form elements, etc. Never re-reset these
+  manually inside component CSS — trust the reset instead.
 
 ## Docs discipline
 - After any change, update the corresponding doc: architecture change →
