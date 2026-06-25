@@ -21,7 +21,7 @@ export const App = ({ host }: { host: HTMLElement }) => {
   });
   const connect = useConnectFlow({ refresh, onStatusChange });
 
-  if (!status.connected) {
+  if (!status.isConnected) {
     return (
       <ConnectCard
         busy={connect.isConnecting}

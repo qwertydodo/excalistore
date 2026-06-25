@@ -15,7 +15,7 @@ export type DiagramLibrary = {
 // Owns connection status + the Drive file list, including the refresh that
 // re-fetches the list and keeps the fast-paint cache in sync.
 export const useDiagramLibrary = (): DiagramLibrary => {
-  const [status, setStatus] = useState<ConnectionStatus>({ connected: false });
+  const [status, setStatus] = useState<ConnectionStatus>({ isConnected: false });
   const [files, setFiles] = useState<DriveFileMeta[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,7 +36,7 @@ export const useDiagramLibrary = (): DiagramLibrary => {
       return list;
     } catch (e) {
       if (e instanceof RequestError && e.code === ERROR_CODE.UNAUTHORIZED) {
-        setStatus({ connected: false });
+        setStatus({ isConnected: false });
       }
       return [];
     } finally {

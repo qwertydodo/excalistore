@@ -29,7 +29,7 @@ const deps: GatewayDeps = {
   findOrCreateFolder,
   getStore: async () =>
     ((await chrome.storage.local.get(STORE_KEY))[STORE_KEY] as ConnectionStatus) ?? {
-      connected: false,
+      isConnected: false,
     },
   setStore: async (s) => chrome.storage.local.set({ [STORE_KEY]: s }),
 };

@@ -63,17 +63,17 @@ export const useActiveDiagram = ({
   useEffect(() => {
     const loadInitial = async () => {
       const s = await sendToBackground<ConnectionStatus>({ type: REQUEST_TYPE.AUTH_STATUS }).catch(
-        () => ({ connected: false }) as ConnectionStatus,
+        () => ({ isConnected: false }) as ConnectionStatus,
       );
       onStatusChange(s);
       const active = await getActiveFile();
       // Paint the cached list immediately (no flicker after the reload), then
       // revalidate against Drive in the background.
-      if (s.connected) {
+      if (s.isConnected) {
         const cached = await getCachedFiles();
         if (cached.length) onFilesChange(cached);
       }
-      const list = s.connected ? await refresh() : [];
+      const list = s.isConnected ? await refresh() : [];
       if (active && list.some((f) => f.id === active.id)) {
         setActiveId(active.id);
         revisionRef.current = active.loadedRevision;

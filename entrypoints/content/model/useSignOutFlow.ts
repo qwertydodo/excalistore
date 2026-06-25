@@ -55,7 +55,7 @@ export const useSignOutFlow = ({
       await sendToBackground({ type: REQUEST_TYPE.AUTH_SIGN_OUT });
       await clearActiveFile();
       await clearCachedFiles();
-      onStatusChange({ connected: false });
+      onStatusChange({ isConnected: false });
       onActiveIdChange(null);
       await clearScene(bridge); // clears canvas + reloads
     } catch (e) {

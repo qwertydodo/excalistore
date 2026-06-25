@@ -1,7 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { EXCALIDRAW_ORIGIN } from "@/shared/config";
-// Import the panel + dialog styles so WXT injects them into the shadow root.
+// Import reset + theme so WXT injects them into the shadow root.
+import "@/shared/config/reset.css";
 import "@/shared/config/theme.css";
 import { App } from "./App";
 

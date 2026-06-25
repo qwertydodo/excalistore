@@ -19,8 +19,8 @@ describe("messages", () => {
   });
 
   it("ConnectionStatus shape", () => {
-    const s: ConnectionStatus = { connected: true, folderId: "F", folderName: "Diagrams" };
-    expect(s.connected).toBe(true);
+    const s: ConnectionStatus = { isConnected: true, folderId: "F", folderName: "Diagrams" };
+    expect(s.isConnected).toBe(true);
   });
 
   it("DiagramContent shape", () => {

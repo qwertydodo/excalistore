@@ -44,7 +44,7 @@ export type Request =
   | { type: typeof REQUEST_TYPE.DRIVE_RENAME; id: string; name: string };
 
 export type ConnectionStatus = {
-  connected: boolean;
+  isConnected: boolean;
   folderId?: string;
   folderName?: string;
 };

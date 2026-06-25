@@ -23,7 +23,7 @@ export const PopupConnect = ({
       <Heading as="h1" size="lg" className={styles.title}>
         Excalistore
       </Heading>
-      {status.connected ? (
+      {status.isConnected ? (
         <>
           <Text as="p" color="muted" className={styles.folder}>
             Folder: <strong>{status.folderName ?? status.folderId}</strong>
