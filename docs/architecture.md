@@ -42,8 +42,7 @@ src/
 entrypoints/
   content/    mounts the panel in a Shadow DOM on excalidraw.com; split into
               mount wiring (index.tsx) and a composition root (App.tsx) at
-              the entrypoint root, one hook per concern under model/ (theme
-              sync, file list, active-file + autosave + CRUD actions,
+              the entrypoint root, one hook per concern under model/ (file list, active-file + autosave + CRUD actions,
               panel visibility, sign-out, connect), page-local components
               under ui/ (ConnectCard, DiagramPanel + its DiagramRow/
               CreateDiagramForm sub-components), and the shared scene-bridge
@@ -67,7 +66,7 @@ CSS custom properties (`--es-*`) in `shared/config/theme.css`, applied to
 │         │                                                         │
 │  Content script (isolated world)                                  │
 │    • Scene Bridge  (read/build/parse .excalidraw, hash, reload)   │
-│    • Panel UI  (React in Shadow DOM)  ◀── theme mirror            │
+│    • Panel UI  (React in Shadow DOM)                              │
 │    • Autosave Controller (debounce + conflict guard)             │
 │         ▲  typed messages (chrome.runtime)                        │
 └─────────┼─────────────────────────────────────────────────────────┘
@@ -126,9 +125,7 @@ more than one page of diagrams list completely.
 root for excalidraw.com, split across files the same way `entrypoints/popup/`
 splits `main.tsx` from `App.tsx`. The mount wiring calls WXT's
 `createShadowRootUi` (`cssInjectionMode: "ui"`, `position: "inline"`) to
-render the panel into a Shadow DOM positioned fixed top-right, carrying the
-`data-theme` attribute the theme mirror updates so `:host([data-theme=...])`
-rules in `theme.css` apply. The composition component itself stays thin: each
+render the panel into a Shadow DOM positioned fixed top-right. The composition component itself stays thin: each
 piece of state (file list, active-file + autosave + CRUD actions, sign-out,
 connect) lives in its own hook under `model/` over a single shared
 `SceneBridgeDeps` instance, and renders `ui/DiagramPanel`'s `DiagramPanel`,
@@ -205,8 +202,7 @@ in isolation.
   state), and `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The
   replace-canvas confirm and sign-out `ConfirmDialog` are rendered by the
   container (`entrypoints/content/App.tsx`), not the component, since they
-  need orchestration. Mirrors Excalidraw's theme via the host's
-  `data-theme`.
+  need orchestration.
 
 ### Shared layer
 
@@ -223,9 +219,8 @@ Reusable foundation everything else is built from:
   per-component. The panel and every dialog (replace-canvas, sign-out,
   rename, conflict) are composed from these.
 - **`shared/config` (`theme`)** — design tokens as CSS custom properties
-  (`theme.css`). Theme-dependent (light/dark via the `data-theme` attribute,
-  `THEME_ATTR`, mirrored from Excalidraw's appState): color, `shadow-{sm,md,lg}`,
-  overlay. Flat, theme-independent scales: spacing, typography, z-index,
+  (`theme.css`). Theme-dependent (light/dark via the `data-theme` attribute): color,
+  `shadow-{sm,md,lg}`, overlay. Flat, theme-independent scales: spacing, typography, z-index,
   `radius-{sm,md,lg}`, `border-width-{thin,thick}`.
   Single source of styling for the primitives.
 - **`shared/api` (`messages`, `driveClient`)** — typed request/response

@@ -3,13 +3,10 @@ import { useActiveDiagram } from "./model/useActiveDiagram";
 import { useConnectFlow } from "./model/useConnectFlow";
 import { useDiagramLibrary } from "./model/useDiagramLibrary";
 import { useSignOutFlow } from "./model/useSignOutFlow";
-import { useThemeSync } from "./model/useThemeSync";
 import { ConnectCard } from "./ui/ConnectCard";
 import { DiagramPanel } from "./ui/DiagramPanel";
 
-export const App = ({ host }: { host: HTMLElement }) => {
-  useThemeSync(host);
-
+export const App = () => {
   const { status, onStatusChange, files, onFilesChange, isLoading, refresh } = useDiagramLibrary();
   const activeDiagram = useActiveDiagram({ onStatusChange, files, onFilesChange, refresh });
   const signOut = useSignOutFlow({
