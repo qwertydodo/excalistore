@@ -1,6 +1,7 @@
 import type { ErrorCode, Request, Response } from "@/shared/api";
 import { ERROR_CODE, REQUEST_TYPE } from "@/shared/api";
 import { DriveError } from "@/shared/api/google";
+import type { ValueOf } from "@/shared/lib";
 import type { AuthService } from "./services/authService";
 import type { DriveService } from "./services/driveService";
 
@@ -18,7 +19,7 @@ type RouteEntry = {
   run: (req: Request, ctx: RouteContext, services: Services) => Promise<unknown>;
 };
 
-const routes: Record<string, RouteEntry> = {
+const routes: Record<ValueOf<typeof REQUEST_TYPE>, RouteEntry> = {
   [REQUEST_TYPE.AUTH_STATUS]: {
     auth: null,
     needsStore: false,
@@ -103,7 +104,7 @@ const classifyError = (e: unknown): Extract<Response<never>, { ok: false }> => {
 
 export const dispatch = async (req: Request, services: Services): Promise<Response<unknown>> => {
   try {
-    const reqType = (req as { type: string }).type;
+    const reqType = (req as { type: ValueOf<typeof REQUEST_TYPE> }).type;
     const route = routes[reqType];
     if (!route) throw new Error(`unhandled request: ${reqType}`);
 

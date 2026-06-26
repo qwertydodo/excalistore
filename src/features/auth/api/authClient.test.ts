@@ -71,4 +71,13 @@ describe("signOut", () => {
     );
     expect(revokeUrl).toContain("revoke?token=TOK");
   });
+
+  it("resolves via fallback timer when removeCachedAuthToken never calls back", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(identity, "removeCachedAuthToken").mockImplementation(() => {});
+    const p = signOut("TOK");
+    await vi.advanceTimersByTimeAsync(3_001);
+    await expect(p).resolves.toBeUndefined();
+    vi.useRealTimers();
+  });
 });
