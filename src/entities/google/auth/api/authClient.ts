@@ -1,4 +1,4 @@
-import { authRepo } from "@/entities/google/auth";
+import { authRepo } from "./authRepo";
 
 // Token never leaves the background worker. getAuthToken uses Chrome's signed-in
 // account — no client secret. lastError is checked to surface user denial.

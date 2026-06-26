@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { authRepo } from "@/entities/google/auth";
 import { getToken, signOut } from "./authClient";
+import { authRepo } from "./authRepo";
 
 const identity = {
   getAuthToken: vi.fn(),

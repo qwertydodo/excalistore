@@ -26,7 +26,7 @@ beforeEach(() => {
   (globalThis as unknown as { chrome: unknown }).chrome = chromeMock;
 });
 
-vi.mock("@/features/auth/api", () => ({
+vi.mock("@/entities/google/auth", () => ({
   getToken: vi.fn().mockResolvedValue("TOK"),
   signOut: vi.fn().mockResolvedValue(undefined),
 }));
@@ -56,7 +56,7 @@ describe("authService.getStatus", () => {
 
 describe("authService.getToken", () => {
   it("delegates to chromeGetToken", async () => {
-    const { getToken } = await import("@/features/auth/api");
+    const { getToken } = await import("@/entities/google/auth");
     const svc = createAuthService();
     const token = await svc.getToken(false);
     expect(token).toBe("TOK");
@@ -66,7 +66,7 @@ describe("authService.getToken", () => {
 
 describe("authService.signOut", () => {
   it("calls signOut with current token, clears store, returns disconnected", async () => {
-    const { signOut } = await import("@/features/auth/api");
+    const { signOut } = await import("@/entities/google/auth");
     storage.connection = { isConnected: true, folderId: "F" };
     const svc = createAuthService();
     const result = await svc.signOut();
@@ -76,7 +76,7 @@ describe("authService.signOut", () => {
   });
 
   it("still clears store even when getToken fails", async () => {
-    const { getToken } = await import("@/features/auth/api");
+    const { getToken } = await import("@/entities/google/auth");
     vi.mocked(getToken).mockRejectedValueOnce(new Error("no token"));
     storage.connection = { isConnected: true };
     const svc = createAuthService();

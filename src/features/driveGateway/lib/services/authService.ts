@@ -1,5 +1,5 @@
+import { getToken as chromeGetToken, signOut as chromeSignOut } from "@/entities/google/auth";
 import { driveRepo } from "@/entities/google/drive";
-import { getToken as chromeGetToken, signOut as chromeSignOut } from "@/features/auth/api";
 import type { ConnectionStatus } from "@/shared/api";
 
 const STORE_KEY = "connection";
