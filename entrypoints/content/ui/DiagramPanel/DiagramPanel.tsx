@@ -113,7 +113,9 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
           <Spinner />
         </Stack>
       ) : ordered.length === 0 ? (
-        <Text size="sm" color="muted">No diagrams yet</Text>
+        <Text size="sm" color="muted">
+          No diagrams yet
+        </Text>
       ) : (
         <Stack as="ul" gap="1">
           {ordered.map((f) => (
