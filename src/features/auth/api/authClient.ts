@@ -1,6 +1,5 @@
+import { googleClient } from "@/shared/api/google";
 import { OAUTH_REVOKE } from "@/shared/config";
-
-type Fetch = typeof fetch;
 
 // Token never leaves the background worker. getAuthToken uses Chrome's signed-in
 // account — no client secret. lastError is checked to surface user denial.
@@ -32,7 +31,7 @@ export const getToken = (interactive: boolean): Promise<string> => {
   return p;
 };
 
-export const signOut = (token: string, f: Fetch = fetch): Promise<void> => {
+export const signOut = (token: string): Promise<void> => {
   return new Promise((resolve) => {
     let settled = false;
     const done = () => {
@@ -44,7 +43,8 @@ export const signOut = (token: string, f: Fetch = fetch): Promise<void> => {
     const fallback = setTimeout(done, 3_000);
     chrome.identity.removeCachedAuthToken({ token }, () => {
       // Best-effort revoke; resolve regardless so sign-out always completes.
-      f(`${OAUTH_REVOKE}?token=${token}`, { method: "POST" })
+      googleClient
+        .post(`${OAUTH_REVOKE}?token=${token}`)
         .catch(() => undefined)
         .finally(() => {
           clearTimeout(fallback);

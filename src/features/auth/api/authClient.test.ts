@@ -1,4 +1,6 @@
+import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { googleClient } from "@/shared/api/google";
 import { getToken, signOut } from "./authClient";
 
 const identity = {
@@ -6,12 +8,17 @@ const identity = {
   removeCachedAuthToken: vi.fn((_: unknown, cb: () => void) => cb()),
 };
 
+const httpMock = new MockAdapter(googleClient);
+
 beforeEach(() => {
   (globalThis as unknown as { chrome: unknown }).chrome = { identity, runtime: {} };
   identity.getAuthToken.mockReset();
   identity.removeCachedAuthToken.mockClear();
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  httpMock.reset();
+});
 
 describe("getToken", () => {
   it("resolves the token from chrome.identity", async () => {
@@ -51,15 +58,17 @@ describe("getToken", () => {
 });
 
 describe("signOut", () => {
-  it("removes the cached token and revokes it", async () => {
-    const f = vi.fn(
-      async (_url: RequestInfo | URL, _init?: RequestInit) => ({ ok: true }) as Response,
-    );
-    await signOut("TOK", f);
+  it("removes the cached token and fires revoke", async () => {
+    let revokeUrl = "";
+    httpMock.onPost(/revoke/).reply((config) => {
+      revokeUrl = config.url ?? "";
+      return [200, {}];
+    });
+    await signOut("TOK");
     expect(identity.removeCachedAuthToken).toHaveBeenCalledWith(
       { token: "TOK" },
       expect.any(Function),
     );
-    expect(f.mock.calls[0]?.[0] as string).toContain("revoke?token=TOK");
+    expect(revokeUrl).toContain("revoke?token=TOK");
   });
 });

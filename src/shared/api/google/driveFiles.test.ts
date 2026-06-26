@@ -42,7 +42,7 @@ describe("listFolder", () => {
       return [200, { files: [] }];
     });
     await listFolder(TOKEN, "F");
-    expect(capturedHeaders["Authorization"]).toBe(`Bearer ${TOKEN}`);
+    expect(capturedHeaders.Authorization).toBe(`Bearer ${TOKEN}`);
   });
 
   it("includes folderId in query", async () => {
