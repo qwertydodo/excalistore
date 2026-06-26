@@ -41,6 +41,7 @@ export const App = () => {
           onOpen: activeDiagram.onOpen,
           onCreate: activeDiagram.onCreate,
           onRename: activeDiagram.onRename,
+          onDelete: activeDiagram.onDelete,
         }}
       />
       {signOut.isSignOutOpen && (

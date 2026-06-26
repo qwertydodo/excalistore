@@ -8,6 +8,7 @@ import {
   getMeta,
   listFolder,
   renameFile,
+  trashFile,
   updateFile,
 } from "@/shared/api";
 
@@ -26,6 +27,7 @@ const deps: GatewayDeps = {
   createFile,
   updateFile,
   renameFile,
+  trashFile,
   findOrCreateFolder,
   getStore: async () =>
     ((await chrome.storage.local.get(STORE_KEY))[STORE_KEY] as ConnectionStatus) ?? {

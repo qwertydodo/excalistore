@@ -29,6 +29,7 @@ function deps(over: Partial<GatewayDeps> = {}): GatewayDeps {
       modifiedTime: "t2",
       headRevisionId: "r",
     })),
+    trashFile: vi.fn(async () => undefined),
     getStore: vi.fn(async () => ({ isConnected: true, folderId: "F", folderName: "Diagrams" })),
     setStore: vi.fn(async () => undefined),
     findOrCreateFolder: vi.fn(async () => ({ id: "F", name: "Diagrams" })),
@@ -208,6 +209,24 @@ describe("handleMessage", () => {
     expect(res).toEqual({
       ok: true,
       data: { id: "1", name: "renamed.excalidraw", modifiedTime: "t2", headRevisionId: "r" },
+    });
+  });
+
+  it("drive/trash calls trashFile with token and id", async () => {
+    const d = deps();
+    const res = await handleMessage({ type: "drive/trash", id: "FILE1" }, d);
+    expect(d.getToken).toHaveBeenCalled();
+    expect(d.trashFile).toHaveBeenCalledWith("TOK", "FILE1");
+    expect(res).toEqual({ ok: true, data: null });
+  });
+
+  it("drive/trash errors when not connected", async () => {
+    const d = deps({ getStore: vi.fn(async () => ({ isConnected: false })) });
+    const res = await handleMessage({ type: "drive/trash", id: "F" }, d);
+    expect(res).toEqual({
+      ok: false,
+      error: expect.stringMatching(/not connected/i),
+      code: "unknown",
     });
   });
 });

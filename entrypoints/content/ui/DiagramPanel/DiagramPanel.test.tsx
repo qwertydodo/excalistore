@@ -27,6 +27,7 @@ function diagramProps(over = {}) {
     onOpen: vi.fn(),
     onCreate: vi.fn(),
     onRename: vi.fn(),
+    onDelete: vi.fn(),
     ...over,
   };
 }
@@ -95,6 +96,11 @@ describe("DiagramPanel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /open excalistore diagrams/i }));
     expect(screen.getByText("alpha")).toBeInTheDocument();
+  });
+
+  it("shows 'No diagrams yet' when the file list is empty", () => {
+    render(<DiagramPanel diagram={diagramProps()} {...panelProps({ files: [] })} />);
+    expect(screen.getByText("No diagrams yet")).toBeInTheDocument();
   });
 
   it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {

@@ -14,8 +14,8 @@ vi.mock("@/features/session", async (importOriginal) => ({
 const { useActiveDiagram } = await import("./useActiveDiagram");
 
 describe("useActiveDiagram", () => {
-  it("keeps onActiveIdChange/onActionErrorChange/onOpen/onCreate/onRename referentially stable across re-renders", async () => {
-    // onOpen/onCreate/onRename are passed down as props; onActiveIdChange and
+  it("keeps onActiveIdChange/onActionErrorChange/onOpen/onCreate/onRename/onDelete referentially stable across re-renders", async () => {
+    // onOpen/onCreate/onRename/onDelete are passed down as props; onActiveIdChange and
     // onActionErrorChange also feed useSignOutFlow's deps. An unstable
     // identity here churns child re-renders (or, for onSaveStatusChange,
     // would re-fire the autosave effect — covered separately since it's
@@ -35,5 +35,6 @@ describe("useActiveDiagram", () => {
     expect(second.onOpen).toBe(first.onOpen);
     expect(second.onCreate).toBe(first.onCreate);
     expect(second.onRename).toBe(first.onRename);
+    expect(second.onDelete).toBe(first.onDelete);
   });
 });

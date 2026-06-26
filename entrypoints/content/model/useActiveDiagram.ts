@@ -5,7 +5,13 @@ import {
   parseExcalidrawFile,
 } from "@/entities/diagram";
 import { createAutosave, SAVE_STATUS, type SaveStatus } from "@/features/autosave";
-import { currentSceneHash, readScene, readTheme, writeScene } from "@/features/sceneBridge";
+import {
+  clearScene,
+  currentSceneHash,
+  readScene,
+  readTheme,
+  writeScene,
+} from "@/features/sceneBridge";
 import {
   clearActiveFile,
   getActiveFile,
@@ -33,6 +39,7 @@ export type ActiveDiagram = {
   onOpen: (id: string) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
   onRename: (id: string, name: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 };
 
 // Owns the active-file pointer, its autosave wiring, and the CRUD action
@@ -188,6 +195,26 @@ export const useActiveDiagram = ({
     [files, onFilesChange],
   );
 
+  const onDelete = useCallback(
+    async (id: string) => {
+      setActionError(null);
+      try {
+        await sendToBackground<null>({ type: REQUEST_TYPE.DRIVE_TRASH, id });
+        if (id === activeId) {
+          await clearActiveFile();
+          await clearScene(bridge); // wipes localStorage + IndexedDB, then reloads tab
+        } else {
+          const next = files.filter((f) => f.id !== id);
+          onFilesChange(next);
+          setCachedFiles(next);
+        }
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to delete diagram");
+      }
+    },
+    [activeId, files, onFilesChange],
+  );
+
   return {
     activeId,
     onActiveIdChange,
@@ -198,5 +225,6 @@ export const useActiveDiagram = ({
     onOpen,
     onCreate,
     onRename,
+    onDelete,
   };
 };
