@@ -10,7 +10,7 @@ import styles from "./DiagramPanel.module.css";
 
 type Diagram = Pick<
   ActiveDiagram,
-  "activeId" | "saveStatus" | "onOpen" | "onCreate" | "onRename"
+  "activeId" | "saveStatus" | "onOpen" | "onCreate" | "onRename" | "onDelete"
 > & {
   error?: string | null;
 };
@@ -39,7 +39,7 @@ const STATUS_LABEL: Record<SaveStatus, string> = {
 };
 
 export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPanelProps) => {
-  const { activeId, saveStatus, error, onOpen, onCreate, onRename } = diagram;
+  const { activeId, saveStatus, error, onOpen, onCreate, onRename, onDelete } = diagram;
   const { isVisible, toggleVisibility } = usePanelVisibility();
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [isCreatingBusy, setIsCreatingBusy] = useState(false);
@@ -112,6 +112,8 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         <Stack direction="row" justify="center" padding="4">
           <Spinner />
         </Stack>
+      ) : ordered.length === 0 ? (
+        <Text size="sm" color="muted">No diagrams yet</Text>
       ) : (
         <Stack as="ul" gap="1">
           {ordered.map((f) => (
@@ -123,6 +125,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
               isOpening={openingId === f.id}
               onOpen={onRowOpen}
               onRename={onRename}
+              onDelete={onDelete}
             />
           ))}
         </Stack>
