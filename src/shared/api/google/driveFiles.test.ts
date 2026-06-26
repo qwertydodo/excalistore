@@ -18,6 +18,12 @@ const TOKEN = "tok123";
 const mock = new MockAdapter(googleClient);
 afterEach(() => mock.reset());
 
+describe("googleClient config", () => {
+  it("has a 15-second timeout", () => {
+    expect(googleClient.defaults.timeout).toBe(15_000);
+  });
+});
+
 describe("listFolder", () => {
   it("requests files and maps them", async () => {
     mock.onGet(new RegExp(`${DRIVE_API}/files`)).reply(200, {
@@ -202,5 +208,15 @@ describe("findOrCreateFolder", () => {
     });
     await findOrCreateFolder(TOKEN, "Bob's");
     expect(decodeURIComponent(capturedUrl)).toContain("Bob\\'s");
+  });
+
+  it("escapes backslashes in folder name query", async () => {
+    let capturedUrl = "";
+    mock.onGet(new RegExp(`${DRIVE_API}/files\\?q`)).reply((config) => {
+      capturedUrl = config.url ?? "";
+      return [200, { files: [{ id: "X", name: "back\\slash" }] }];
+    });
+    await findOrCreateFolder(TOKEN, "back\\slash");
+    expect(decodeURIComponent(capturedUrl)).toContain("back\\\\slash");
   });
 });
