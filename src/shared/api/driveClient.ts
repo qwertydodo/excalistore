@@ -144,6 +144,19 @@ export const renameFile = async (
   return asJson<DriveFile>(res);
 };
 
+export const trashFile = async (token: string, id: string, f: Fetch = fetch): Promise<void> => {
+  const url = `${DRIVE_API}/files/${id}`;
+  const res = await f(
+    url,
+    timed({
+      method: "PATCH",
+      headers: { ...authHeaders(token), "Content-Type": "application/json" },
+      body: JSON.stringify({ trashed: true }),
+    }),
+  );
+  if (!res.ok) throw new DriveError(res.status, `Drive trash failed: ${res.status}`);
+};
+
 // Find an app-owned folder by exact name, or create it. Under drive.file the
 // list only returns folders this app created, so this is idempotent per name.
 export const findOrCreateFolder = async (

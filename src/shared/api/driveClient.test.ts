@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createFile, findOrCreateFolder, listFolder, renameFile, updateFile } from "./driveClient";
+import {
+  createFile,
+  findOrCreateFolder,
+  listFolder,
+  renameFile,
+  trashFile,
+  updateFile,
+} from "./driveClient";
 
 const TOKEN = "tok123";
 
@@ -229,5 +236,28 @@ describe("findOrCreateFolder", () => {
     });
     await findOrCreateFolder(TOKEN, "back\\slash", fetchMock);
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe("trashFile", () => {
+  it("PATCHes files/{id} with trashed:true and auth header", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200 }) as Response);
+    await trashFile(TOKEN, "FILE1", fetchMock);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = (fetchMock.mock.calls[0] as unknown as [string, RequestInit]) ?? ["", {}];
+    expect(url).toContain("/files/FILE1");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ trashed: true });
+    expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("throws DriveError on non-ok response", async () => {
+    await expect(
+      trashFile(
+        TOKEN,
+        "F",
+        vi.fn(async () => ({ ok: false, status: 403 }) as Response),
+      ),
+    ).rejects.toThrow(/403/);
   });
 });
