@@ -6,7 +6,6 @@ const meta: Meta<typeof Heading> = {
   component: Heading,
   tags: ["autodocs"],
   argTypes: {
-    size: { control: "radio", options: ["md", "lg"] },
     as: { control: "radio", options: ["h1", "h2"] },
     children: { control: "text" },
   },
@@ -16,15 +15,15 @@ const meta: Meta<typeof Heading> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Md: Story = { args: { size: "md" } };
+export const H1: Story = { args: { as: "h1" } };
 
-export const Lg: Story = { args: { size: "lg" } };
+export const H2: Story = { args: { as: "h2" } };
 
-export const AllSizes: Story = {
+export const AllLevels: Story = {
   render: () => (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <Heading size="lg">Large heading</Heading>
-      <Heading size="md">Medium heading</Heading>
+      <Heading as="h1">h1 — large heading</Heading>
+      <Heading as="h2">h2 — medium heading</Heading>
     </div>
   ),
 };

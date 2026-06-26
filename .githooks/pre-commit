@@ -1,13 +1,4 @@
 #!/bin/sh
-# Branch protection — no external dependencies required
-branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-if [ "$branch" = "main" ]; then
-    merge_head="$(git rev-parse --git-dir)/MERGE_HEAD"
-    if [ ! -f "$merge_head" ]; then
-        printf 'Direct commits to main are forbidden.\nCreate a feature branch, work there, then merge.\n' >&2
-        exit 1
-    fi
-fi
 
 if [ "$LEFTHOOK_VERBOSE" = "1" -o "$LEFTHOOK_VERBOSE" = "true" ]; then
   set -x

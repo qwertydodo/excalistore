@@ -11,8 +11,6 @@
   opacity: 1;
 }
 .textField:focus-visible {
-  position: relative;
-  z-index: 1;
-  outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);
-  outline-offset: var(--es-focus-ring-offset);
+  outline: none;
+  border-color: var(--es-color-border-focus);
 }

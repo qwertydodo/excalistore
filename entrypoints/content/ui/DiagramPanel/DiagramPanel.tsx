@@ -96,7 +96,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
       onKeyUp={(e) => e.stopPropagation()}
     >
       <Stack as="header" direction="row" align="center" justify="between">
-        <Heading size="md">Diagrams</Heading>
+        <Heading>Diagrams</Heading>
         <Stack direction="row" align="center" gap="2">
           <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
           <IconButton aria-label="Collapse panel" onClick={toggleVisibility}>

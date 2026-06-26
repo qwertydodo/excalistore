@@ -25,7 +25,7 @@ export const ConnectCard = ({ isBusy = false, error = null, onConnect }: Props) 
       onKeyDown={(e) => e.stopPropagation()}
       onKeyUp={(e) => e.stopPropagation()}
     >
-      <Heading size="lg" className={styles.title}>
+      <Heading as="h1" className={styles.title}>
         Excalistore
       </Heading>
       <Text as="p" color="muted" className={styles.lead}>
