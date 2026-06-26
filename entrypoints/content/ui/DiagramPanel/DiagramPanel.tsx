@@ -67,15 +67,14 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
   if (!isVisible) {
     return (
       <IconButton
+        icon="plus"
         variant="primary"
         size="md"
         shape="circle"
         aria-label="Open Excalistore diagrams"
         onClick={toggleVisibility}
         onKeyDown={(e) => e.stopPropagation()}
-      >
-        +
-      </IconButton>
+      />
     );
   }
 
@@ -99,9 +98,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         <Heading>Diagrams</Heading>
         <Stack direction="row" align="center" gap="2">
           <Badge tone={STATUS_TONE[saveStatus]}>{STATUS_LABEL[saveStatus]}</Badge>
-          <IconButton aria-label="Collapse panel" onClick={toggleVisibility}>
-            −
-          </IconButton>
+          <IconButton icon="minus" aria-label="Collapse panel" onClick={toggleVisibility} />
         </Stack>
       </Stack>
 
