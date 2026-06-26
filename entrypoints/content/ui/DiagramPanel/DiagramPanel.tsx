@@ -68,9 +68,9 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
     return (
       <IconButton
         icon="plus"
-        variant="primary"
+        variant="neutral"
         size="md"
-        shape="circle"
+        shape="square"
         aria-label="Open Excalistore diagrams"
         onClick={toggleVisibility}
         onKeyDown={(e) => e.stopPropagation()}

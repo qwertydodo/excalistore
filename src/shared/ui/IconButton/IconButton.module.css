@@ -21,8 +21,8 @@
 
 /* Size */
 .sm {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   font-size: var(--es-font-size-lg);
 }
 .md {
@@ -42,10 +42,19 @@
 /* Variant */
 .ghost {
   background: transparent;
-  border-color: var(--es-color-border);
+  border-color: transparent;
   color: var(--es-color-text-primary);
 }
 .ghost:hover:not(:disabled) {
+  background: var(--es-color-bg-surface);
+}
+.neutral {
+  background: var(--es-color-bg-control);
+  border-color: transparent;
+  color: var(--es-color-text-primary);
+  box-shadow: var(--es-shadow-sm);
+}
+.neutral:hover:not(:disabled) {
   background: var(--es-color-bg-surface);
 }
 .primary {
