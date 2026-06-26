@@ -7,6 +7,7 @@ export { Button } from "./Button";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { Dialog } from "./Dialog";
 export { Heading } from "./Heading";
+export { Icon } from "./Icon";
 export type { IconButtonProps } from "./IconButton";
 export { IconButton } from "./IconButton";
 export { ListItem } from "./ListItem";
