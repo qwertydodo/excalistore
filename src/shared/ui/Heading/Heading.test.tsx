@@ -4,16 +4,12 @@ import { Heading } from "./Heading";
 
 describe("Heading", () => {
   it("renders h1 when requested", () => {
-    render(
-      <Heading as="h1" size="lg">
-        Excalistore
-      </Heading>,
-    );
+    render(<Heading as="h1">Excalistore</Heading>);
     expect(screen.getByRole("heading", { level: 1, name: "Excalistore" })).toBeInTheDocument();
   });
 
   it("defaults to h2", () => {
-    render(<Heading size="md">Diagrams</Heading>);
+    render(<Heading>Diagrams</Heading>);
     expect(screen.getByRole("heading", { level: 2, name: "Diagrams" })).toBeInTheDocument();
   });
 });

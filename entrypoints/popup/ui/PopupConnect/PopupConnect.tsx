@@ -20,7 +20,7 @@ export const PopupConnect = ({
 }: Props) => {
   return (
     <Box as="main" padding="4" className={styles.root}>
-      <Heading as="h1" size="lg" className={styles.title}>
+      <Heading as="h1" className={styles.title}>
         Excalistore
       </Heading>
       {status.isConnected ? (

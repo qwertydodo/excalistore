@@ -22,9 +22,7 @@ export const Dialog = ({ title, children, onClose }: Props) => {
       }}
     >
       <Box padding="5" border="thin" radius="md" shadow="md" className={styles.panel}>
-        <Heading size="lg" className={styles.title}>
-          {title}
-        </Heading>
+        <Heading className={styles.title}>{title}</Heading>
         {children}
       </Box>
     </div>
