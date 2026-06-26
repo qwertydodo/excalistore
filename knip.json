@@ -4,15 +4,7 @@
     "entrypoints/**/*.{ts,tsx,html}",
     "wxt.config.ts",
     "*.config.{ts,js}",
-    "src/shared/ui/index.ts",
-    "src/shared/api/index.ts",
-    "src/shared/config/index.ts",
-    "src/entities/diagram/index.ts",
-    "src/features/auth/index.ts",
-    "src/features/sceneBridge/index.ts",
-    "src/features/session/index.ts",
-    "src/features/autosave/index.ts",
-    "src/test-setup.ts"
+    "src/**/index.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "entrypoints/**/*.{ts,tsx}"],
   "rules": {
