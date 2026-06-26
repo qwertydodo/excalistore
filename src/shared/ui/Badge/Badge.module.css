@@ -4,10 +4,10 @@
   font-family: var(--es-font-family);
   font-size: var(--es-font-size-sm);
   font-weight: 500;
-  line-height: var(--es-line-height-tight);
-  padding: 2px var(--es-space-2);
+  line-height: var(--es-line-height-none);
+  padding: var(--es-space-1) var(--es-space-2);
   border-radius: 999px;
-  border: var(--es-border-width-thin) solid currentColor;
+  justify-content: center;
   white-space: nowrap;
 }
 
