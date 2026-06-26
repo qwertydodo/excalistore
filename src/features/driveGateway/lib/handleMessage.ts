@@ -21,6 +21,7 @@ export type GatewayDeps = {
     prevRevision: string,
   ) => Promise<DriveFile>;
   renameFile: (token: string, id: string, name: string) => Promise<DriveFile>;
+  trashFile: (token: string, id: string) => Promise<void>;
   getStore: () => Promise<ConnectionStatus>;
   setStore: (s: ConnectionStatus) => Promise<void>;
   findOrCreateFolder: (token: string, name: string) => Promise<{ id: string; name: string }>;
@@ -98,6 +99,14 @@ export const handleMessage = async (
         if (!store.isConnected) return err("not connected");
         const token = await deps.getToken(false);
         return { ok: true, data: await deps.renameFile(token, req.id, req.name) };
+      }
+
+      case REQUEST_TYPE.DRIVE_TRASH: {
+        const store = await deps.getStore();
+        if (!store.isConnected) return err("not connected");
+        const token = await deps.getToken(false);
+        await deps.trashFile(token, req.id);
+        return { ok: true, data: null };
       }
 
       case REQUEST_TYPE.DRIVE_CONNECT: {
