@@ -1,6 +1,6 @@
+import { DriveError } from "@/entities/google/drive";
 import type { ErrorCode, Request, Response } from "@/shared/api";
 import { ERROR_CODE, REQUEST_TYPE } from "@/shared/api";
-import { DriveError } from "@/shared/api/google";
 import type { ValueOf } from "@/shared/lib";
 import type { AuthService } from "./services/authService";
 import type { DriveService } from "./services/driveService";

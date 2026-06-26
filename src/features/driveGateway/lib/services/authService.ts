@@ -1,6 +1,6 @@
+import { driveRepo } from "@/entities/google/drive";
 import { getToken as chromeGetToken, signOut as chromeSignOut } from "@/features/auth/api";
 import type { ConnectionStatus } from "@/shared/api";
-import { findOrCreateFolder } from "@/shared/api/google";
 
 const STORE_KEY = "connection";
 
@@ -34,7 +34,7 @@ export const createAuthService = (): AuthService => ({
   },
 
   connect: async (token, folderName) => {
-    const folder = await findOrCreateFolder(token, folderName);
+    const folder = await driveRepo.findOrCreateFolder(token, folderName);
     const next: ConnectionStatus = {
       isConnected: true,
       folderId: folder.id,

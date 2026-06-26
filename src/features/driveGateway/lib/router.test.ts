@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DriveError } from "@/shared/api/google";
+import { DriveError } from "@/entities/google/drive";
 import { dispatch } from "./router";
 import type { AuthService } from "./services/authService";
 import type { DriveService } from "./services/driveService";

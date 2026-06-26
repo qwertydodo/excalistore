@@ -1,5 +1,4 @@
-import { googleClient } from "@/shared/api/google";
-import { OAUTH_REVOKE } from "@/shared/config";
+import { authRepo } from "@/entities/google/auth";
 
 // Token never leaves the background worker. getAuthToken uses Chrome's signed-in
 // account — no client secret. lastError is checked to surface user denial.
@@ -43,8 +42,8 @@ export const signOut = (token: string): Promise<void> => {
     const fallback = setTimeout(done, 3_000);
     chrome.identity.removeCachedAuthToken({ token }, () => {
       // Best-effort revoke; resolve regardless so sign-out always completes.
-      googleClient
-        .post(`${OAUTH_REVOKE}?token=${token}`)
+      authRepo
+        .revokeToken(token)
         .catch(() => undefined)
         .finally(() => {
           clearTimeout(fallback);

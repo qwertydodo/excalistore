@@ -1,14 +1,5 @@
+import { type DriveFile, driveRepo } from "@/entities/google/drive";
 import type { DiagramContent } from "@/shared/api";
-import type { DriveFile } from "@/shared/api/google";
-import {
-  createFile,
-  getContent,
-  getMeta,
-  listFolder,
-  renameFile,
-  trashFile,
-  updateFile,
-} from "@/shared/api/google";
 
 export type DriveService = {
   list: (token: string, folderId: string) => Promise<DriveFile[]>;
@@ -20,15 +11,18 @@ export type DriveService = {
 };
 
 export const createDriveService = (): DriveService => ({
-  list: listFolder,
+  list: driveRepo.listFolder,
 
   get: async (token, id) => {
-    const [meta, content] = await Promise.all([getMeta(token, id), getContent(token, id)]);
+    const [meta, content] = await Promise.all([
+      driveRepo.getMeta(token, id),
+      driveRepo.getContent(token, id),
+    ]);
     return { meta, content };
   },
 
-  create: createFile,
-  update: updateFile,
-  rename: renameFile,
-  trash: trashFile,
+  create: driveRepo.createFile,
+  update: driveRepo.updateFile,
+  rename: driveRepo.renameFile,
+  trash: driveRepo.trashFile,
 });

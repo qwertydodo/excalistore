@@ -1,14 +1,11 @@
-import MockAdapter from "axios-mock-adapter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { googleClient } from "@/shared/api/google";
+import { authRepo } from "@/entities/google/auth";
 import { getToken, signOut } from "./authClient";
 
 const identity = {
   getAuthToken: vi.fn(),
   removeCachedAuthToken: vi.fn((_: unknown, cb: () => void) => cb()),
 };
-
-const httpMock = new MockAdapter(googleClient);
 
 beforeEach(() => {
   (globalThis as unknown as { chrome: unknown }).chrome = { identity, runtime: {} };
@@ -17,7 +14,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.restoreAllMocks();
-  httpMock.reset();
 });
 
 describe("getToken", () => {
@@ -59,17 +55,13 @@ describe("getToken", () => {
 
 describe("signOut", () => {
   it("removes the cached token and fires revoke", async () => {
-    let revokeUrl = "";
-    httpMock.onPost(/revoke/).reply((config) => {
-      revokeUrl = config.url ?? "";
-      return [200, {}];
-    });
+    vi.spyOn(authRepo, "revokeToken").mockResolvedValue(undefined);
     await signOut("TOK");
     expect(identity.removeCachedAuthToken).toHaveBeenCalledWith(
       { token: "TOK" },
       expect.any(Function),
     );
-    expect(revokeUrl).toContain("revoke?token=TOK");
+    expect(authRepo.revokeToken).toHaveBeenCalledWith("TOK");
   });
 
   it("resolves via fallback timer when removeCachedAuthToken never calls back", async () => {

@@ -31,13 +31,11 @@ vi.mock("@/features/auth/api", () => ({
   signOut: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/shared/api/google", async (importActual) => {
-  const actual = await importActual<typeof import("@/shared/api/google")>();
-  return {
-    ...actual,
+vi.mock("@/entities/google/drive", () => ({
+  driveRepo: {
     findOrCreateFolder: vi.fn().mockResolvedValue({ id: "F1", name: "Diagrams" }),
-  };
-});
+  },
+}));
 
 describe("authService.getStatus", () => {
   it("returns disconnected when store is empty", async () => {
@@ -89,10 +87,10 @@ describe("authService.signOut", () => {
 
 describe("authService.connect", () => {
   it("creates/finds folder and persists connection", async () => {
-    const { findOrCreateFolder } = await import("@/shared/api/google");
+    const { driveRepo } = await import("@/entities/google/drive");
     const svc = createAuthService();
     const result = await svc.connect("TOK", "Diagrams");
-    expect(findOrCreateFolder).toHaveBeenCalledWith("TOK", "Diagrams");
+    expect(driveRepo.findOrCreateFolder).toHaveBeenCalledWith("TOK", "Diagrams");
     expect(result).toEqual({ isConnected: true, folderId: "F1", folderName: "Diagrams" });
     expect(storage.connection).toEqual({
       isConnected: true,

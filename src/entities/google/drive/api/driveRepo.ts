@@ -1,7 +1,7 @@
 import axios from "axios";
+import { googleClient } from "@/shared/api/google";
 import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD, FOLDER_MIME } from "@/shared/config";
 import { DriveError, type DriveFile } from "./driveFile";
-import { googleClient } from "./googleClient";
 
 const FIELDS = "id,name,modifiedTime,headRevisionId";
 
@@ -30,7 +30,7 @@ const toDriveError = (e: unknown): never => {
   throw e;
 };
 
-export const listFolder = async (token: string, folderId: string): Promise<DriveFile[]> => {
+const listFolderImpl = async (token: string, folderId: string): Promise<DriveFile[]> => {
   const q = encodeURIComponent(
     `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
   ).replace(/%20/g, "+");
@@ -50,7 +50,7 @@ export const listFolder = async (token: string, folderId: string): Promise<Drive
   return out;
 };
 
-export const getMeta = async (token: string, id: string): Promise<DriveFile> => {
+const getMetaImpl = async (token: string, id: string): Promise<DriveFile> => {
   const { data } = await googleClient
     .get<DriveFile>(`${DRIVE_API}/files/${id}?fields=${FIELDS}`, {
       headers: authHeader(token),
@@ -59,7 +59,7 @@ export const getMeta = async (token: string, id: string): Promise<DriveFile> => 
   return data;
 };
 
-export const getContent = async (token: string, id: string): Promise<string> => {
+const getContentImpl = async (token: string, id: string): Promise<string> => {
   const { data } = await googleClient
     .get<string>(`${DRIVE_API}/files/${id}?alt=media`, {
       headers: authHeader(token),
@@ -69,7 +69,7 @@ export const getContent = async (token: string, id: string): Promise<string> => 
   return data;
 };
 
-export const createFile = async (
+const createFileImpl = async (
   token: string,
   name: string,
   folderId: string,
@@ -89,13 +89,13 @@ export const createFile = async (
   return data;
 };
 
-export const updateFile = async (
+const updateFileImpl = async (
   token: string,
   id: string,
   content: string,
   prevRevision: string,
 ): Promise<DriveFile> => {
-  const current = await getMeta(token, id);
+  const current = await getMetaImpl(token, id);
   if (current.headRevisionId !== prevRevision) {
     throw new Error("conflict: remote revision changed");
   }
@@ -107,7 +107,7 @@ export const updateFile = async (
   return data;
 };
 
-export const renameFile = async (token: string, id: string, name: string): Promise<DriveFile> => {
+const renameFileImpl = async (token: string, id: string, name: string): Promise<DriveFile> => {
   const { data } = await googleClient
     .patch<DriveFile>(`${DRIVE_API}/files/${id}?fields=${FIELDS}`, JSON.stringify({ name }), {
       headers: { ...authHeader(token), "Content-Type": "application/json" },
@@ -116,7 +116,7 @@ export const renameFile = async (token: string, id: string, name: string): Promi
   return data;
 };
 
-export const trashFile = async (token: string, id: string): Promise<void> => {
+const trashFileImpl = async (token: string, id: string): Promise<void> => {
   await googleClient
     .patch(`${DRIVE_API}/files/${id}`, JSON.stringify({ trashed: true }), {
       headers: { ...authHeader(token), "Content-Type": "application/json" },
@@ -124,7 +124,7 @@ export const trashFile = async (token: string, id: string): Promise<void> => {
     .catch(toDriveError);
 };
 
-export const findOrCreateFolder = async (
+const findOrCreateFolderImpl = async (
   token: string,
   name: string,
 ): Promise<{ id: string; name: string }> => {
@@ -149,4 +149,15 @@ export const findOrCreateFolder = async (
     )
     .catch(toDriveError);
   return { id: created.id, name: created.name };
+};
+
+export const driveRepo = {
+  listFolder: listFolderImpl,
+  getMeta: getMetaImpl,
+  getContent: getContentImpl,
+  createFile: createFileImpl,
+  updateFile: updateFileImpl,
+  renameFile: renameFileImpl,
+  trashFile: trashFileImpl,
+  findOrCreateFolder: findOrCreateFolderImpl,
 };
