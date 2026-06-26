@@ -14,7 +14,7 @@ export type IconName = keyof typeof ICONS;
 type IconSize = "sm" | "md" | "lg";
 
 const SIZE_PX: Record<IconSize, number> = {
-  sm: 16,
+  sm: 14,
   md: 20,
   lg: 24,
 };

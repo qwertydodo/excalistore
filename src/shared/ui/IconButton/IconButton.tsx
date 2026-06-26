@@ -4,7 +4,7 @@ import type { IconName } from "../Icon";
 import { Icon } from "../Icon";
 import styles from "./IconButton.module.css";
 
-type Variant = "ghost" | "primary";
+type Variant = "ghost" | "primary" | "neutral";
 type Size = "sm" | "md";
 type Shape = "square" | "circle";
 

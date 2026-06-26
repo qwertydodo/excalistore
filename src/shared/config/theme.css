@@ -27,6 +27,7 @@
   /* Semantic tokens (light) */
   color-scheme: light;
   --es-color-bg-page: var(--es-color-white);
+  --es-color-bg-control: var(--es-color-gray-50);
   --es-color-bg-surface: var(--es-color-violet-50);
   --es-color-bg-surface-hover: var(--es-color-violet-100);
   --es-color-text-primary: var(--es-color-ink-900);
@@ -98,6 +99,7 @@
 :host([data-theme="dark"]) {
   color-scheme: dark;
   --es-color-bg-page: var(--es-color-ink-700);
+  --es-color-bg-control: var(--es-color-ink-600);
   --es-color-bg-surface: var(--es-color-ink-600);
   --es-color-bg-surface-hover: var(--es-color-ink-400);
   --es-color-text-primary: var(--es-color-ink-50);

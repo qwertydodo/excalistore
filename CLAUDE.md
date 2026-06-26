@@ -104,6 +104,10 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   `--es-color-status-*` (status foregrounds), `--es-color-overlay`.
   Components consume semantic tokens only. Component-level tokens are
   intentionally avoided — add a semantic token instead.
+- **Never use a primitive token in component CSS.** If no semantic token covers
+  the needed value, add one to `src/shared/config/theme.css` with both light
+  and dark values, then reference it from the component. Never shortcut directly
+  to `--es-color-*` primitives or raw hex in a `.module.css` file.
 - **CSS reset:** `src/shared/config/reset.css` is imported first in every
   entrypoint (`content/index.tsx`, `popup/main.tsx`). It resets UA defaults
   for `ul`/`ol`, headings, `p`, form elements, etc. Never re-reset these

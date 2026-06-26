@@ -20,6 +20,8 @@ export default defineContentScript({
         shadowHost.style.top = "64px";
         shadowHost.style.right = "16px";
         shadowHost.style.zIndex = "1000";
+        shadowHost.style.padding = "0";
+        shadowHost.style.margin = "0";
         const root = createRoot(uiContainer);
         root.render(
           <StrictMode>
