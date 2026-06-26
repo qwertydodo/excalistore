@@ -26,6 +26,7 @@ export const REQUEST_TYPE = {
   DRIVE_CREATE: "drive/create",
   DRIVE_UPDATE: "drive/update",
   DRIVE_RENAME: "drive/rename",
+  DRIVE_TRASH: "drive/trash",
 } as const;
 
 export type Request =
@@ -41,7 +42,8 @@ export type Request =
       content: string;
       prevRevision: string;
     }
-  | { type: typeof REQUEST_TYPE.DRIVE_RENAME; id: string; name: string };
+  | { type: typeof REQUEST_TYPE.DRIVE_RENAME; id: string; name: string }
+  | { type: typeof REQUEST_TYPE.DRIVE_TRASH; id: string };
 
 export type ConnectionStatus = {
   isConnected: boolean;
