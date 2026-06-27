@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type AxiosResponse } from "axios";
 import type { DiagramContent } from "@/shared/api";
 import { googleClient } from "@/shared/api/google";
 import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD, FOLDER_MIME } from "@/shared/config";
@@ -9,6 +9,22 @@ const FIELDS = "id,name,modifiedTime,headRevisionId";
 // Authorization is attached by the googleClient auth interceptor
 // (installAuthInterceptor) — repo methods never handle the token themselves.
 
+// Single error boundary for the whole repo: unwrap the axios response and map
+// any HTTP failure to a DriveError (with status) so the gateway can classify it.
+const driveRequest = async <T>(call: Promise<AxiosResponse<T>>): Promise<T> => {
+  try {
+    return (await call).data;
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response) {
+      throw new DriveError(e.response.status, `Drive request failed: ${e.response.status}`);
+    }
+    throw e;
+  }
+};
+
+// Escape the Drive query *language* (not URL encoding — axios params handle
+// that): a literal value sits inside single quotes in a `q` string, so `\` and
+// `'` must be backslash-escaped or a crafted name could break out of the quotes.
 const escapeQueryValue = (value: string): string =>
   value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
@@ -23,45 +39,40 @@ const buildMultipart = (
   `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n` +
   `${content}\r\n--${boundary}--`;
 
-const toDriveError = (e: unknown): never => {
-  if (axios.isAxiosError(e) && e.response) {
-    throw new DriveError(e.response.status, `Drive request failed: ${e.response.status}`);
-  }
-  throw e;
-};
-
 export const driveRepo = {
   listFolder: async (folderId: string): Promise<DriveFile[]> => {
-    const q = encodeURIComponent(
-      `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
-    ).replace(/%20/g, "+");
     const out: DriveFile[] = [];
     let pageToken: string | undefined;
     do {
-      const page = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-      const url = `${DRIVE_API}/files?q=${q}&fields=nextPageToken,files(${FIELDS})&orderBy=modifiedTime desc&pageSize=1000${page}`;
-      const { data } = await googleClient
-        .get<{ files?: DriveFile[]; nextPageToken?: string }>(url)
-        .catch(toDriveError);
+      const data = await driveRequest(
+        googleClient.get<{ files?: DriveFile[]; nextPageToken?: string }>(`${DRIVE_API}/files`, {
+          params: {
+            q: `'${escapeQueryValue(folderId)}' in parents and trashed=false`,
+            fields: `nextPageToken,files(${FIELDS})`,
+            orderBy: "modifiedTime desc",
+            pageSize: 1000,
+            pageToken,
+          },
+        }),
+      );
       out.push(...(data.files ?? []));
       pageToken = data.nextPageToken;
     } while (pageToken);
     return out;
   },
 
-  getMeta: async (id: string): Promise<DriveFile> => {
-    const { data } = await googleClient
-      .get<DriveFile>(`${DRIVE_API}/files/${id}?fields=${FIELDS}`)
-      .catch(toDriveError);
-    return data;
-  },
+  getMeta: (id: string): Promise<DriveFile> =>
+    driveRequest(
+      googleClient.get<DriveFile>(`${DRIVE_API}/files/${id}`, { params: { fields: FIELDS } }),
+    ),
 
-  getContent: async (id: string): Promise<string> => {
-    const { data } = await googleClient
-      .get<string>(`${DRIVE_API}/files/${id}?alt=media`, { responseType: "text" })
-      .catch(toDriveError);
-    return data;
-  },
+  getContent: (id: string): Promise<string> =>
+    driveRequest(
+      googleClient.get<string>(`${DRIVE_API}/files/${id}`, {
+        params: { alt: "media" },
+        responseType: "text",
+      }),
+    ),
 
   // A diagram read needs both the metadata (for the conflict guard + name) and
   // the raw .excalidraw content, fetched in parallel.
@@ -70,16 +81,16 @@ export const driveRepo = {
     return { meta, content };
   },
 
-  createFile: async (name: string, folderId: string, content: string): Promise<DriveFile> => {
+  createFile: (name: string, folderId: string, content: string): Promise<DriveFile> => {
     const boundary = `es-${crypto.randomUUID()}`;
     const metadata = { name, parents: [folderId], mimeType: DIAGRAM_MIME };
     const body = buildMultipart(boundary, metadata, DIAGRAM_MIME, content);
-    const { data } = await googleClient
-      .post<DriveFile>(`${DRIVE_UPLOAD}/files?uploadType=multipart&fields=${FIELDS}`, body, {
+    return driveRequest(
+      googleClient.post<DriveFile>(`${DRIVE_UPLOAD}/files`, body, {
+        params: { uploadType: "multipart", fields: FIELDS },
         headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
-      })
-      .catch(toDriveError);
-    return data;
+      }),
+    );
   },
 
   updateFile: async (id: string, content: string, prevRevision: string): Promise<DriveFile> => {
@@ -87,51 +98,49 @@ export const driveRepo = {
     if (current.headRevisionId !== prevRevision) {
       throw new Error("conflict: remote revision changed");
     }
-    const { data } = await googleClient
-      .patch<DriveFile>(`${DRIVE_UPLOAD}/files/${id}?uploadType=media&fields=${FIELDS}`, content, {
+    return driveRequest(
+      googleClient.patch<DriveFile>(`${DRIVE_UPLOAD}/files/${id}`, content, {
+        params: { uploadType: "media", fields: FIELDS },
         headers: { "Content-Type": DIAGRAM_MIME },
-      })
-      .catch(toDriveError);
-    return data;
+      }),
+    );
   },
 
-  renameFile: async (id: string, name: string): Promise<DriveFile> => {
-    const { data } = await googleClient
-      .patch<DriveFile>(`${DRIVE_API}/files/${id}?fields=${FIELDS}`, JSON.stringify({ name }), {
+  renameFile: (id: string, name: string): Promise<DriveFile> =>
+    driveRequest(
+      googleClient.patch<DriveFile>(`${DRIVE_API}/files/${id}`, JSON.stringify({ name }), {
+        params: { fields: FIELDS },
         headers: { "Content-Type": "application/json" },
-      })
-      .catch(toDriveError);
-    return data;
-  },
+      }),
+    ),
 
   trashFile: async (id: string): Promise<void> => {
-    await googleClient
-      .patch(`${DRIVE_API}/files/${id}`, JSON.stringify({ trashed: true }), {
+    await driveRequest(
+      googleClient.patch(`${DRIVE_API}/files/${id}`, JSON.stringify({ trashed: true }), {
         headers: { "Content-Type": "application/json" },
-      })
-      .catch(toDriveError);
+      }),
+    );
   },
 
   findOrCreateFolder: async (name: string): Promise<{ id: string; name: string }> => {
-    const safe = escapeQueryValue(name);
-    const q = encodeURIComponent(
-      `mimeType='${FOLDER_MIME}' and name='${safe}' and trashed=false`,
-    ).replace(/%20/g, "+");
-    const { data: listed } = await googleClient
-      .get<{ files: Array<{ id: string; name: string }> }>(
-        `${DRIVE_API}/files?q=${q}&fields=files(id,name)`,
-      )
-      .catch(toDriveError);
+    const listed = await driveRequest(
+      googleClient.get<{ files: Array<{ id: string; name: string }> }>(`${DRIVE_API}/files`, {
+        params: {
+          q: `mimeType='${FOLDER_MIME}' and name='${escapeQueryValue(name)}' and trashed=false`,
+          fields: "files(id,name)",
+        },
+      }),
+    );
     const existing = listed.files?.[0];
     if (existing) return { id: existing.id, name: existing.name };
 
-    const { data: created } = await googleClient
-      .post<{ id: string; name: string }>(
-        `${DRIVE_API}/files?fields=id,name`,
+    const created = await driveRequest(
+      googleClient.post<{ id: string; name: string }>(
+        `${DRIVE_API}/files`,
         JSON.stringify({ name, mimeType: FOLDER_MIME }),
-        { headers: { "Content-Type": "application/json" } },
-      )
-      .catch(toDriveError);
+        { params: { fields: "id,name" }, headers: { "Content-Type": "application/json" } },
+      ),
+    );
     return { id: created.id, name: created.name };
   },
 };

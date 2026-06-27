@@ -116,10 +116,12 @@ token argument; the auth interceptor on `googleClient` attaches
 `Authorization: Bearer <token>` per request (silent `getToken`, deduped) and,
 on a `401`, drops the cached token and retries once. `drive/connect` is the
 one route that needs interactive consent, which `connectionService.connect`
-triggers itself via `getToken(true)`. So routes only declare
-`isConnectionRequired` — whether they require an established Drive folder — and
-`handleMessage` loads + validates the connection before running them. The OAuth
-token never leaves the background worker, and is never cached in memory (the
+triggers itself via `getToken(true)`. `handleMessage` itself stays a generic
+dispatcher (look up route, run it, classify errors); each route owns its own
+preconditions via the `requireConnection` / `requireFolderId` guards, so the
+connection rules live with the route, not baked into the dispatch loop. The
+OAuth token never leaves the background worker, and is never cached in memory
+(the
 MV3 worker is ephemeral; Chrome caches/refreshes the token).
 
 Before routing, the listener validates the message sender via `isAllowedSender`
