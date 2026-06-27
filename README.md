@@ -43,8 +43,9 @@ All network access and OAuth token handling live exclusively in the background s
 └─────────┼─────────────────────────────────────────────────────────┘
           │
 ┌─────────▼──────── Background service worker (trusted core) ───────┐
-│  • Auth module       chrome.identity.getAuthToken (drive.file)    │
-│  • Drive client      list / read / create / rename / update       │
+│  • authRepo          chrome.identity.getAuthToken (drive.file)    │
+│  • auth interceptor  attaches Bearer per request, retries 401     │
+│  • driveRepo         list / read / create / rename / update       │
 │  • Drive gateway     all Google API calls happen HERE only        │
 └────────┬──────────────────────────────────────────────────────────┘
          │ HTTPS (Bearer)
@@ -57,9 +58,11 @@ The project follows [Feature-Sliced Design v2.1](https://feature-sliced.design/)
 
 ```
 src/
-  shared/      primitives reused everywhere (ui, api contracts, theme tokens)
-  entities/    diagram — .excalidraw format: build / parse / validate
-  features/    auth, driveGateway, sceneBridge, autosave, session, driveConnect
+  shared/      primitives reused everywhere (ui, api contracts + googleClient, theme tokens)
+  entities/    diagram (.excalidraw format: build / parse / validate),
+               google/auth (OAuth token + auth interceptor),
+               google/drive (Drive REST v3 repo)
+  features/    driveGateway, sceneBridge, autosave, session, driveConnect
 
 entrypoints/
   content/     Shadow DOM panel on excalidraw.com (hooks under model/, UI under ui/)
