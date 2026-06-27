@@ -6,13 +6,11 @@ import {
   type Response,
 } from "./messages";
 
-type ErrCode = ErrorCode;
-
 // Carries the gateway's error code so callers can branch on conflict /
 // unauthorized / unknown without string-matching the message.
 export class RequestError extends Error {
-  readonly code: ErrCode;
-  constructor(message: string, code: ErrCode) {
+  readonly code: ErrorCode;
+  constructor(message: string, code: ErrorCode) {
     super(message);
     this.name = "RequestError";
     this.code = code;

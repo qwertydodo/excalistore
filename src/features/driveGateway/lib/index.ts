@@ -1,2 +1,2 @@
-export * from "./handleMessage";
-export * from "./isAllowedSender";
+export * from "./messageGuards";
+export * from "./router";

@@ -7,7 +7,10 @@
   app-owned folder it finds or creates and the files it created within it.
 - **No client secret** — `getAuthToken` uses Chrome's signed-in account.
 - **Token never leaves the background worker**, is never logged, and is never
-  exposed to the content script or the popup. Chrome owns the token cache.
+  exposed to the content script or the popup. Chrome owns the token cache; the
+  token is fetched per request by the `googleClient` auth interceptor and is
+  never cached in the worker's memory (the MV3 worker is ephemeral, and an
+  in-memory copy could go stale after an external revoke).
 - **All Google API calls happen in the background worker only.**
 - **Message-sender allowlist.** The background `onMessage` listener validates
   every request's sender (`isAllowedSender`) before acting: it must carry the
@@ -57,7 +60,7 @@ user browse and pick an arbitrary existing folder.
 So there is no Picker. Instead, the user **types a folder name** in the popup,
 and the background gateway **finds or creates** an app-owned folder with that
 exact name via `drive.file` (`findOrCreateFolder` in
-`src/shared/api/driveClient.ts`). The lookup only ever sees
+`src/entities/google/drive/api/driveRepo.ts`). The lookup only ever sees
 folders this app created, so calling connect again with the same name is
 idempotent — it reuses the existing folder rather than creating a duplicate.
 

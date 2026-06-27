@@ -25,14 +25,18 @@ src/
   shared/        business-agnostic primitives reused everywhere
     ui/          Button, Dialog/ConfirmDialog, TextField, ListItem, Badge,
                  Spinner
-    api/         cross-process message contracts + the Drive REST v3 client
+    api/         cross-process message contracts + googleClient (axios
+                 transport singleton only — no API methods, no auth)
     config/      design tokens (theme) and shared constants
   entities/
-    diagram/     the .excalidraw business entity — format build/parse/
-                 validate, the ActiveFile pointer
+    diagram/       the .excalidraw business entity — format build/parse/
+                   validate, the ActiveFile pointer
+    google/        provider group sharing the googleClient transport
+      auth/        ALL auth: authRepo (getToken/signOut/revoke via
+                   chrome.identity) + installAuthInterceptor (background only)
+      drive/       driveRepo — Drive REST v3 CRUD + findOrCreateFolder
   features/
-    auth/          chrome.identity wrapper (background only)
-    driveGateway/  message router; only consumer of auth + the Drive client
+    driveGateway/  message router; injects connection + drive services
     sceneBridge/   content-script transform between page storage and the
                    validated .excalidraw envelope
     autosave/      debounced autosave controller
@@ -72,8 +76,9 @@ CSS custom properties (`--es-*`) in `shared/config/theme.css`, applied to
 └─────────┼─────────────────────────────────────────────────────────┘
           │
 ┌─────────▼──────── Background service worker (trusted core) ───────┐
-│  • Auth module       chrome.identity.getAuthToken (drive.file)    │
-│  • Drive client      list / read / create / rename / update /     │
+│  • authRepo          chrome.identity.getAuthToken (drive.file)    │
+│  • auth interceptor  attaches Bearer per request + 401 retry      │
+│  • driveRepo         list / read / create / rename / update /     │
 │                       findOrCreateFolder                          │
 │  • Drive gateway     all Google API calls happen HERE only        │
 └────────┬──────────────────────────────────────────────────────────┘
@@ -92,34 +97,51 @@ sends a single typed request, `drive/connect { folderName }`, to the
 background — interactive sign-in and the find-or-create folder lookup both
 happen inside the gateway, not the popup. The popup otherwise sends typed
 requests (`auth/status`, `auth/signOut`, `drive/list`, …) straight to the
-background. `entrypoints/background.ts` registers a single
+background. `entrypoints/background.ts` is the composition root: at startup it
+calls `installAuthInterceptor()` once — the single side-effect that wires auth
+into the shared `googleClient` — then registers a single
 `chrome.runtime.onMessage` listener that hands every request to
-`features/driveGateway`'s `handleMessage(req, deps)`, a pure function injected
-with `getToken`/`signOut` (`features/auth`),
-`listFolder`/`getFile`/`createFile`/`updateFile`/`renameFile`/
-`findOrCreateFolder` (`shared/api`), and `getStore`/`setStore`
-(`chrome.storage.local`). The gateway routes the full diagram read-write
-surface — `drive/get|create|update|rename`, the connect flow
-(`drive/connect`) — and `auth/*`, and is the only thing in the
-background that touches `auth` or Drive's REST client; the OAuth token never leaves
-the background worker. Before routing, the listener validates the message
-sender via `isAllowedSender` — the request must come from the extension's own
-popup page or a content script on `https://excalidraw.com/` (same
-`chrome.runtime.id`); anything else is rejected with `forbidden sender`. It returns a typed `Response<T>` that
-`sendToBackground` unwraps, throwing a `RequestError` on `{ ok: false }` that
-carries the response's `code` (`"conflict" | "unauthorized" | "unknown"`) as
-a typed property (`RequestError.code`), not just baked into the message
-string — so callers (the panel container, the autosave save callback) can
-branch on it directly, e.g. `e instanceof RequestError && e.code ===
+`features/driveGateway`'s `handleMessage(req)`. There is no dependency
+injection: FSD already lets the gateway import its collaborators directly, so
+`handleMessage` calls `connectionService` (connect/getStatus/signOut over
+`chrome.storage.local` + `entities/google/auth`) and `driveRepo`
+(`entities/google/drive`) straight — the repo already exposes the exact domain
+methods the routes call, so there is no wrapper service and nothing to thread
+through. The gateway routes the full diagram read-write surface —
+`drive/get|create|update|rename`, the connect flow (`drive/connect`) — and
+`auth/*`.
+
+**Token never threads through the gateway.** Drive requests do not carry a
+token argument; the auth interceptor on `googleClient` attaches
+`Authorization: Bearer <token>` per request (silent `getToken`, deduped) and,
+on a `401`, drops the cached token and retries once. `drive/connect` is the
+one route that needs interactive consent, which `connectionService.connect`
+triggers itself via `getToken(true)`. `handleMessage` itself stays a generic
+dispatcher (look up route, run it, classify errors); each route owns its own
+preconditions via the `requireConnection` / `requireFolderId` guards, so the
+connection rules live with the route, not baked into the dispatch loop. The
+OAuth token never leaves the background worker, and is never cached in memory
+(the
+MV3 worker is ephemeral; Chrome caches/refreshes the token).
+
+Before routing, the listener validates the message sender via `isAllowedSender`
+(`messageGuards`) — the request must come from the extension's own popup page
+or a content script on `https://excalidraw.com/` (same `chrome.runtime.id`);
+anything else is rejected with `forbidden sender`. The gateway returns a typed
+`Response<T>` that `sendToBackground` unwraps, throwing a `RequestError` on
+`{ ok: false }` that carries the response's `code`
+(`"conflict" | "unauthorized" | "unknown"`) as a typed property
+(`RequestError.code`) — so callers (the panel container, the autosave save
+callback) branch on it directly, e.g. `e instanceof RequestError && e.code ===
 "unauthorized"` to distinguish an expired session from a generic failure.
 `updateFile`'s conflict guard (remote `headRevisionId` ≠ the caller's
 `prevRevision`) maps to `code: "conflict"`. Auth failures map to
-`code: "unauthorized"`: the gateway's `err()` helper classifies on the
+`code: "unauthorized"`: the gateway's `classifyError` helper keys off the
 structured `DriveError.status` (HTTP `401`/`403`, e.g. Drive's "insufficient
-scopes") and on token-grant failures from `getToken` ("not granted /
-revoked"), rather than string-matching a status code that happened to appear
-in the message. `listFolder` follows Drive's `nextPageToken`, so folders with
-more than one page of diagrams list completely.
+scopes") and off named message patterns for token-grant failures
+(`UNAUTHORIZED_MESSAGE_PATTERN`), rather than inline magic strings.
+`listFolder` follows Drive's `nextPageToken`, so folders with more than one
+page of diagrams list completely.
 
 **Content-script mount (`entrypoints/content/`):** the app-layer composition
 root for excalidraw.com, split across files the same way `entrypoints/popup/`
@@ -165,17 +187,23 @@ in isolation.
 
 ### Background (trusted core)
 
-- **`auth`** — `getAuthToken({interactive})`, token caching,
-  `removeCachedAuthToken` + token revocation on disconnect. Scope: `drive.file`.
-- **`drive-client`** — typed wrapper over Drive REST v3: `listFolder(folderId)`,
-  `getFile(id)`, `createFile(name, folderId, content)`,
-  `updateFile(id, content, prevRevision)`, `renameFile(id, name)`,
-  `findOrCreateFolder(token, name)` (looks up an app-owned folder by exact
-  name, creating it if none matches). Returns `modifiedTime` +
-  `headRevisionId` for the conflict guard.
-- **`gateway`** — message router; the only place that touches `auth` and
-  `drive-client`. Validates the message sender (`isAllowedSender`) before
-  routing `auth/status|signOut`, `drive/connect|list|get|create|update|rename`.
+- **`entities/google/auth`** — all auth in one slice. `authRepo`:
+  `getToken({interactive})`, `invalidateToken`, `signOut` (revoke +
+  `removeCachedAuthToken`). `installAuthInterceptor()` wires the Bearer-on-
+  request + 401-retry behaviour into `googleClient`; called once from
+  `background.ts`. Scope: `drive.file`.
+- **`entities/google/drive`** — `driveRepo`, a typed wrapper over Drive REST
+  v3: `listFolder(folderId)`, `getMeta(id)`, `getContent(id)`,
+  `getDiagram(id)` (meta + content together), `createFile(name, folderId,
+  content)`, `updateFile(id, content, prevRevision)`, `renameFile(id, name)`,
+  `trashFile(id)`, `findOrCreateFolder(name)`. No token arguments — auth is
+  attached by the interceptor. Returns `modifiedTime` + `headRevisionId` for
+  the conflict guard.
+- **`gateway`** — message router (`handleMessage`); the only place that touches
+  the Google entities. Calls `connectionService` + `driveRepo` directly (no DI).
+  Validates the message sender (`isAllowedSender`, in `messageGuards`) before
+  routing `auth/status|signOut`,
+  `drive/connect|list|get|create|update|rename|trash`.
 
 ### Content script
 
@@ -234,24 +262,25 @@ Reusable foundation everything else is built from:
   focus-ring geometry.
   Component-level tokens are intentionally avoided — semantic tokens are
   expressive enough for all current components.
-- **`shared/api` (`messages`, `driveClient`)** — typed request/response
+- **`shared/api` (`messages`, `googleClient`)** — typed request/response
   contracts (discriminated unions) shared by content script and background,
-  plus the Drive REST v3 client (pure CRUD, fetch-injected, no business
-  logic).
+  plus `googleClient`, the axios transport singleton (no API methods, no auth;
+  Drive CRUD lives in `entities/google/drive`).
 - **`entities/diagram` (`excalidrawFormat`)** — pure functions to build, parse,
   and validate the `.excalidraw` file format. No browser dependencies; fully
   unit-testable.
 
 This isolates the fragile DOM/storage coupling inside `scene-bridge`, and keeps
-`excalidrawFormat` and `drive-client` pure and easy to test. No component
+`excalidrawFormat` and `driveRepo` pure and easy to test. No component
 re-implements a button, dialog, or theme lookup.
 
 ## Data Flow
 
 - **Connect (first run):** popup → user types a folder name → "Connect Drive"
-  → `drive/connect { folderName }` → gateway calls `getAuthToken(interactive)`
-  then `findOrCreateFolder(token, folderName)` → store `folderId` +
-  `connected` in `chrome.storage.local`. No token stored (Chrome caches it).
+  → `drive/connect { folderName }` → `connectionService.connect` calls
+  `getToken(interactive)` then `findOrCreateFolder(folderName)` (auth attached
+  by the interceptor) → store `folderId` + `connected` in
+  `chrome.storage.local`. No token stored (Chrome caches it).
   No folder browsing: under `drive.file` the app can only ever see folders it
   created, so naming a folder is how connect works.
 - **List:** panel mounts (connected) → gateway `drive/list` → render names +
@@ -289,7 +318,9 @@ re-implements a button, dialog, or theme lookup.
   `clearActiveFile()` removes the session pointer; (4) local state resets and
   the panel shows disconnected; (5) `sceneBridge.clearScene()` wipes
   localStorage + IndexedDB binaries and reloads the tab.
-- **Involuntary logout (token expired or revoked externally):** any
+- **Involuntary logout (token expired or revoked externally):** the auth
+  interceptor first transparently retries a single `401` with a refreshed
+  token; only if that retry also fails does the error surface. Any
   `sendToBackground` call that throws a `RequestError` with `code ===
   "unauthorized"` (the panel's `refresh()` checks this on `drive/list`
   failures) flips the panel to disconnected **without** clearing or reloading
