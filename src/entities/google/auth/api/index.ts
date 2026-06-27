@@ -1,2 +1,2 @@
-export * from "./authClient";
+export * from "./authInterceptor";
 export * from "./authRepo";

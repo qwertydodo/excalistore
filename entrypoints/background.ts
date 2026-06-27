@@ -1,7 +1,12 @@
+import { installAuthInterceptor } from "@/entities/google/auth";
 import { handleMessage, isAllowedSender } from "@/features/driveGateway";
 import type { Request } from "@/shared/api";
 
 export default defineBackground(() => {
+  // Composition root: the single place that wires the auth side effect into the
+  // shared googleClient. After this, Drive requests auth themselves.
+  installAuthInterceptor();
+
   const popupUrl = chrome.runtime.getURL("popup.html");
   chrome.runtime.onMessage.addListener((req: Request, sender, sendResponse) => {
     if (!isAllowedSender(sender, { extensionId: chrome.runtime.id, popupUrl })) {

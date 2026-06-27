@@ -37,11 +37,11 @@ export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
 
   let savedHash: string | null = null;
   let dirtySince: number | null = null;
-  let saving = false;
+  let isSaving = false;
   let timer: ReturnType<typeof setInterval> | null = null;
 
   const runSave = async (hash: string): Promise<void> => {
-    saving = true;
+    isSaving = true;
     opts.onStatus(SAVE_STATUS.SAVING);
     try {
       await opts.save();
@@ -53,12 +53,12 @@ export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
         /conflict/i.test((e as Error).message) ? SAVE_STATUS.CONFLICT : SAVE_STATUS.ERROR,
       );
     } finally {
-      saving = false;
+      isSaving = false;
     }
   };
 
   const tick = async (): Promise<void> => {
-    if (saving) return;
+    if (isSaving) return;
     const hash = await opts.getHash();
     if (savedHash === null) {
       savedHash = hash; // first observation = baseline
@@ -73,7 +73,7 @@ export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
   };
 
   const flush = async (): Promise<void> => {
-    if (saving) return;
+    if (isSaving) return;
     const hash = await opts.getHash();
     if (savedHash !== null && hash !== savedHash) await runSave(hash);
   };

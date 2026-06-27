@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAllowedSender } from "./isAllowedSender";
+import { isAllowedSender } from "./messageGuards";
 
 const opts = {
   extensionId: "abc123",

@@ -10,9 +10,9 @@ export const getPanelCollapsed = async (): Promise<boolean> => {
   }
 };
 
-export const setPanelCollapsed = async (collapsed: boolean): Promise<void> => {
+export const setPanelCollapsed = async (isCollapsed: boolean): Promise<void> => {
   try {
-    await chrome.storage.local.set({ [KEY]: collapsed });
+    await chrome.storage.local.set({ [KEY]: isCollapsed });
   } catch {
     // Best-effort; the panel just won't remember the state next reload.
   }

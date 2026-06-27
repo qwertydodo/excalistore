@@ -110,15 +110,15 @@ export const useActiveDiagram = ({
       },
       onStatus: onSaveStatusChange,
     });
-    let stopped = false;
+    let isStopped = false;
     // Establish the saved baseline before the first tick can fire.
     currentSceneHash(bridge).then((h) => {
-      if (stopped) return;
+      if (isStopped) return;
       autosave.markSaved(h);
       autosave.start();
     });
     return () => {
-      stopped = true;
+      isStopped = true;
       autosave.flush();
       autosave.stop();
     };

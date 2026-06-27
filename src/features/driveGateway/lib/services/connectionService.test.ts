@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createAuthService } from "./authService";
+import { connectionService } from "./connectionService";
 
 const storage: Record<string, unknown> = {};
 const chromeMock = {
@@ -11,11 +11,6 @@ const chromeMock = {
       }),
     },
   },
-  identity: {
-    getAuthToken: vi.fn(),
-    removeCachedAuthToken: vi.fn((_: unknown, cb: () => void) => cb()),
-  },
-  runtime: {},
 };
 
 beforeEach(() => {
@@ -27,8 +22,10 @@ beforeEach(() => {
 });
 
 vi.mock("@/entities/google/auth", () => ({
-  getToken: vi.fn().mockResolvedValue("TOK"),
-  signOut: vi.fn().mockResolvedValue(undefined),
+  authRepo: {
+    getToken: vi.fn().mockResolvedValue("TOK"),
+    signOut: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 vi.mock("@/entities/google/drive", () => ({
@@ -37,16 +34,15 @@ vi.mock("@/entities/google/drive", () => ({
   },
 }));
 
-describe("authService.getStatus", () => {
+describe("connectionService.getStatus", () => {
   it("returns disconnected when store is empty", async () => {
-    const svc = createAuthService();
-    expect(await svc.getStatus()).toEqual({ isConnected: false });
+    expect(await connectionService.getStatus()).toEqual({ isConnected: false });
   });
 
   it("returns stored connection status", async () => {
     storage.connection = { isConnected: true, folderId: "F", folderName: "Diagrams" };
-    const svc = createAuthService();
-    expect(await svc.getStatus()).toEqual({
+
+    expect(await connectionService.getStatus()).toEqual({
       isConnected: true,
       folderId: "F",
       folderName: "Diagrams",
@@ -54,43 +50,35 @@ describe("authService.getStatus", () => {
   });
 });
 
-describe("authService.getToken", () => {
-  it("delegates to chromeGetToken", async () => {
-    const { getToken } = await import("@/entities/google/auth");
-    const svc = createAuthService();
-    const token = await svc.getToken(false);
-    expect(token).toBe("TOK");
-    expect(getToken).toHaveBeenCalledWith(false);
-  });
-});
-
-describe("authService.signOut", () => {
-  it("calls signOut with current token, clears store, returns disconnected", async () => {
-    const { signOut } = await import("@/entities/google/auth");
+describe("connectionService.signOut", () => {
+  it("calls authRepo.signOut with current token, clears store, returns disconnected", async () => {
+    const { authRepo } = await import("@/entities/google/auth");
     storage.connection = { isConnected: true, folderId: "F" };
-    const svc = createAuthService();
-    const result = await svc.signOut();
-    expect(signOut).toHaveBeenCalledWith("TOK");
+
+    const result = await connectionService.signOut();
+    expect(authRepo.signOut).toHaveBeenCalledWith("TOK");
     expect(result).toEqual({ isConnected: false });
     expect(storage.connection).toEqual({ isConnected: false });
   });
 
   it("still clears store even when getToken fails", async () => {
-    const { getToken } = await import("@/entities/google/auth");
-    vi.mocked(getToken).mockRejectedValueOnce(new Error("no token"));
+    const { authRepo } = await import("@/entities/google/auth");
+    vi.mocked(authRepo.getToken).mockRejectedValueOnce(new Error("no token"));
     storage.connection = { isConnected: true };
-    const svc = createAuthService();
-    const result = await svc.signOut();
+
+    const result = await connectionService.signOut();
     expect(result).toEqual({ isConnected: false });
   });
 });
 
-describe("authService.connect", () => {
-  it("creates/finds folder and persists connection", async () => {
+describe("connectionService.connect", () => {
+  it("prompts for consent, creates/finds folder, persists connection", async () => {
+    const { authRepo } = await import("@/entities/google/auth");
     const { driveRepo } = await import("@/entities/google/drive");
-    const svc = createAuthService();
-    const result = await svc.connect("TOK", "Diagrams");
-    expect(driveRepo.findOrCreateFolder).toHaveBeenCalledWith("TOK", "Diagrams");
+
+    const result = await connectionService.connect("Diagrams");
+    expect(authRepo.getToken).toHaveBeenCalledWith(true);
+    expect(driveRepo.findOrCreateFolder).toHaveBeenCalledWith("Diagrams");
     expect(result).toEqual({ isConnected: true, folderId: "F1", folderName: "Diagrams" });
     expect(storage.connection).toEqual({
       isConnected: true,

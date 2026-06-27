@@ -1,86 +1,95 @@
-import { DriveError } from "@/entities/google/drive";
+import { DriveError, driveRepo } from "@/entities/google/drive";
 import type { ErrorCode, Request, Response } from "@/shared/api";
 import { ERROR_CODE, REQUEST_TYPE } from "@/shared/api";
 import type { ValueOf } from "@/shared/lib";
-import type { AuthService } from "./services/authService";
-import type { DriveService } from "./services/driveService";
+import { connectionService } from "./services/connectionService";
 
-type Services = { auth: AuthService; drive: DriveService };
+// No dependency injection: FSD already lets this feature import the entities
+// (driveRepo) and its own connection service directly, so the routes call them
+// straight. connectionService stays a service because it orchestrates auth +
+// drive + the connection store (which an entity may not do).
 
+// Resolved before a route runs, when the route requires an established
+// connection (see RouteEntry.isConnectionRequired).
 type RouteContext = {
-  token: string | undefined;
   folderId: string | undefined;
-  isConnected: boolean;
 };
 
 type RouteEntry = {
-  auth: "silent" | "interactive" | null;
-  needsStore: boolean;
-  run: (req: Request, ctx: RouteContext, services: Services) => Promise<unknown>;
+  // Whether the route operates on the connected Drive folder. When true,
+  // handleMessage loads the connection status first, fails fast if
+  // disconnected, and passes folderId through RouteContext. Auth tokens are NOT
+  // handled here — the googleClient interceptor attaches them per request, and
+  // drive/connect triggers the interactive consent prompt itself inside
+  // connectionService.
+  isConnectionRequired: boolean;
+  run: (req: Request, ctx: RouteContext) => Promise<unknown>;
 };
+
+// Error messages the gateway throws and later classifies. Kept as consts so the
+// thrower and the classifier agree (no drifting string literals).
+const NOT_CONNECTED_MESSAGE = "not connected";
+const NOT_CONNECTED_NO_FOLDER_MESSAGE = "not connected: no folder";
+
+// Message patterns mapped to response codes. Drive HTTP status is preferred
+// where available (see classifyError); these cover token-grant failures and
+// scope errors that surface only as messages.
+const UNAUTHORIZED_MESSAGE_PATTERN = /unauthor|insufficient|not granted|revoked|no auth token/i;
+const CONFLICT_MESSAGE_PATTERN = /conflict/i;
 
 const routes: Record<ValueOf<typeof REQUEST_TYPE>, RouteEntry> = {
   [REQUEST_TYPE.AUTH_STATUS]: {
-    auth: null,
-    needsStore: false,
-    run: (_, __, { auth }) => auth.getStatus(),
+    isConnectionRequired: false,
+    run: () => connectionService.getStatus(),
   },
   [REQUEST_TYPE.AUTH_SIGN_OUT]: {
-    auth: null,
-    needsStore: false,
-    run: (_, __, { auth }) => auth.signOut(),
+    isConnectionRequired: false,
+    run: () => connectionService.signOut(),
   },
   [REQUEST_TYPE.DRIVE_CONNECT]: {
-    auth: "interactive",
-    needsStore: false,
-    run: (req, { token }, { auth }) => {
+    isConnectionRequired: false,
+    run: (req) => {
       const r = req as Extract<Request, { type: typeof REQUEST_TYPE.DRIVE_CONNECT }>;
-      return auth.connect(token as string, r.folderName);
+      return connectionService.connect(r.folderName);
     },
   },
   [REQUEST_TYPE.DRIVE_LIST]: {
-    auth: "silent",
-    needsStore: true,
-    run: (_, { token, folderId }, { drive }) => drive.list(token as string, folderId as string),
+    isConnectionRequired: true,
+    run: (_, { folderId }) => driveRepo.listFolder(folderId as string),
   },
   [REQUEST_TYPE.DRIVE_GET]: {
-    auth: "silent",
-    needsStore: true,
-    run: (req, { token }, { drive }) => {
+    isConnectionRequired: true,
+    run: (req) => {
       const r = req as Extract<Request, { type: typeof REQUEST_TYPE.DRIVE_GET }>;
-      return drive.get(token as string, r.id);
+      return driveRepo.getDiagram(r.id);
     },
   },
   [REQUEST_TYPE.DRIVE_CREATE]: {
-    auth: "silent",
-    needsStore: true,
-    run: (req, { token, folderId }, { drive }) => {
+    isConnectionRequired: true,
+    run: (req, { folderId }) => {
       const r = req as Extract<Request, { type: typeof REQUEST_TYPE.DRIVE_CREATE }>;
-      return drive.create(token as string, r.name, folderId as string, r.content);
+      return driveRepo.createFile(r.name, folderId as string, r.content);
     },
   },
   [REQUEST_TYPE.DRIVE_UPDATE]: {
-    auth: "silent",
-    needsStore: true,
-    run: (req, { token }, { drive }) => {
+    isConnectionRequired: true,
+    run: (req) => {
       const r = req as Extract<Request, { type: typeof REQUEST_TYPE.DRIVE_UPDATE }>;
-      return drive.update(token as string, r.id, r.content, r.prevRevision);
+      return driveRepo.updateFile(r.id, r.content, r.prevRevision);
     },
   },
   [REQUEST_TYPE.DRIVE_RENAME]: {
-    auth: "silent",
-    needsStore: true,
-    run: (req, { token }, { drive }) => {
+    isConnectionRequired: true,
+    run: (req) => {
       const r = req as Extract<Request, { type: typeof REQUEST_TYPE.DRIVE_RENAME }>;
-      return drive.rename(token as string, r.id, r.name);
+      return driveRepo.renameFile(r.id, r.name);
     },
   },
   [REQUEST_TYPE.DRIVE_TRASH]: {
-    auth: "silent",
-    needsStore: true,
-    run: async (req, { token }, { drive }) => {
+    isConnectionRequired: true,
+    run: async (req) => {
       const r = req as Extract<Request, { type: typeof REQUEST_TYPE.DRIVE_TRASH }>;
-      await drive.trash(token as string, r.id);
+      await driveRepo.trashFile(r.id);
       return null;
     },
   },
@@ -90,44 +99,35 @@ const classifyError = (e: unknown): Extract<Response<never>, { ok: false }> => {
   const message = e instanceof Error ? e.message : String(e);
   const status = e instanceof DriveError ? e.status : undefined;
   let code: ErrorCode = ERROR_CODE.UNKNOWN;
-  if (/conflict/i.test(message)) {
+  if (CONFLICT_MESSAGE_PATTERN.test(message)) {
     code = ERROR_CODE.CONFLICT;
-  } else if (
-    status === 401 ||
-    status === 403 ||
-    /unauthor|insufficient|not granted|revoked|no auth token/i.test(message)
-  ) {
+  } else if (status === 401 || status === 403 || UNAUTHORIZED_MESSAGE_PATTERN.test(message)) {
     code = ERROR_CODE.UNAUTHORIZED;
   }
   return { ok: false, error: message, code };
 };
 
-export const dispatch = async (req: Request, services: Services): Promise<Response<unknown>> => {
+export const handleMessage = async (req: Request): Promise<Response<unknown>> => {
   try {
     const reqType = (req as { type: ValueOf<typeof REQUEST_TYPE> }).type;
     const route = routes[reqType];
     if (!route) throw new Error(`unhandled request: ${reqType}`);
 
-    const token =
-      route.auth !== null ? await services.auth.getToken(route.auth === "interactive") : undefined;
-
-    let isConnected = false;
     let folderId: string | undefined;
 
-    if (route.needsStore) {
-      const status = await services.auth.getStatus();
-      isConnected = status.isConnected;
+    if (route.isConnectionRequired) {
+      const status = await connectionService.getStatus();
+      if (!status.isConnected) throw new Error(NOT_CONNECTED_MESSAGE);
       folderId = status.folderId;
-      if (!isConnected) throw new Error("not connected");
       if (
         (reqType === REQUEST_TYPE.DRIVE_LIST || reqType === REQUEST_TYPE.DRIVE_CREATE) &&
         !folderId
       ) {
-        throw new Error("not connected: no folder");
+        throw new Error(NOT_CONNECTED_NO_FOLDER_MESSAGE);
       }
     }
 
-    const data = await route.run(req, { token, isConnected, folderId }, services);
+    const data = await route.run(req, { folderId });
     return { ok: true, data };
   } catch (e) {
     return classifyError(e);
