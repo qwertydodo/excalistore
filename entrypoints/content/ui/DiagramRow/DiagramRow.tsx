@@ -113,6 +113,7 @@ export const DiagramRow = ({
         <IconButton
           icon="edit"
           aria-label={`Rename ${name}`}
+          title={`Rename ${name}`}
           disabled={isLocked || isDeleting}
           onClick={() => {
             setIsRenaming(true);
@@ -122,6 +123,7 @@ export const DiagramRow = ({
         <IconButton
           icon="trash"
           aria-label={`Delete ${name}`}
+          title={`Delete ${name}`}
           disabled={isLocked || isDeleting}
           onClick={() => setIsConfirmingDelete(true)}
         />

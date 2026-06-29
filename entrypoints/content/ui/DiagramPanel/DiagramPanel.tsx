@@ -117,7 +117,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
           No diagrams yet
         </Text>
       ) : (
-        <Stack as="ul" gap="1">
+        <Stack as="ul" gap="1" className={styles.list}>
           {ordered.map((f) => (
             <DiagramRow
               key={f.id}
