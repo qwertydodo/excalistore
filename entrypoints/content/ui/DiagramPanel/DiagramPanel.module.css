@@ -1,9 +1,14 @@
 .root {
-  width: 260px;
+  width: 350px;
   max-height: 70vh;
   background: var(--es-color-bg-page);
   color: var(--es-color-text-primary);
   font: var(--es-font-size-base) / var(--es-line-height-base) var(--es-font-family);
+}
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 .error {
   margin: 0 0 var(--es-space-2);
