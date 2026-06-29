@@ -1,4 +1,4 @@
-import { Minus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Minus, Pencil, Plus, Shapes, Trash2, X } from "lucide-react";
 import type { AriaAttributes } from "react";
 
 const ICONS = {
@@ -7,6 +7,7 @@ const ICONS = {
   cross: X,
   edit: Pencil,
   trash: Trash2,
+  diagrams: Shapes,
 } as const;
 
 export type IconName = keyof typeof ICONS;
