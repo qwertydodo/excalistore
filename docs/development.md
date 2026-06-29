@@ -17,14 +17,15 @@ Requires **Node.js 24**.
 - `npm run knip` — dead-code check.
 
 ## React Compiler
-React Compiler is enabled (`wxt.config.ts`'s `react.vite.babel` option, mirrored
-in `vitest.config.ts` so tests exercise the same compiled output) — manual
-`useCallback`/`useMemo` are usually unnecessary in new components. It runs
-through `@vitejs/plugin-react`'s `babel` option, which only exists on
-`@vitejs/plugin-react@5.x` — v6 dropped Babel support for an Oxc/Rolldown-based
-React Refresh transform and requires Vite 8, which WXT (pinned to Vite 5/6)
-doesn't support yet. Don't bump `@vitejs/plugin-react` past `^5.2.0` or `vite`
-past `^6.x` until WXT itself upgrades.
+React Compiler is enabled (`wxt.config.ts`, mirrored in `vitest.config.ts` so
+tests exercise the same compiled output) — manual `useCallback`/`useMemo` are
+usually unnecessary in new components. `@vitejs/plugin-react@6` dropped the old
+`babel` option for an Oxc/Rolldown transform, so the compiler now runs as a
+standalone `@rolldown/plugin-babel` plugin fed `reactCompilerPreset()` from
+`@vitejs/plugin-react`. WXT now builds with Vite 8 (which v6 requires), so this
+wiring works in both dev and prod. No `reactCompilerPreset` `target` is set: it
+defaults to React 19's built-in `react/compiler-runtime`, so no
+`react-compiler-runtime` polyfill is needed.
 
 **Known gap:** `babel-plugin-react-compiler@1.0.0` (current `latest`) cannot
 lower *any* `finally` clause — with or without a `catch`, sync or async,

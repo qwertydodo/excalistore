@@ -21,12 +21,18 @@ export const IconButton = ({
   size = "sm",
   shape = "square",
   className,
+  title,
+  "aria-label": ariaLabel,
   ...rest
 }: IconButtonProps) => {
   return (
     <button
       type="button"
       className={clsx(styles.iconButton, styles[variant], styles[size], styles[shape], className)}
+      aria-label={ariaLabel}
+      // Icon buttons have no visible label, so the hover tooltip mirrors the
+      // accessible label by default — pass an explicit `title` only to override.
+      title={title ?? ariaLabel}
       {...rest}
     >
       <Icon name={icon} size={size} aria-hidden />

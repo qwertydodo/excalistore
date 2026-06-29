@@ -9,7 +9,8 @@ const files = [
 ];
 
 // usePanelVisibility (called internally by DiagramPanel) persists through
-// chrome.storage.local — stub it so the panel starts expanded deterministically.
+// chrome.storage.local — stub it as empty so getPanelCollapsed resolves to
+// not-collapsed and the panel expands.
 const local = {
   get: vi.fn(async () => ({})),
   set: vi.fn(async () => {}),
@@ -41,9 +42,17 @@ function panelProps(over = {}) {
   };
 }
 
+// The panel mounts collapsed (avoids a layout-shift flash) and expands only
+// after usePanelVisibility resolves the persisted state from storage, so wait
+// for the expanded section before asserting on its contents.
+async function renderExpanded(diagram = diagramProps(), panel = panelProps()) {
+  render(<DiagramPanel diagram={diagram} {...panel} />);
+  return screen.findByLabelText("Excalistore diagrams");
+}
+
 describe("DiagramPanel", () => {
-  it("lists files (without the .excalidraw extension) and marks the active one", () => {
-    render(<DiagramPanel diagram={diagramProps()} {...panelProps()} />);
+  it("lists files (without the .excalidraw extension) and marks the active one", async () => {
+    await renderExpanded();
     expect(screen.getByText("alpha")).toBeInTheDocument();
     expect(screen.getByText("beta")).toBeInTheDocument();
     expect(screen.queryByText("alpha.excalidraw")).not.toBeInTheDocument();
@@ -51,44 +60,39 @@ describe("DiagramPanel", () => {
 
   it("opens a file on click", async () => {
     const onOpen = vi.fn();
-    render(<DiagramPanel diagram={diagramProps({ onOpen })} {...panelProps()} />);
+    await renderExpanded(diagramProps({ onOpen }));
     await userEvent.click(screen.getByText("beta"));
     expect(onOpen).toHaveBeenCalledWith("2");
   });
 
   it("creates a new diagram with the entered name", async () => {
     const onCreate = vi.fn();
-    render(<DiagramPanel diagram={diagramProps({ onCreate })} {...panelProps()} />);
+    await renderExpanded(diagramProps({ onCreate }));
     await userEvent.click(screen.getByRole("button", { name: /new/i }));
     await userEvent.type(screen.getByPlaceholderText(/name/i), "gamma");
     await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
     expect(onCreate).toHaveBeenCalledWith("gamma");
   });
 
-  it("shows a conflict badge", () => {
-    render(<DiagramPanel diagram={diagramProps({ saveStatus: "conflict" })} {...panelProps()} />);
+  it("shows a conflict badge", async () => {
+    await renderExpanded(diagramProps({ saveStatus: "conflict" }));
     expect(screen.getByText(/conflict/i)).toBeInTheDocument();
   });
 
   it("signs out", async () => {
     const onSignOut = vi.fn();
-    render(<DiagramPanel diagram={diagramProps()} {...panelProps({ onSignOut })} />);
+    await renderExpanded(diagramProps(), panelProps({ onSignOut }));
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });
 
-  it("renders an error banner when error is set", () => {
-    render(
-      <DiagramPanel
-        diagram={diagramProps({ error: "Could not open diagram" })}
-        {...panelProps()}
-      />,
-    );
+  it("renders an error banner when error is set", async () => {
+    await renderExpanded(diagramProps({ error: "Could not open diagram" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
   });
 
   it("collapses to a fab button and expands again when toggled", async () => {
-    render(<DiagramPanel diagram={diagramProps()} {...panelProps()} />);
+    await renderExpanded();
     expect(screen.getByText("alpha")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /collapse panel/i }));
@@ -98,16 +102,16 @@ describe("DiagramPanel", () => {
     expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
-  it("shows 'No diagrams yet' when the file list is empty", () => {
-    render(<DiagramPanel diagram={diagramProps()} {...panelProps({ files: [] })} />);
+  it("shows 'No diagrams yet' when the file list is empty", async () => {
+    await renderExpanded(diagramProps(), panelProps({ files: [] }));
     expect(screen.getByText("No diagrams yet")).toBeInTheDocument();
   });
 
-  it("stops keyboard events from reaching the document (Excalidraw hotkeys)", () => {
+  it("stops keyboard events from reaching the document (Excalidraw hotkeys)", async () => {
     const onDocKeyDown = vi.fn();
     document.addEventListener("keydown", onDocKeyDown);
-    render(<DiagramPanel diagram={diagramProps()} {...panelProps()} />);
-    fireEvent.keyDown(screen.getByLabelText("Excalistore diagrams"), { key: "r" });
+    const section = await renderExpanded();
+    fireEvent.keyDown(section, { key: "r" });
     document.removeEventListener("keydown", onDocKeyDown);
     expect(onDocKeyDown).not.toHaveBeenCalled();
   });
