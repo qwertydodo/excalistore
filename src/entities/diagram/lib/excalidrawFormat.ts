@@ -18,9 +18,9 @@ const fileSchema = z.object({
   type: z.literal("excalidraw"),
   version: z.number(),
   source: z.string(),
-  elements: z.array(z.record(z.unknown())),
-  appState: z.record(z.unknown()),
-  files: z.record(binaryFileSchema),
+  elements: z.array(z.record(z.string(), z.unknown())),
+  appState: z.record(z.string(), z.unknown()),
+  files: z.record(z.string(), binaryFileSchema),
 });
 
 export type BinaryFile = z.infer<typeof binaryFileSchema>;

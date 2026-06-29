@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import babel from "@rolldown/plugin-babel";
+import { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "wxt";
 import { DRIVE_FILE_SCOPE, GOOGLE_API_ORIGIN } from "./src/shared/config/drive";
 import { EXCALIDRAW_ORIGIN } from "./src/shared/config/excalidraw";
@@ -45,22 +47,14 @@ function srcAlias() {
 // host_permissions limited to excalidraw.com and Google APIs only.
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
-  // React Compiler auto-memoizes components/hooks, so app code shouldn't
-  // need manual useCallback/useMemo. @vitejs/plugin-react is pinned to ^5
-  // (devDependencies) specifically because v6 dropped this `babel` option in
-  // favor of a Rolldown-only integration WXT's bundled vite 6.x can't use;
-  // v5's `babel` option runs in both dev and prod. target: "19" uses React
-  // 19's built-in compiler runtime exports — no react-compiler-runtime
-  // polyfill needed.
-  react: {
-    vite: {
-      babel: {
-        plugins: [["babel-plugin-react-compiler", { target: "19" }]],
-      },
-    },
-  },
+  // React Compiler auto-memoizes components/hooks, so app code shouldn't need
+  // manual useCallback/useMemo. @vitejs/plugin-react v6 dropped the old `babel`
+  // option, so the compiler now runs as a standalone Rolldown babel plugin fed
+  // reactCompilerPreset() — equivalent transform, applied in both dev and prod.
+  // No target is set: it defaults to React 19's built-in compiler runtime
+  // exports, so no react-compiler-runtime polyfill is needed.
   vite: () => ({
-    plugins: [srcAlias()],
+    plugins: [srcAlias(), babel({ presets: [reactCompilerPreset()] })],
   }),
   manifest: {
     name: "Excalistore",

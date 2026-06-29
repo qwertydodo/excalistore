@@ -18,22 +18,23 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "postinstall": "wxt prepare",
-    "prepare": "git config core.hooksPath .githooks && lefthook install"
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "axios": "^1.18.1",
     "clsx": "^2.1.1",
-    "idb-keyval": "^6.2.5",
-    "lucide-react": "^1.21.0",
+    "idb-keyval": "^6.2.6",
+    "lucide-react": "^1.22.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@biomejs/biome": "^2.0.0",
-    "@commitlint/cli": "^19.0.0",
-    "@commitlint/config-conventional": "^19.0.0",
+    "@biomejs/biome": "^2.5.1",
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "@rolldown/plugin-babel": "^0.2.3",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/addon-docs": "^10.4.6",
     "@storybook/react": "^10.4.6",
@@ -42,21 +43,30 @@
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/babel__core": "^7.20.5",
-    "@types/chrome": "^0.1.43",
+    "@types/chrome": "^0.2.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/coverage-v8": "^2.1.9",
-    "@wxt-dev/module-react": "^1.1.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@wxt-dev/module-react": "^1.2.2",
     "axios-mock-adapter": "^2.1.0",
     "babel-plugin-react-compiler": "^1.0.0",
-    "jsdom": "^24.0.0",
-    "knip": "^5.0.0",
-    "lefthook": "^1.6.0",
+    "jsdom": "^29.1.1",
+    "knip": "^6.23.0",
+    "lefthook": "^2.1.9",
     "storybook": "^10.4.6",
-    "typescript": "^5.5.0",
-    "vite": "^6.4.3",
-    "vitest": "^2.0.0",
-    "wxt": "^0.19.0"
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9",
+    "wxt": "^0.20.27"
+  },
+  "comment:overrides": "Dev/build-only transitive deps forced past their parents' pinned (vulnerable) ranges so `npm audit` stays clean — `npm audit fix` can't touch them without a fixed parent release. shell-quote/tmp/uuid: dragged in by the web-ext tooling under wxt. wxt>esbuild is pinned to 0.27.2 — below the 0.27.3–0.28.0 advisory yet inside wxt's own ^0.27.1 range (0.28.x is out of range and breaks the bundler transform). Remove an entry once its parent ships a non-vulnerable version.",
+  "overrides": {
+    "shell-quote": "^1.9.0",
+    "tmp": "^0.2.7",
+    "uuid": "^14.0.1",
+    "wxt": {
+      "esbuild": "0.27.2"
+    }
   }
 }

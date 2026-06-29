@@ -14,6 +14,13 @@ export default defineContentScript({
       name: "excalistore-panel",
       position: "inline",
       anchor: "body",
+      // WXT 0.20+ injects `:host { all: initial !important }` into the shadow
+      // root reset. That `all: initial !important` overrides the host's inline
+      // positioning back to `static` — and in Chrome it wins even over an
+      // inline `!important`, so it can't be beaten from the host's own styles.
+      // Opt out of the reset; the panel's own styling comes from the theme
+      // tokens + reset.css imported into the shadow root, not from this reset.
+      inheritStyles: true,
       onMount(uiContainer, _shadow, shadowHost) {
         // Position the shadow host fixed in a corner.
         shadowHost.style.position = "fixed";

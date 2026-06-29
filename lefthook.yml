@@ -2,7 +2,7 @@ pre-commit:
   parallel: true
   commands:
     branch-protection:
-      run: sh .githooks/branch-protection.sh
+      run: sh scripts/branch-protection.sh
     biome:
       glob: "*.{js,ts,tsx,json}"
       run: npx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}

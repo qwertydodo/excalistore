@@ -20,6 +20,11 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   shared primitive's own CSS — adding them to feature CSS means they'll drift.
   When no existing primitive fits, add one to `shared/ui` rather than styling
   an ad-hoc element in place.
+- **Icon buttons are self-describing:** every `IconButton` must have an
+  `aria-label`. `IconButton` renders a `title` hover tooltip from that
+  `aria-label` automatically (pass an explicit `title` only to override) —
+  don't add ad-hoc `title` attributes that just duplicate the label, and never
+  ship an icon-only button with no `aria-label`/tooltip.
 - **`reset.css` is UA-reset only** (remove browser margins/padding/borders on
   elements, set `box-sizing`, etc.). Custom design-token styles — even
   universal ones — belong in the component that owns the element, not in
