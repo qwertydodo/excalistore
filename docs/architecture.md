@@ -13,8 +13,8 @@ composition roots and no shared UI block reused across more than one of
 them, promoting a component to `widgets/` would just be ceremony. Each
 entrypoint owns its own page-local UI directly, under its own `ui/`
 (components) and `model/` (hooks) folders — e.g. `DiagramPanel` (composes
-`DiagramRow` and `CreateDiagramForm`) and `ConnectCard` live under
-`entrypoints/content/ui/`, `PopupConnect` under `entrypoints/popup/ui/`.
+`DiagramRow` and `CreateDiagramForm`) and `ConnectButton` live under
+`entrypoints/content/ui/`, `PopupStatus` under `entrypoints/popup/ui/`.
 Promote something to `src/widgets/` (or pull a piece out to
 `src/features/`) only once it's actually reused by a second composition
 root — until then it stays page-local and FSD's "is it imported by 2+
@@ -41,18 +41,18 @@ src/
                    validated .excalidraw envelope
     autosave/      debounced autosave controller
     session/       active-file pointer persisted across reload
-    driveConnect/  FolderNameForm — connect-folder form shared by both
-                   connect surfaces (panel + popup)
+    driveConnect/  FolderNameForm — connect-folder form, used by the in-page
+                   ConnectButton dialog
 entrypoints/
   content/    mounts the panel in a Shadow DOM on excalidraw.com; split into
               mount wiring (index.tsx) and a composition root (App.tsx) at
               the entrypoint root, one hook per concern under model/ (file list, active-file + autosave + CRUD actions,
               panel visibility, sign-out, connect), page-local components
-              under ui/ (ConnectCard, DiagramPanel + its DiagramRow/
-              CreateDiagramForm sub-components), and the shared scene-bridge
-              instance under lib/
-  popup/      extension popup; composition root (App.tsx) + PopupConnect
-              under ui/
+              under ui/ (ConnectButton + its connect dialog, DiagramPanel + its
+              DiagramRow/CreateDiagramForm sub-components), and the shared
+              scene-bridge instance under lib/
+  popup/      extension popup; composition root (App.tsx) + PopupStatus
+              under ui/ (status + Open Excalidraw shortcut)
   background.ts  service worker; the only place holding the OAuth token
 ```
 
@@ -90,14 +90,15 @@ CSS custom properties (`--es-*`) in `shared/config/theme.css`, applied to
 background service worker. The content script and panel never hold the OAuth
 token. Panel and background communicate over typed `chrome.runtime` messages.
 
-**Message flow (popup → gateway → auth/drive):** the popup (`PopupConnect`,
-driven by `entrypoints/popup/App.tsx`) never calls Drive APIs directly and
-never holds the OAuth token. It collects a folder name from the user and
-sends a single typed request, `drive/connect { folderName }`, to the
+**Message flow (panel → gateway → auth/drive):** the in-page connect UI
+(`ConnectButton`'s dialog, driven by `useConnectFlow`) never calls Drive APIs
+directly and never holds the OAuth token. It collects a folder name from the
+user and sends a single typed request, `drive/connect { folderName }`, to the
 background — interactive sign-in and the find-or-create folder lookup both
-happen inside the gateway, not the popup. The popup otherwise sends typed
-requests (`auth/status`, `auth/signOut`, `drive/list`, …) straight to the
-background. `entrypoints/background.ts` is the composition root: at startup it
+happen inside the gateway, not the page. The panel and popup otherwise send
+typed requests (`auth/status`, `auth/signOut`, `drive/list`, …) straight to the
+background. The popup itself is thin (`PopupStatus`): it only reads
+`auth/status` and opens excalidraw.com — it no longer connects or signs out. `entrypoints/background.ts` is the composition root: at startup it
 calls `installAuthInterceptor()` once — the single side-effect that wires auth
 into the shared `googleClient` — then registers a single
 `chrome.runtime.onMessage` listener that hands every request to
@@ -242,7 +243,7 @@ Reusable foundation everything else is built from:
   polymorphic via an `as` prop; `Stack` composes `Box`, `Heading` composes
   `Text`). `Box` owns the `padding`/`border`/`radius`/`shadow` token scales —
   every bordered/rounded/shadowed surface (`Button`, `TextField`, `ListItem`,
-  `Dialog`'s panel, `ConnectCard`/`DiagramPanel`'s root via `Stack`) goes
+  `Dialog`'s panel, `DiagramPanel`'s root via `Stack`) goes
   through it instead of repeating `border`/`border-radius`/`box-shadow`
   per-component. The panel and every dialog (replace-canvas, sign-out,
   rename, conflict) are composed from these.
@@ -276,11 +277,13 @@ re-implements a button, dialog, or theme lookup.
 
 ## Data Flow
 
-- **Connect (first run):** popup → user types a folder name → "Connect Drive"
-  → `drive/connect { folderName }` → `connectionService.connect` calls
-  `getToken(interactive)` then `findOrCreateFolder(folderName)` (auth attached
-  by the interceptor) → store `folderId` + `connected` in
-  `chrome.storage.local`. No token stored (Chrome caches it).
+- **Connect (first run):** in-page "Connect Google Drive" button → dialog →
+  user types a folder name → submit → `drive/connect { folderName }` →
+  `connectionService.connect` calls `getToken(interactive)` then
+  `findOrCreateFolder(folderName)` (auth attached by the interceptor) → store
+  `folderId` + `connected` in `chrome.storage.local`. No token stored (Chrome
+  caches it). On success `useConnectFlow` also sets the persisted panel state to
+  expanded, so the panel opens automatically when `App` swaps to it.
   No folder browsing: under `drive.file` the app can only ever see folders it
   created, so naming a folder is how connect works.
 - **List:** panel mounts (connected) → gateway `drive/list` → render names +
@@ -307,8 +310,8 @@ re-implements a button, dialog, or theme lookup.
 
 ## Auth / Session Lifecycle
 
-- **Sign in:** popup "Connect Google Drive" (with a folder name entered) →
-  gateway `drive/connect` → `getAuthToken(interactive)` →
+- **Sign in:** in-page "Connect Google Drive" dialog (with a folder name
+  entered) → gateway `drive/connect` → `getAuthToken(interactive)` →
   `findOrCreateFolder` → connected.
 - **Sign out (explicit):** the panel's "Sign out" opens a `ConfirmDialog` —
   "This saves the current diagram to Drive and clears the canvas. Continue?"

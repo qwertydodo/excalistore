@@ -80,7 +80,10 @@
   --es-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
 
   /* Typography */
-  --es-font-family: system-ui, sans-serif;
+  /* Matches Excalidraw's UI font (Assistant). Its @font-face is registered at
+     document level by the page, so it resolves inside our Shadow DOM too;
+     falls back to system-ui where Assistant isn't loaded (e.g. the popup). */
+  --es-font-family: "Assistant", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --es-font-size-xs: 11px;
   --es-font-size-sm: 12px;
   --es-font-size-base: 13px;
@@ -120,7 +123,14 @@
   --es-color-bg-status-danger: var(--es-color-red-900);
 }
 
-.es-disconnected {
-  padding: var(--es-space-3);
-  font: var(--es-font-size-base) var(--es-font-family);
+/* Base font + color for the whole subtree, so everything inherits the
+   Excalidraw UI font — including content not under a component root (e.g. the
+   connect Dialog). :root covers the popup document; :host covers the content
+   script's Shadow DOM. */
+:root,
+:host {
+  font-family: var(--es-font-family);
+  font-size: var(--es-font-size-base);
+  line-height: var(--es-line-height-base);
+  color: var(--es-color-text-primary);
 }

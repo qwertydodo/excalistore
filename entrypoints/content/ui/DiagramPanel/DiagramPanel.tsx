@@ -73,15 +73,11 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         shape="square"
         aria-label="Open Excalistore diagrams"
         onClick={toggleVisibility}
-        onKeyDown={(e) => e.stopPropagation()}
       />
     );
   }
 
   return (
-    // Excalidraw binds single-key tool shortcuts on the document, which would
-    // fire while typing in the panel's inputs. Stop keyboard events at the panel
-    // root so they never reach Excalidraw's global handlers.
     <Stack
       as="section"
       gap="2"
@@ -91,8 +87,6 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
       shadow="md"
       className={styles.root}
       aria-label="Excalistore diagrams"
-      onKeyDown={(e) => e.stopPropagation()}
-      onKeyUp={(e) => e.stopPropagation()}
     >
       <Stack as="header" direction="row" align="center" justify="between">
         <Heading>Diagrams</Heading>

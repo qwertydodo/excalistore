@@ -10,34 +10,36 @@ type Props = {
   onConnect: (folderName: string) => void;
 };
 
-// Shared folder-name entry form used by ConnectCard (in-page) and
-// PopupConnect (extension popup) to start a Drive connection.
+// Folder-name entry form used by the in-page ConnectButton dialog to start a
+// Drive connection.
 export const FolderNameForm = ({ id, isBusy = false, error = null, onConnect }: Props) => {
   const [name, setName] = useState(DEFAULT_DIAGRAM_FOLDER_NAME);
 
   return (
     <Stack
       as="form"
-      gap="2"
+      gap="3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!isBusy) onConnect(name.trim() || DEFAULT_DIAGRAM_FOLDER_NAME);
       }}
     >
-      <Text as="label" size="sm" color="muted" htmlFor={id}>
-        Folder name
-      </Text>
-      <TextField
-        id={id}
-        name="folderName"
-        aria-label="Folder name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        disabled={isBusy}
-      />
-      <Text as="p" size="xs" color="muted" className={styles.hint}>
-        The app creates this folder in your Drive (or reuses it).
-      </Text>
+      <Stack gap="1">
+        <Text as="label" size="sm" color="muted" htmlFor={id}>
+          Folder name
+        </Text>
+        <TextField
+          id={id}
+          name="folderName"
+          aria-label="Folder name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={isBusy}
+        />
+        <Text as="p" size="xs" color="muted" className={styles.hint}>
+          The app creates this folder in your Drive (or reuses it).
+        </Text>
+      </Stack>
       {error ? (
         <Text as="p" size="sm" color="accent-text" role="alert" className={styles.error}>
           {error}

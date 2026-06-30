@@ -1,12 +1,6 @@
 # Features
 
 ## Next to pick up
-- Move the "Connect Google Drive" + folder-name UI from the popup into the
-  in-page panel (`entrypoints/content/ui/DiagramPanel`), so connect/folder/
-  diagram-list is all in one place; popup becomes thin status/shortcut or is
-  removed.
-- Fix connect UI styling — doesn't currently match the rest of the panel /
-  Excalidraw theme.
 - Change folder without disconnecting (currently: re-connect with a different
   folder name).
 - Create additional folders (beyond the single app-owned one) and organize
@@ -35,16 +29,25 @@ _(Move items here as they ship, with a short behavior description.)_
 
 - Foundation: repo scaffold, tooling, shared layer (messages, excalidraw-format,
   theme, ui primitives). No user-facing features yet.
-- Connect Google Drive (OAuth, sign-in/out): the popup collects a folder name
-  (defaulting to "Excalidraw Diagrams") and sends `drive/connect` to the
-  background gateway, which triggers `chrome.identity.getAuthToken`
-  (interactive), finds or creates an app-owned Drive folder with that exact
-  name, and persists `{connected, folderId, folderName}` to
-  `chrome.storage.local`. There is no folder browsing — under `drive.file` the
-  app can only ever see folders it created, so naming a folder is the
-  sanctioned way to connect one. "Sign out" removes the cached token,
-  best-effort revokes it, and clears the stored connection. The OAuth token
-  never leaves the background service worker.
+- Connect Google Drive (OAuth, sign-in/out): on excalidraw.com, before a
+  folder is connected, a single labeled "Connect Google Drive" button
+  (`entrypoints/content/ui/ConnectButton`) opens an in-page dialog with the
+  folder-name form (defaulting to "Excalidraw Diagrams"). Submitting sends
+  `drive/connect` to the background gateway, which triggers
+  `chrome.identity.getAuthToken` (interactive), finds or creates an app-owned
+  Drive folder with that exact name, and persists `{connected, folderId,
+  folderName}` to `chrome.storage.local`. On success the diagram panel opens
+  automatically (the connect flow sets the persisted panel state to expanded).
+  There is no folder browsing — under `drive.file` the app can only ever see
+  folders it created, so naming a folder is the sanctioned way to connect one.
+  "Sign out" (in the panel) removes the cached token, best-effort revokes it,
+  and clears the stored connection. The OAuth token never leaves the background
+  service worker.
+- Thin popup (`entrypoints/popup/ui/PopupStatus`): shows connection status
+  (connected + folder name, or a "not connected — open Excalidraw to connect"
+  hint) and a single "Open Excalidraw" button that focuses an existing
+  excalidraw.com tab if one is open, else opens a new one. Connecting and
+  signing out now live in-page, not in the popup.
 - Browse folder file list (background): the gateway's `drive/list` message
   calls the Drive REST v3 client to list `.excalidraw` files in the
   connected folder (id, name, modifiedTime, headRevisionId), returning an
@@ -67,10 +70,10 @@ _(Move items here as they ship, with a short behavior description.)_
   overwrite; conflict resolution UI is deferred. Autosave also flushes any
   pending change when the active file changes or the panel unmounts, so
   switching diagrams doesn't drop debounced edits.
-- Action error feedback: failed open/create/rename/sign-out (and popup
-  connect/sign-out) surface the error message in-panel instead of failing
-  silently; the connect button is disabled while a connect is in flight, so a
-  double-click can't create duplicate folders.
+- Action error feedback: failed open/create/rename/sign-out surface the error
+  message in-panel, and a failed connect surfaces in the connect dialog,
+  instead of failing silently; the connect button is disabled while a connect
+  is in flight, so a double-click can't create duplicate folders.
 - Stale-pointer safety: on load, a restored active-file pointer is adopted only
   if it's still in the connected folder's file list; otherwise it's dropped (so
   a pointer from a previous account/folder can't drive saves to a stale id).

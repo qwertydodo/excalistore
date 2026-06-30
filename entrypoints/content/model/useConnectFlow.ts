@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { setPanelCollapsed } from "@/features/session";
 import type { ConnectionStatus } from "@/shared/api";
 import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
 import type { DiagramLibrary } from "./useDiagramLibrary";
@@ -32,7 +33,12 @@ export const useConnectFlow = ({ refresh, onStatusChange }: UseConnectFlowParams
           folderName,
         });
         onStatusChange(next);
-        if (next.isConnected) await refresh();
+        if (next.isConnected) {
+          // Auto-open the panel on connect: DiagramPanel's usePanelVisibility
+          // reads this persisted value when it mounts.
+          await setPanelCollapsed(false);
+          await refresh();
+        }
       } catch (e) {
         setConnectError(e instanceof Error ? e.message : "Could not connect to Google Drive");
       } finally {

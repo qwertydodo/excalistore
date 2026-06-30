@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DiagramPanel } from "./DiagramPanel";
@@ -106,13 +106,7 @@ describe("DiagramPanel", () => {
     await renderExpanded(diagramProps(), panelProps({ files: [] }));
     expect(screen.getByText("No diagrams yet")).toBeInTheDocument();
   });
-
-  it("stops keyboard events from reaching the document (Excalidraw hotkeys)", async () => {
-    const onDocKeyDown = vi.fn();
-    document.addEventListener("keydown", onDocKeyDown);
-    const section = await renderExpanded();
-    fireEvent.keyDown(section, { key: "r" });
-    document.removeEventListener("keydown", onDocKeyDown);
-    expect(onDocKeyDown).not.toHaveBeenCalled();
-  });
 });
+
+// Keyboard scoping (stopping Excalidraw's document-level hotkeys) is no longer
+// per-component — it lives at the shadow-root container; see scopeKeyboard.test.

@@ -6,6 +6,14 @@
     background var(--es-transition-fast),
     border-color var(--es-transition-fast);
 }
+/* Only buttons with a leading icon need the flex row + gap; text-only buttons
+   keep their default rendering. */
+.withIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--es-space-2);
+}
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
