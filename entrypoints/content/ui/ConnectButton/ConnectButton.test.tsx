@@ -30,14 +30,7 @@ describe("ConnectButton", () => {
     fireEvent.click(dialog);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
-
-  it("stops keyboard events from reaching the document (Excalidraw hotkeys)", async () => {
-    const onDocKeyDown = vi.fn();
-    document.addEventListener("keydown", onDocKeyDown);
-    render(<ConnectButton onConnect={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: /connect google drive/i }));
-    fireEvent.keyDown(screen.getByLabelText(/folder name/i), { key: "r" });
-    document.removeEventListener("keydown", onDocKeyDown);
-    expect(onDocKeyDown).not.toHaveBeenCalled();
-  });
 });
+
+// Keyboard scoping (stopping Excalidraw's document-level hotkeys) is no longer
+// per-component — it lives at the shadow-root container; see scopeKeyboard.test.

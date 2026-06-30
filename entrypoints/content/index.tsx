@@ -5,11 +5,13 @@ import { EXCALIDRAW_ORIGIN } from "@/shared/config";
 import "@/shared/config/reset.css";
 import "@/shared/config/theme.css";
 import { App } from "./App";
+import { scopeKeyboard } from "./lib/scopeKeyboard";
 
 export default defineContentScript({
   matches: [`${EXCALIDRAW_ORIGIN}/*`],
   cssInjectionMode: "ui",
   async main(ctx) {
+    let detachKeyboard: (() => void) | undefined;
     const ui = await createShadowRootUi(ctx, {
       name: "excalistore-panel",
       position: "inline",
@@ -29,6 +31,10 @@ export default defineContentScript({
         shadowHost.style.zIndex = "1000";
         shadowHost.style.padding = "0";
         shadowHost.style.margin = "0";
+        // Keep every key event inside the plugin so Excalidraw's document-level
+        // tool shortcuts don't fire while typing in the panel. Detached in
+        // onRemove alongside the React root.
+        detachKeyboard = scopeKeyboard(uiContainer);
         const root = createRoot(uiContainer);
         root.render(
           <StrictMode>
@@ -38,6 +44,8 @@ export default defineContentScript({
         return root;
       },
       onRemove(root) {
+        detachKeyboard?.();
+        detachKeyboard = undefined;
         root?.unmount();
       },
     });
