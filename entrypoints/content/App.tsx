@@ -3,7 +3,7 @@ import { useActiveDiagram } from "./model/useActiveDiagram";
 import { useConnectFlow } from "./model/useConnectFlow";
 import { useDiagramLibrary } from "./model/useDiagramLibrary";
 import { useSignOutFlow } from "./model/useSignOutFlow";
-import { ConnectCard } from "./ui/ConnectCard";
+import { ConnectButton } from "./ui/ConnectButton";
 import { DiagramPanel } from "./ui/DiagramPanel";
 
 export const App = () => {
@@ -20,7 +20,7 @@ export const App = () => {
 
   if (!status.isConnected) {
     return (
-      <ConnectCard
+      <ConnectButton
         isBusy={connect.isConnecting}
         error={connect.connectError}
         onConnect={connect.onConnect}

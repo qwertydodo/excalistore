@@ -4,6 +4,7 @@ A Chrome extension (Manifest V3) that connects [excalidraw.com](https://excalidr
 
 ## Features
 
+- **In-page connect** — on excalidraw.com, a "Connect Google Drive" button opens a dialog to name a Drive folder; once connected, the diagram panel opens automatically. The toolbar popup is a thin status view with an "Open Excalidraw" shortcut.
 - **Browse & open diagrams** — panel on excalidraw.com lists files from your connected Drive folder (name + modified date).
 - **Create & rename** — create new diagrams in Drive and rename them inline.
 - **Debounced autosave** — saves changes ~2.5s after you stop editing; shows idle / saving / saved / conflict status.
@@ -66,7 +67,7 @@ src/
 
 entrypoints/
   content/     Shadow DOM panel on excalidraw.com (hooks under model/, UI under ui/)
-  popup/       extension popup
+  popup/       thin status popup + Open Excalidraw shortcut
   background.ts  service worker; holds the OAuth token
 ```
 
