@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DEFAULT_DIAGRAM_FOLDER_NAME } from "@/shared/config/drive";
+import { DEFAULT_DIAGRAM_FOLDER_NAME } from "@/shared/config";
 import { Button, Stack, Text, TextField } from "@/shared/ui";
 import styles from "./FolderNameForm.module.css";
 

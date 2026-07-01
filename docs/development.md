@@ -15,6 +15,11 @@ Requires **Node.js 24**.
 - `npm run lint` / `npm run lint:fix` — Biome.
 - `npm run compile` — TypeScript typecheck.
 - `npm run knip` — dead-code check.
+- `npm run fsd-lint` — steiger, checks `src/` against Feature-Sliced Design
+  rules (config: `steiger.config.ts`). `fsd/insignificant-slice` is disabled
+  project-wide — it only scans `src/`, so it can't see `entrypoints/`
+  (this project's App layer) consuming a slice and always flags every
+  entity/feature as unreferenced.
 
 ## React Compiler
 React Compiler is enabled (`wxt.config.ts`, mirrored in `vitest.config.ts` so
