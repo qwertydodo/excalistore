@@ -1,17 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { googleClient } from "@/shared/api/google";
 import { GOOGLE_API_ORIGIN, OAUTH_REVOKE } from "@/shared/config";
+import { stubFetch } from "@/shared/lib/testHelpers";
 import { installAuthInterceptor } from "./authInterceptor";
 import { authRepo } from "./authRepo";
 
 const DRIVE_URL = `${GOOGLE_API_ORIGIN}/drive/v3/files`;
-
-const stubFetch = (handler: (request: Request) => Response | Promise<Response>): void => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (request: Request) => handler(request)),
-  );
-};
 
 beforeEach(() => {
   installAuthInterceptor();
