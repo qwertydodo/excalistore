@@ -1,4 +1,4 @@
-import { googleClient } from "@/shared/api/google";
+import { googleClient } from "@/shared/api";
 import { OAUTH_REVOKE } from "@/shared/config";
 
 // Auth lives entirely in this slice. The OAuth token never leaves the

@@ -1,6 +1,5 @@
 import { HTTPError } from "ky";
-import type { DiagramContent } from "@/shared/api";
-import { googleClient } from "@/shared/api/google";
+import { type DiagramContent, googleClient } from "@/shared/api";
 import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD, FOLDER_MIME } from "@/shared/config";
 import { DriveError, type DriveFile } from "./driveFile";
 

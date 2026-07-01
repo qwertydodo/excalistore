@@ -1,5 +1,5 @@
 import type { AfterResponseHook, BeforeRequestHook } from "ky";
-import { googleClient, setAuthHooks } from "@/shared/api/google";
+import { googleClient, setAuthHooks } from "@/shared/api";
 import { GOOGLE_API_ORIGIN } from "@/shared/config";
 import { authRepo } from "./authRepo";
 

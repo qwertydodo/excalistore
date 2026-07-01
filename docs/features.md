@@ -6,8 +6,6 @@
 - Create additional folders (beyond the single app-owned one) and organize
   diagrams from the panel; open/close diagrams (clear active state) from the
   panel.
-- Hover styling on panel items/buttons should match Excalidraw's native UI
-  (background, radius, transition) instead of looking bolted on.
 - Subfolders aren't shown — `listFolder` only returns direct children of the
   connected folder, with no way to navigate into a subfolder.
 - Thumbnail previews.
@@ -18,10 +16,16 @@
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.
 - Debounce the autosave poll off real edit events if Excalidraw exposes them.
-- Add steiger (FSD lint) once features/widgets exist.
 
 ## Shipped
 _(Move items here as they ship, with a short behavior description.)_
+
+- FSD lint: `steiger` + `@feature-sliced/steiger-plugin` check `src/` against
+  Feature-Sliced Design rules (`npm run fsd-lint`, config at
+  `steiger.config.ts`). Fixed the real violations it caught (a few imports
+  bypassing a segment's `index.ts` public API) and disabled
+  `fsd/insignificant-slice` project-wide (false positive — the rule can't see
+  `entrypoints/` outside `src/` consuming a slice).
 
 - Storybook for shared/ui: `.storybook/` config with light/dark theme toggle and autodocs;
   stories for all 12 primitives (Badge, Box, Button, ConfirmDialog, Dialog, Heading,

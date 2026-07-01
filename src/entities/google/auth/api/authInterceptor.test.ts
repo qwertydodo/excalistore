@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { googleClient } from "@/shared/api/google";
+import { googleClient } from "@/shared/api";
 import { GOOGLE_API_ORIGIN, OAUTH_REVOKE } from "@/shared/config";
 import { stubFetch } from "@/shared/lib/testHelpers";
 import { installAuthInterceptor } from "./authInterceptor";
