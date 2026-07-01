@@ -7,16 +7,16 @@ const meta: Meta<typeof IconButton> = {
   component: IconButton,
   tags: ["autodocs"],
   argTypes: {
-    icon: { control: "select", options: ["plus", "minus", "cross", "edit"] },
+    icon: { control: "select", options: ["minus", "edit", "trash", "folderOpen", "cloud"] },
     variant: { control: "select", options: ["ghost", "primary"] },
     size: { control: "radio", options: ["sm", "md"] },
     shape: { control: "radio", options: ["square", "circle"] },
     disabled: { control: "boolean" },
   },
   args: {
-    icon: "plus",
+    icon: "edit",
     onClick: fn(),
-    "aria-label": "Add",
+    "aria-label": "Edit",
   },
 };
 
@@ -36,13 +36,13 @@ export const Disabled: Story = { args: { disabled: true } };
 export const AllVariants: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-      <IconButton icon="plus" aria-label="Add (ghost)" />
-      <IconButton icon="plus" variant="primary" aria-label="Add (primary)" />
-      <IconButton icon="plus" shape="circle" aria-label="Add (circle)" />
-      <IconButton icon="plus" size="md" aria-label="Add (md)" />
+      <IconButton icon="edit" aria-label="Edit (ghost)" />
+      <IconButton icon="edit" variant="primary" aria-label="Edit (primary)" />
+      <IconButton icon="edit" shape="circle" aria-label="Edit (circle)" />
+      <IconButton icon="edit" size="md" aria-label="Edit (md)" />
       <IconButton icon="minus" aria-label="Remove" />
-      <IconButton icon="cross" aria-label="Close" />
-      <IconButton icon="edit" aria-label="Edit" />
+      <IconButton icon="trash" aria-label="Delete" />
+      <IconButton icon="folderOpen" aria-label="Open" />
     </div>
   ),
 };

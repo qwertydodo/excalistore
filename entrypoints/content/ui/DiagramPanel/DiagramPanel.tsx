@@ -67,7 +67,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
   if (!isVisible) {
     return (
       <IconButton
-        icon="diagrams"
+        icon="folderOpen"
         variant="neutral"
         size="md"
         shape="square"
