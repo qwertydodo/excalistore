@@ -94,7 +94,7 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   **PascalCase** (`Button.tsx`). Name files by domain, never by technical role
   (no `types.ts`/`utils.ts`/`helpers.ts` — e.g. `shared/api/driveFile.ts`, not
   `model/types.ts`).
-- `shared/api/` contains transport layer init only — e.g. `shared/api/google/googleClient.ts` is the axios singleton. All API methods, mappings, and domain logic live in the corresponding entity slice as a **repository object** (`entities/<provider>/<domain>/api/<domain>Repo.ts`). Example: `entities/google/drive/api/driveRepo.ts` for Drive CRUD, `entities/google/auth/api/authRepo.ts` for OAuth revoke. Services and feature code call repo methods only — never `googleClient` directly. Group entity slices by provider when multiple domains share the same transport (e.g. `entities/google/drive/` and `entities/google/auth/` both use `googleClient`).
+- `shared/api/` contains transport layer init only — e.g. `shared/api/google/googleClient.ts` is the ky singleton. All API methods, mappings, and domain logic live in the corresponding entity slice as a **repository object** (`entities/<provider>/<domain>/api/<domain>Repo.ts`). Example: `entities/google/drive/api/driveRepo.ts` for Drive CRUD, `entities/google/auth/api/authRepo.ts` for OAuth revoke. Services and feature code call repo methods only — never `googleClient` directly. Group entity slices by provider when multiple domains share the same transport (e.g. `entities/google/drive/` and `entities/google/auth/` both use `googleClient`).
 - Theme tokens live in CSS custom properties (`src/shared/config/theme.css`),
   not JS objects — switch themes via the `data-theme` attribute, not by
   swapping a JS variable map. Two layers: **primitive** (`--es-color-*`, raw

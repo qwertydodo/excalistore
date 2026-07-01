@@ -19,13 +19,13 @@
   sender`. The unused, unvalidated `drive/setConnection` message (which let any
   caller overwrite the stored connection) has been removed entirely.
 - **Drive query escaping.** Folder names and ids interpolated into Drive `q`
-  search strings escape `\` then `'` (axios `params` handle URL encoding; this
-  escape targets the query *language*), so a crafted name can't break out of
-  the quoted literal.
+  search strings escape `\` then `'` (ky's `searchParams` handle URL encoding;
+  this escape targets the query *language*), so a crafted name can't break out
+  of the quoted literal.
 - **Multipart upload integrity.** `createFile` uses a random per-request
   boundary (`es-<uuid>`), so user `.excalidraw` content can't collide with or
   inject into the multipart body.
-- **Request timeouts.** The shared `googleClient` axios instance sets a 15s
+- **Request timeouts.** The shared `googleClient` ky instance sets a 15s
   `timeout` on every Drive request, so a hung request can't wedge the
   autosave/save pipeline.
 - **No remote code anywhere.** `content_security_policy.extension_pages` is

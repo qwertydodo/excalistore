@@ -25,7 +25,7 @@ src/
   shared/        business-agnostic primitives reused everywhere
     ui/          Button, Dialog/ConfirmDialog, TextField, ListItem, Badge,
                  Spinner
-    api/         cross-process message contracts + googleClient (axios
+    api/         cross-process message contracts + googleClient (ky
                  transport singleton only — no API methods, no auth)
     config/      design tokens (theme) and shared constants
   entities/
@@ -265,7 +265,7 @@ Reusable foundation everything else is built from:
   expressive enough for all current components.
 - **`shared/api` (`messages`, `googleClient`)** — typed request/response
   contracts (discriminated unions) shared by content script and background,
-  plus `googleClient`, the axios transport singleton (no API methods, no auth;
+  plus `googleClient`, the ky transport singleton (no API methods, no auth;
   Drive CRUD lives in `entities/google/drive`).
 - **`entities/diagram` (`excalidrawFormat`)** — pure functions to build, parse,
   and validate the `.excalidraw` file format. No browser dependencies; fully
