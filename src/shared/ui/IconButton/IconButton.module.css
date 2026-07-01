@@ -20,14 +20,16 @@
 }
 
 /* Size */
+/* IconButton is square, so width mirrors the shared interactive-height token
+   (Button and TextField use the same tokens for a fixed height too). */
 .sm {
-  width: 28px;
-  height: 28px;
+  width: var(--es-interactive-height-sm);
+  height: var(--es-interactive-height-sm);
   font-size: var(--es-font-size-lg);
 }
 .md {
-  width: 40px;
-  height: 40px;
+  width: var(--es-interactive-height-md);
+  height: var(--es-interactive-height-md);
   font-size: var(--es-font-size-xl);
 }
 

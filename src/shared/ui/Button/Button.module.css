@@ -1,22 +1,65 @@
 .button {
-  padding: var(--es-space-2) var(--es-space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--es-space-3);
   font: inherit;
   cursor: pointer;
   transition:
     background var(--es-transition-fast),
     border-color var(--es-transition-fast);
 }
-/* Only buttons with a leading icon need the flex row + gap; text-only buttons
-   keep their default rendering. */
+/* Width variants — "content" (default) has no class, just the button's
+   natural auto width. */
+.width-full {
+  width: 100%;
+}
+/* Sizes — fixed height (not a padding-driven auto height), same trick
+   IconButton uses, so each renders at exactly its --es-interactive-height-*
+   token regardless of font/line-height metrics. One always applies (size
+   defaults to "md"); flex centering lives on .button above. */
+.sm {
+  height: var(--es-interactive-height-sm);
+}
+.md {
+  height: var(--es-interactive-height-md);
+}
+/* Buttons with a leading icon additionally need a gap before the label —
+   .sm/.md already establish the flex row. */
 .withIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   gap: var(--es-space-2);
 }
 .button:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+}
+/* isLoading also sets disabled — exclude .loading here so the spinner
+   renders at full opacity, not dimmed to look identical to a plain
+   disabled button. */
+.button:disabled:not(.loading) {
+  opacity: 0.5;
+}
+.loading {
+  position: relative;
+}
+/* Always applied (not just while loading) — protects any width-constrained
+   Button (e.g. width="full" in a fixed-width slot) from the label wrapping
+   to two lines under font-fallback or browser zoom. */
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* opacity (not visibility) so the label stays in the accessibility tree —
+   screen readers still announce it while the spinner hides it visually. */
+.content {
+  opacity: 0;
+}
+.spinnerOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-flex;
+  transform: translate(-50%, -50%);
 }
 .button:focus-visible {
   outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);
@@ -52,12 +95,4 @@
 .danger:hover:not(:disabled) {
   background: var(--es-color-status-danger-hover);
   border-color: var(--es-color-status-danger-hover);
-}
-.ghost {
-  background: none;
-  border-color: transparent;
-  color: var(--es-color-interactive-primary);
-}
-.ghost:hover:not(:disabled) {
-  color: var(--es-color-interactive-primary-hover);
 }

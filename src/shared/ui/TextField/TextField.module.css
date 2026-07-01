@@ -1,10 +1,8 @@
 .textField {
   background: var(--es-color-bg-page);
   color: var(--es-color-text-primary);
-  padding: var(--es-space-2) var(--es-space-2);
   font: inherit;
   width: 100%;
-  box-sizing: border-box;
 }
 .textField::placeholder {
   color: var(--es-color-text-secondary);
@@ -13,4 +11,26 @@
 .textField:focus-visible {
   outline: none;
   border-color: var(--es-color-border-focus);
+}
+/* Sizes each own their full padding (no shared/base padding to override) —
+   one always applies (size defaults to "md"), mirroring Button's .sm/.md.
+   Fixed height (matching Button/IconButton's interactive-height token) with
+   line-height set to that same full height centers the value text — a
+   native <input>'s text doesn't respect padding-driven auto height the way
+   a flex-centered element does, so both sizes use this same recipe instead
+   of just one of them (was the "md" gap CreateDiagramForm's TextField+Button
+   row exposed — TextField.md staying padding-driven while Button.md became
+   a fixed height misaligned them). */
+.md {
+  height: var(--es-interactive-height-md);
+  padding: 0 var(--es-space-2);
+  line-height: var(--es-interactive-height-md);
+}
+/* Same recipe, --es-space-3 horizontal (not --es-space-2) to match
+   Button/ListItem's sm padding, so text lines up at the same left edge when
+   a row swaps between them (DiagramRow's rename mode). */
+.sm {
+  height: var(--es-interactive-height-sm);
+  padding: 0 var(--es-space-3);
+  line-height: var(--es-interactive-height-sm);
 }

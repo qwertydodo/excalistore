@@ -74,6 +74,12 @@
   --es-border-width-thin: 1px;
   --es-border-width-thick: 2px;
 
+  /* Height baseline for interactive elements, so Button and IconButton align
+     in a row (IconButton uses these for width too, since it's square — see
+     IconButton.module.css). */
+  --es-interactive-height-sm: 28px;
+  --es-interactive-height-md: 40px;
+
   /* Shadow scale (light) */
   --es-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
   --es-shadow-md: 0 1px 4px rgba(0, 0, 0, 0.1);

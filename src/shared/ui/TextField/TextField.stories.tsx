@@ -9,6 +9,7 @@ const meta: Meta<typeof TextField> = {
     placeholder: { control: "text" },
     disabled: { control: "boolean" },
     defaultValue: { control: "text" },
+    size: { control: "radio", options: ["sm", "md"] },
   },
   args: {
     name: "field",
@@ -31,3 +32,5 @@ export const Default: Story = {};
 export const WithValue: Story = { args: { defaultValue: "excalistore" } };
 
 export const Disabled: Story = { args: { disabled: true, defaultValue: "read-only value" } };
+
+export const Small: Story = { args: { size: "sm" } };
