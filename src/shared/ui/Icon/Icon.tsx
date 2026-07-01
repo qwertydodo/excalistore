@@ -1,13 +1,11 @@
-import { Cloud, Minus, Pencil, Plus, Shapes, Trash2, X } from "lucide-react";
+import { Cloud, FolderOpen, Minus, Pencil, Trash2 } from "lucide-react";
 import type { AriaAttributes } from "react";
 
 const ICONS = {
-  plus: Plus,
   minus: Minus,
-  cross: X,
   edit: Pencil,
   trash: Trash2,
-  diagrams: Shapes,
+  folderOpen: FolderOpen,
   cloud: Cloud,
 } as const;
 
