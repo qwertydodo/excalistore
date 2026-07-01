@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
 import { DiagramPanel } from "./DiagramPanel";
 
 const files = [
@@ -9,16 +10,10 @@ const files = [
 ];
 
 // usePanelVisibility (called internally by DiagramPanel) persists through
-// chrome.storage.local — stub it as empty so getPanelCollapsed resolves to
-// not-collapsed and the panel expands.
-const local = {
-  get: vi.fn(async () => ({})),
-  set: vi.fn(async () => {}),
-};
+// chrome.storage.local — the stub's store starts empty so getPanelCollapsed
+// resolves to not-collapsed and the panel expands.
 beforeEach(() => {
-  (globalThis as unknown as { chrome: unknown }).chrome = { storage: { local } };
-  local.get.mockClear();
-  local.set.mockClear();
+  stubChromeStorageLocal();
 });
 
 function diagramProps(over = {}) {

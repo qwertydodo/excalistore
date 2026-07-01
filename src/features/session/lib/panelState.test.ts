@@ -1,19 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
 import { getPanelCollapsed, setPanelCollapsed } from "./panelState";
 
-const store: Record<string, unknown> = {};
-const local = {
-  get: vi.fn(async (key: string) => ({ [key]: store[key] })),
-  set: vi.fn(async (obj: Record<string, unknown>) => {
-    Object.assign(store, obj);
-  }),
-};
-
+let local: ReturnType<typeof stubChromeStorageLocal>["local"];
 beforeEach(() => {
-  for (const k of Object.keys(store)) delete store[k];
-  (globalThis as unknown as { chrome: unknown }).chrome = { storage: { local } };
-  local.get.mockClear();
-  local.set.mockClear();
+  ({ local } = stubChromeStorageLocal());
 });
 afterEach(() => vi.restoreAllMocks());
 

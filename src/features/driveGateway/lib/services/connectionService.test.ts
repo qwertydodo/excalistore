@@ -1,24 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
 import { connectionService } from "./connectionService";
 
-const storage: Record<string, unknown> = {};
-const chromeMock = {
-  storage: {
-    local: {
-      get: vi.fn(async (key: string) => ({ [key]: storage[key] })),
-      set: vi.fn(async (obj: Record<string, unknown>) => {
-        Object.assign(storage, obj);
-      }),
-    },
-  },
-};
-
+let storage: ReturnType<typeof stubChromeStorageLocal>["store"];
 beforeEach(() => {
-  for (const k of Object.keys(storage)) {
-    delete storage[k];
-  }
   vi.clearAllMocks();
-  (globalThis as unknown as { chrome: unknown }).chrome = chromeMock;
+  ({ store: storage } = stubChromeStorageLocal());
 });
 
 vi.mock("@/entities/google/auth", () => ({

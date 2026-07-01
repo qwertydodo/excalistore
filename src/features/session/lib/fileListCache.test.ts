@@ -1,25 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
 import { clearCachedFiles, getCachedFiles, setCachedFiles } from "./fileListCache";
-
-const store: Record<string, unknown> = {};
-const local = {
-  get: vi.fn(async (key: string) => ({ [key]: store[key] })),
-  set: vi.fn(async (obj: Record<string, unknown>) => {
-    Object.assign(store, obj);
-  }),
-  remove: vi.fn(async (key: string) => {
-    delete store[key];
-  }),
-};
 
 const files = [{ id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r" }];
 
+let store: ReturnType<typeof stubChromeStorageLocal>["store"];
+let local: ReturnType<typeof stubChromeStorageLocal>["local"];
 beforeEach(() => {
-  for (const k of Object.keys(store)) delete store[k];
-  (globalThis as unknown as { chrome: unknown }).chrome = { storage: { local } };
-  local.get.mockClear();
-  local.set.mockClear();
-  local.remove.mockClear();
+  ({ store, local } = stubChromeStorageLocal());
 });
 afterEach(() => vi.restoreAllMocks());
 

@@ -1,20 +1,8 @@
 import { TimeoutError } from "ky";
 import { describe, expect, it, vi } from "vitest";
+import { jsonResponse, stubFetch } from "@/shared/lib/testHelpers";
 import { DriveError } from "./driveFile";
 import { driveRepo } from "./driveRepo";
-
-const jsonResponse = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-
-const stubFetch = (handler: (request: Request) => Response | Promise<Response>): void => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (request: Request) => handler(request)),
-  );
-};
 
 describe("googleClient timeout", () => {
   it("aborts a request that never responds after 15 seconds", async () => {
