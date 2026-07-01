@@ -9,7 +9,15 @@ const meta: Meta<typeof Button> = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "danger", "ghost"],
+      options: ["primary", "secondary", "danger"],
+    },
+    width: {
+      control: "select",
+      options: ["content", "full"],
+    },
+    size: {
+      control: "radio",
+      options: ["sm", "md"],
     },
     disabled: { control: "boolean" },
     children: { control: "text" },
@@ -29,16 +37,28 @@ export const Secondary: Story = { args: { variant: "secondary" } };
 
 export const Danger: Story = { args: { variant: "danger", children: "Delete" } };
 
-export const Ghost: Story = { args: { variant: "ghost" } };
-
 export const Disabled: Story = { args: { disabled: true } };
+
+export const Loading: Story = { args: { isLoading: true } };
+
+export const Small: Story = { args: { size: "sm" } };
+
+export const FullWidth: Story = {
+  args: { width: "full" },
+  decorators: [
+    (Story) => (
+      <div style={{ width: "240px" }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
 
 export const AllVariants: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
       <Button variant="primary">Primary</Button>
       <Button variant="secondary">Secondary</Button>
-      <Button variant="ghost">Ghost</Button>
       <Button variant="danger">Danger</Button>
     </div>
   ),

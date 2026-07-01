@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Spinner, Stack, TextField } from "@/shared/ui";
+import { Button, Stack, TextField } from "@/shared/ui";
 
 type Props = {
   isDisabled: boolean;
@@ -54,18 +54,12 @@ export const CreateDiagramForm = ({ isDisabled, onCreate, onBusyChange }: Props)
         disabled={isBusy}
         autoFocus
       />
-      {isBusy ? (
-        <Spinner size={14} />
-      ) : (
-        <>
-          <Button type="submit" disabled={isDisabled}>
-            Create
-          </Button>
-          <Button variant="secondary" onClick={() => setIsCreating(false)}>
-            Cancel
-          </Button>
-        </>
-      )}
+      <Button type="submit" isLoading={isBusy} disabled={isDisabled}>
+        Create
+      </Button>
+      <Button variant="secondary" disabled={isBusy} onClick={() => setIsCreating(false)}>
+        Cancel
+      </Button>
     </Stack>
   );
 };

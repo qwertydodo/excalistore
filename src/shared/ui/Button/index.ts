@@ -1,2 +1,2 @@
-export type { Variant } from "./Button";
+export type { Variant, Width } from "./Button";
 export { Button } from "./Button";

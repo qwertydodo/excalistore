@@ -74,6 +74,7 @@ export const DiagramRow = ({
           direction="row"
           gap="1"
           align="center"
+          className={styles.content}
           onSubmit={(e) => {
             e.preventDefault();
             submitRename();
@@ -82,12 +83,17 @@ export const DiagramRow = ({
           <TextField
             name="diagramName"
             aria-label="Rename diagram"
+            size="sm"
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             disabled={isSaving}
             autoFocus
           />
-          {isSaving ? <Spinner size={14} /> : <Button type="submit">Save</Button>}
+          <Stack className={styles.actions}>
+            <Button type="submit" size="sm" width="full" isLoading={isSaving}>
+              Save
+            </Button>
+          </Stack>
         </Stack>
       </Stack>
     );
@@ -100,31 +106,34 @@ export const DiagramRow = ({
           isActive={isActive}
           disabled={isActive || isLocked}
           onClick={() => onOpen(file.id)}
+          className={styles.content}
         >
           <span className={styles.name}>{name}</span>
           {isOpening ? (
-            <Spinner size={14} />
+            <Spinner size="sm" />
           ) : (
             <Text size="xs" color="muted" className={styles.meta}>
               {formatDate(file.modifiedTime)}
             </Text>
           )}
         </ListItem>
-        <IconButton
-          icon="edit"
-          aria-label={`Rename ${name}`}
-          disabled={isLocked || isDeleting}
-          onClick={() => {
-            setIsRenaming(true);
-            setRenameValue(name);
-          }}
-        />
-        <IconButton
-          icon="trash"
-          aria-label={`Delete ${name}`}
-          disabled={isLocked || isDeleting}
-          onClick={() => setIsConfirmingDelete(true)}
-        />
+        <Stack direction="row" gap="1" align="center" className={styles.actions}>
+          <IconButton
+            icon="edit"
+            aria-label={`Rename ${name}`}
+            disabled={isLocked || isDeleting}
+            onClick={() => {
+              setIsRenaming(true);
+              setRenameValue(name);
+            }}
+          />
+          <IconButton
+            icon="trash"
+            aria-label={`Delete ${name}`}
+            disabled={isLocked || isDeleting}
+            onClick={() => setIsConfirmingDelete(true)}
+          />
+        </Stack>
       </Stack>
       {isConfirmingDelete && (
         <ConfirmDialog

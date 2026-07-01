@@ -6,9 +6,9 @@ const meta: Meta<typeof Spinner> = {
   component: Spinner,
   tags: ["autodocs"],
   argTypes: {
-    size: { control: { type: "range", min: 12, max: 48, step: 4 } },
+    size: { control: "select", options: ["sm", "md", "lg"] },
   },
-  args: { size: 16 },
+  args: { size: "md" },
 };
 
 export default meta;
@@ -16,17 +16,16 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const Small: Story = { args: { size: 12 } };
+export const Small: Story = { args: { size: "sm" } };
 
-export const Large: Story = { args: { size: 32 } };
+export const Large: Story = { args: { size: "lg" } };
 
 export const AllSizes: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-      <Spinner size={12} />
-      <Spinner size={16} />
-      <Spinner size={24} />
-      <Spinner size={32} />
+      <Spinner size="sm" />
+      <Spinner size="md" />
+      <Spinner size="lg" />
     </div>
   ),
 };

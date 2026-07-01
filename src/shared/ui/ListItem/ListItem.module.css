@@ -1,9 +1,18 @@
+/* Fixed height (not padding-driven) so ListItem matches Button/TextField's
+   size="sm" and IconButton's default — the only ListItem consumer is
+   DiagramRow, where it sits in the same row as those, in view mode, while
+   rename mode swaps it for TextField+Save. Same height everywhere keeps the
+   row from changing height when switching between the two modes. */
 .listItem {
   display: flex;
   align-items: center;
   gap: var(--es-space-2);
-  padding: var(--es-space-2) var(--es-space-3);
-  border: none;
+  height: var(--es-interactive-height-sm);
+  padding: 0 var(--es-space-3);
+  /* Transparent border (not none) — same trick IconButton uses — so the
+     content area sits at the same inset as TextField/Button's real 1px
+     border, instead of shifting by 1px when the row swaps between them. */
+  border: var(--es-border-width-thin) solid transparent;
   width: 100%;
   text-align: left;
   background: transparent;
@@ -12,15 +21,18 @@
   font: inherit;
   transition: background var(--es-transition-fast);
 }
+/* Active (selected diagram) gets the stronger fill — matches Excalidraw's
+   own bold "selected tool" look. Plain hover gets the subtle one. */
 .active {
-  background: var(--es-color-bg-surface);
-}
-.listItem:hover:not(:disabled) {
   background: var(--es-color-bg-surface-hover);
 }
-/* active state wins over hover */
-.listItem.active:hover:not(:disabled) {
+.listItem:hover:not(:disabled) {
   background: var(--es-color-bg-surface);
+}
+/* active state wins over hover — stays on the strong fill, doesn't fade to
+   the subtle hover color */
+.listItem.active:hover:not(:disabled) {
+  background: var(--es-color-bg-surface-hover);
 }
 .listItem:focus-visible {
   outline: var(--es-focus-ring-width) solid var(--es-color-border-focus);

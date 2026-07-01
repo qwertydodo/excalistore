@@ -1,7 +1,12 @@
 .listRow {
   min-width: 0;
 }
-.listRow > :first-child {
+/* The row is 2 explicit columns: .content grows to fill the space .actions
+   doesn't take (ListItem in view mode, the rename form in rename mode);
+   .actions is a fixed footprint (see below) so switching between the two
+   modes never changes the row's total width. Both targeted by class, not
+   position, so reordering/wrapping either side can't silently break this. */
+.content {
   flex: 1;
   min-width: 0;
 }
@@ -14,4 +19,15 @@
 }
 .meta {
   flex-shrink: 0;
+}
+/* Fixed footprint: 2 icon buttons (each square, width == height ==
+   --es-interactive-height-sm) + the gap between them (matches the Stack
+   gap="1" wrapping them in DiagramRow.tsx). This formula re-derives that
+   count/gap in CSS rather than reading it from the JSX — if a 3rd action is
+   ever added here, or that Stack's gap prop changes, update this calc to
+   match or the rename-mode Save button (width="full" filling this same
+   .actions box) will silently stop matching the view-mode row's width. */
+.actions {
+  flex: 0 0 auto;
+  width: calc(2 * var(--es-interactive-height-sm) + var(--es-space-1));
 }
