@@ -21,6 +21,9 @@ export default defineConfig({
     // vitest@4 no longer auto-clears spy call history between tests; restore so
     // module-level spies re-created in beforeEach start fresh each test.
     restoreMocks: true,
+    // ky is fetch-based, so tests stub globalThis.fetch — auto-unstub keeps
+    // that from leaking into unrelated test files.
+    unstubGlobals: true,
     setupFiles: ["src/test-setup.ts"],
     css: { modules: { classNameStrategy: "non-scoped" } },
     coverage: { provider: "v8", reporter: ["text", "lcov"] },

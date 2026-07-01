@@ -1,63 +1,66 @@
-import axios from "axios";
-import MockAdapter from "axios-mock-adapter";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { googleClient } from "@/shared/api/google";
 import { GOOGLE_API_ORIGIN, OAUTH_REVOKE } from "@/shared/config";
 import { installAuthInterceptor } from "./authInterceptor";
 import { authRepo } from "./authRepo";
 
 const DRIVE_URL = `${GOOGLE_API_ORIGIN}/drive/v3/files`;
 
-let client: ReturnType<typeof axios.create>;
-let mock: MockAdapter;
+const stubFetch = (handler: (request: Request) => Response | Promise<Response>): void => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (request: Request) => handler(request)),
+  );
+};
 
 beforeEach(() => {
-  client = axios.create();
-  mock = new MockAdapter(client);
-  installAuthInterceptor(client);
+  installAuthInterceptor();
   vi.spyOn(authRepo, "getToken").mockResolvedValue("FRESH");
   vi.spyOn(authRepo, "invalidateToken").mockResolvedValue(undefined);
 });
 
 describe("request interceptor", () => {
   it("injects a silent Bearer token on googleapis requests", async () => {
-    let auth: unknown;
-    mock.onGet(DRIVE_URL).reply((config) => {
-      auth = config.headers?.Authorization;
-      return [200, {}];
+    let auth: string | null = null;
+    stubFetch((request) => {
+      auth = request.headers.get("Authorization");
+      return new Response("{}", { status: 200 });
     });
-    await client.get(DRIVE_URL);
+    await googleClient.get(DRIVE_URL);
     expect(authRepo.getToken).toHaveBeenCalledWith(false);
     expect(auth).toBe("Bearer FRESH");
   });
 
   it("does not attach a token to the revoke endpoint", async () => {
-    let auth: unknown = "untouched";
-    mock.onPost(new RegExp(OAUTH_REVOKE)).reply((config) => {
-      auth = config.headers?.Authorization;
-      return [200, {}];
+    let auth: string | null = null;
+    stubFetch((request) => {
+      auth = request.headers.get("Authorization");
+      return new Response("{}", { status: 200 });
     });
-    await client.post(`${OAUTH_REVOKE}?token=x`);
+    await googleClient.post(`${OAUTH_REVOKE}?token=x`);
     expect(authRepo.getToken).not.toHaveBeenCalled();
-    expect(auth).toBeUndefined();
+    expect(auth).toBeNull();
   });
 });
 
 describe("response interceptor (401)", () => {
   it("invalidates the stale token and retries once on 401", async () => {
     let calls = 0;
-    mock.onGet(DRIVE_URL).reply(() => {
+    stubFetch(() => {
       calls += 1;
-      return calls === 1 ? [401, {}] : [200, { ok: true }];
+      return calls === 1
+        ? new Response("{}", { status: 401 })
+        : new Response(JSON.stringify({ ok: true }), { status: 200 });
     });
-    const res = await client.get(DRIVE_URL);
+    const res = await googleClient.get(DRIVE_URL).json<{ ok: boolean }>();
     expect(calls).toBe(2);
     expect(authRepo.invalidateToken).toHaveBeenCalledWith("FRESH");
-    expect(res.data).toEqual({ ok: true });
+    expect(res).toEqual({ ok: true });
   });
 
   it("gives up after one retry on a persistent 401", async () => {
-    mock.onGet(DRIVE_URL).reply(401);
-    await expect(client.get(DRIVE_URL)).rejects.toMatchObject({ response: { status: 401 } });
+    stubFetch(() => new Response("{}", { status: 401 }));
+    await expect(googleClient.get(DRIVE_URL)).rejects.toMatchObject({ response: { status: 401 } });
     expect(authRepo.invalidateToken).toHaveBeenCalledTimes(1);
   });
 });
