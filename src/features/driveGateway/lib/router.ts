@@ -1,7 +1,7 @@
 import { DriveError, driveRepo } from "@/entities/google/drive";
-import type { ConnectionStatus, ErrorCode, Request, Response } from "@/shared/api";
-import { ERROR_CODE, REQUEST_TYPE } from "@/shared/api";
 import type { ValueOf } from "@/shared/lib";
+import type { ConnectionStatus, ErrorCode, Request, Response } from "../api";
+import { ERROR_CODE, REQUEST_TYPE } from "../api";
 import { connectionService } from "./services/connectionService";
 
 // The handler stays generic: look up a route, run it, classify errors. Each

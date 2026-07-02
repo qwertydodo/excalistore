@@ -2,12 +2,12 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/shared/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/shared/api")>()),
+vi.mock("@/features/driveGateway", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/driveGateway")>()),
   sendToBackground: vi.fn(async () => ({ isConnected: false })),
 }));
-vi.mock("@/features/session", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/features/session")>()),
+vi.mock("./activeFileStore", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./activeFileStore")>()),
   getActiveFile: vi.fn(async () => null),
 }));
 

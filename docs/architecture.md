@@ -11,46 +11,54 @@ the same layer never import each other. Each slice exposes a barrel
 There is no `widgets` (or `pages`) layer in use: with three independent
 composition roots and no shared UI block reused across more than one of
 them, promoting a component to `widgets/` would just be ceremony. Each
-entrypoint owns its own page-local UI directly, under its own `ui/`
-(components) and `model/` (hooks) folders — e.g. `DiagramPanel` (composes
-`DiagramRow` and `CreateDiagramForm`) and `ConnectButton` live under
-`entrypoints/content/ui/`, `PopupStatus` under `entrypoints/popup/ui/`.
+entrypoint owns its own page-local code directly, under its own `ui/`
+(components), `model/` (hooks + session stores), and `lib/` (pure helpers)
+folders — e.g. `DiagramPanel` (composes `DiagramRow` and
+`CreateDiagramForm`), `ConnectButton`, and `FolderNameForm` live under
+`entrypoints/content/ui/`, `PopupStatus` under `entrypoints/popup/ui/`, the
+scene bridge and autosave controller under `entrypoints/content/lib/`.
 Promote something to `src/widgets/` (or pull a piece out to
 `src/features/`) only once it's actually reused by a second composition
 root — until then it stays page-local and FSD's "is it imported by 2+
-slices" test for promotion just isn't met.
+slices" test for promotion just isn't met. `features/driveGateway` is the
+one feature slice that passes this test: three composition roots consume it
+(background runs `handleMessage`, content and popup call
+`sendToBackground`), so it owns the cross-context message contract.
 
 ```
 src/
   shared/        business-agnostic primitives reused everywhere
     ui/          Button, Dialog/ConfirmDialog, TextField, ListItem, Badge,
                  Spinner
-    api/         cross-process message contracts + googleClient (ky
-                 transport singleton only — no API methods, no auth)
-    config/      design tokens (theme) and shared constants
+    api/         googleClient (ky transport singleton only — no API methods,
+                 no auth)
+    config/      design tokens (theme) and shared constants (googleApi URLs/
+                 scopes, diagram storage constants, excalidraw origin)
   entities/
     diagram/       the .excalidraw business entity — format build/parse/
                    validate, the ActiveFile pointer
     google/        provider group sharing the googleClient transport
       auth/        ALL auth: authRepo (getToken/signOut/revoke via
                    chrome.identity) + installAuthInterceptor (background only)
-      drive/       driveRepo — Drive REST v3 CRUD + findOrCreateFolder
+      drive/       driveRepo — Drive REST v3 CRUD + findOrCreateFolder;
+                   DriveFile/DiagramContent domain types
   features/
-    driveGateway/  message router; injects connection + drive services
-    sceneBridge/   content-script transform between page storage and the
-                   validated .excalidraw envelope
-    autosave/      debounced autosave controller
-    session/       active-file pointer persisted across reload
-    driveConnect/  FolderNameForm — connect-folder form, used by the in-page
-                   ConnectButton dialog
+    driveGateway/  the cross-context messaging feature: api/ holds the typed
+                   request/response contract + sendToBackground client (used
+                   by content + popup); lib/ holds the background router
+                   (handleMessage), sender guard, and connectionService
 entrypoints/
   content/    mounts the panel in a Shadow DOM on excalidraw.com; split into
               mount wiring (index.tsx) and a composition root (App.tsx) at
               the entrypoint root, one hook per concern under model/ (file list, active-file + autosave + CRUD actions,
-              panel visibility, sign-out, connect), page-local components
-              under ui/ (ConnectButton + its connect dialog, DiagramPanel + its
-              DiagramRow/CreateDiagramForm sub-components), and the shared
-              scene-bridge instance under lib/
+              panel visibility, sign-out, connect) plus the chrome.storage
+              session stores (active-file pointer, file-list cache, panel
+              state), page-local components
+              under ui/ (ConnectButton + its FolderNameForm connect dialog,
+              DiagramPanel + its
+              DiagramRow/CreateDiagramForm sub-components), and the scene
+              bridge, its IndexedDB adapter, and the autosave controller
+              under lib/
   popup/      extension popup; composition root (App.tsx) + PopupStatus
               under ui/ (status + Open Excalidraw shortcut)
   background.ts  service worker; the only place holding the OAuth token
@@ -168,8 +176,8 @@ just move that coupling into more prop-drilling without reducing it.
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
 appState) and IndexedDB (`files-db` image binaries); loading a diagram writes
-storage then reloads the tab so Excalidraw restores it. `features/sceneBridge`
-owns this boundary: `readScene`/`writeScene`/`clearScene`/`readTheme`/
+storage then reloads the tab so Excalidraw restores it. The scene bridge
+(`entrypoints/content/lib/sceneBridge.ts`) owns this boundary: `readScene`/`writeScene`/`clearScene`/`readTheme`/
 `currentSceneHash` operate against an injected `SceneBridgeDeps` (a `Storage`
 plus `loadFiles`/`saveFiles`/`clearFiles`/`reload`), so the localStorage
 transform and validation are fully unit-tested without a browser. The real
@@ -214,17 +222,20 @@ in isolation.
   `readTheme()`, `currentSceneHash()` for change detection. Validates the
   `.excalidraw` envelope against a schema before any write — the security
   boundary before untrusted content reaches page storage.
-- **`autosave`** (`features/autosave`) — `createAutosave({getHash, save,
+- **`autosave`** (`entrypoints/content/lib/autosaveController.ts`) —
+  `createAutosave({getHash, save,
   onStatus, delayMs, pollMs, now})` polls `currentSceneHash`, and once the
   hash has been stable-but-different from the last saved hash for `delayMs`
   (~2.5s), calls `save()` and reports `saving` → `saved`/`conflict`/`error`.
   `flush()` forces an immediate save when dirty (used by sign-out); the clock
   and poll trigger are injectable, so the controller is fully unit-tested
   without real timers.
-- **`session`** (`features/session`) — `getActiveFile`/`setActiveFile`/
+- **session stores** (`entrypoints/content/model/` — `activeFileStore`,
+  `fileListCache`, `panelState`) — `getActiveFile`/`setActiveFile`/
   `clearActiveFile` persist the `ActiveFile` pointer (`id`, `name`,
   `loadedRevision`) in `chrome.storage.local` so it survives the
-  `writeScene`-triggered tab reload.
+  `writeScene`-triggered tab reload; the file-list cache and collapsed
+  state persist the same way.
 - **`panel`** (`entrypoints/content/ui/DiagramPanel`, React, Shadow DOM) —
   presentational: file list (name + modified date), active-file indicator,
   save-status badge, inline rename (each row owns its own rename-edit
@@ -263,10 +274,10 @@ Reusable foundation everything else is built from:
   focus-ring geometry.
   Component-level tokens are intentionally avoided — semantic tokens are
   expressive enough for all current components.
-- **`shared/api` (`messages`, `googleClient`)** — typed request/response
-  contracts (discriminated unions) shared by content script and background,
-  plus `googleClient`, the ky transport singleton (no API methods, no auth;
-  Drive CRUD lives in `entities/google/drive`).
+- **`shared/api` (`googleClient`)** — the ky transport singleton (no API
+  methods, no auth; Drive CRUD lives in `entities/google/drive`). The typed
+  request/response contracts (discriminated unions) shared by content script
+  and background live with their owner, `features/driveGateway/api`.
 - **`entities/diagram` (`excalidrawFormat`)** — pure functions to build, parse,
   and validate the `.excalidraw` file format. No browser dependencies; fully
   unit-testable.

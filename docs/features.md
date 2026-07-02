@@ -12,6 +12,16 @@
 - Conflict resolution UI (currently blocks + warns; no reload-remote /
   overwrite / save-as flow yet).
 - Delete / move diagrams, subfolders.
+- Client-side file search: a filter box in the panel that narrows the
+  already-loaded file list by name. Purely local — no protocol change, works
+  because `listFolder` always returns the complete list. Independent of (and
+  much cheaper than) the large-folder search below.
+- Large-folder support: infinite scroll (paged `drive/list` with a
+  `pageToken` protocol, scroll-loading panel) plus search — one is not useful
+  without the other once a folder is big enough to need paging. Deferred:
+  folders anywhere near Drive's 1000-files-per-page threshold aren't expected
+  for now, so `listFolder` simply follows `nextPageToken` to completion and
+  the panel renders the full list.
 - Self-hosted Excalidraw hosts.
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.

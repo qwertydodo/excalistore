@@ -93,8 +93,12 @@ OAuth client available in this environment).
 
 ### Scene bridge manual verification (Plan 3)
 
-The localStorage transform is unit-tested; the IndexedDB binary store is not
-(it requires Excalidraw's real `files-db`). Verify it by hand once:
+The localStorage transform is unit-tested, and the IndexedDB adapter's own
+logic (round-trip, orphan-blob deletion, clear) is unit-tested against
+`fake-indexeddb` (`entrypoints/content/lib/filesDb.test.ts`). What no unit
+test can cover is the interop contract — that the `files-db`/`files-store`
+names and value encoding still match Excalidraw's real database. Verify that
+by hand once:
 
 1. `npm run build`, load unpacked `.output/chrome-mv3`, open https://excalidraw.com.
 2. Draw a shape and paste/insert an image (creates a `files-db` entry).

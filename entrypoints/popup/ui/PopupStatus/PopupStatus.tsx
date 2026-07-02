@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from "@/shared/api";
+import type { ConnectionStatus } from "@/features/driveGateway";
 import { Box, Button, Heading, Text } from "@/shared/ui";
 import styles from "./PopupStatus.module.css";
 
