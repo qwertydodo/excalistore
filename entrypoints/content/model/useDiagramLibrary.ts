@@ -1,22 +1,23 @@
 import { useCallback, useState } from "react";
-import { setCachedFiles } from "@/features/session";
-import type { ConnectionStatus, DriveFileMeta } from "@/shared/api";
-import { ERROR_CODE, REQUEST_TYPE, RequestError, sendToBackground } from "@/shared/api";
+import type { DriveFile } from "@/entities/google/drive";
+import type { ConnectionStatus } from "@/features/driveGateway";
+import { ERROR_CODE, REQUEST_TYPE, RequestError, sendToBackground } from "@/features/driveGateway";
+import { setCachedFiles } from "./fileListCache";
 
 export type DiagramLibrary = {
   status: ConnectionStatus;
   onStatusChange: (status: ConnectionStatus) => void;
-  files: DriveFileMeta[];
-  onFilesChange: (files: DriveFileMeta[]) => void;
+  files: DriveFile[];
+  onFilesChange: (files: DriveFile[]) => void;
   isLoading: boolean;
-  refresh: () => Promise<DriveFileMeta[]>;
+  refresh: () => Promise<DriveFile[]>;
 };
 
 // Owns connection status + the Drive file list, including the refresh that
 // re-fetches the list and keeps the fast-paint cache in sync.
 export const useDiagramLibrary = (): DiagramLibrary => {
   const [status, setStatus] = useState<ConnectionStatus>({ isConnected: false });
-  const [files, setFiles] = useState<DriveFileMeta[]>([]);
+  const [files, setFiles] = useState<DriveFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // useCallback on all three below (not compiler-memoized — react-compiler
@@ -25,12 +26,12 @@ export const useDiagramLibrary = (): DiagramLibrary => {
   // Unstable here re-fires that effect every render, looping refresh()
   // forever.
   const onStatusChange = useCallback((next: ConnectionStatus) => setStatus(next), []);
-  const onFilesChange = useCallback((next: DriveFileMeta[]) => setFiles(next), []);
+  const onFilesChange = useCallback((next: DriveFile[]) => setFiles(next), []);
 
-  const refresh = useCallback(async (): Promise<DriveFileMeta[]> => {
+  const refresh = useCallback(async (): Promise<DriveFile[]> => {
     setIsLoading(true);
     try {
-      const list = await sendToBackground<DriveFileMeta[]>({ type: REQUEST_TYPE.DRIVE_LIST });
+      const list = await sendToBackground<DriveFile[]>({ type: REQUEST_TYPE.DRIVE_LIST });
       setFiles(list);
       setCachedFiles(list); // keep the fast-paint cache fresh
       return list;

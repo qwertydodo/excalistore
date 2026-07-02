@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { stripExcalidrawExtension } from "@/entities/diagram";
-import type { DriveFileMeta } from "@/shared/api";
+import type { DriveFile } from "@/entities/google/drive";
 import { formatDate } from "@/shared/lib";
 import {
   Button,
@@ -15,7 +15,7 @@ import {
 import styles from "./DiagramRow.module.css";
 
 type Props = {
-  file: DriveFileMeta;
+  file: DriveFile;
   isActive: boolean;
   isLocked: boolean;
   isOpening: boolean;

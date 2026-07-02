@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type DriveFileMeta, isErrorResponse } from "@/shared/api";
-import type { ConnectionStatus, DiagramContent } from "./messages";
+import type { DiagramContent, DriveFile } from "@/entities/google/drive";
+import { type ConnectionStatus, isErrorResponse } from "./messages";
 
 describe("messages", () => {
-  it("DriveFileMeta shape is usable", () => {
-    const meta: DriveFileMeta = {
+  it("DriveFile shape is usable", () => {
+    const meta: DriveFile = {
       id: "abc",
       name: "diagram.excalidraw",
       modifiedTime: "2026-06-17T00:00:00Z",

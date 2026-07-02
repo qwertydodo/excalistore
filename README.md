@@ -59,14 +59,17 @@ The project follows [Feature-Sliced Design v2.1](https://feature-sliced.design/)
 
 ```
 src/
-  shared/      primitives reused everywhere (ui, api contracts + googleClient, theme tokens)
+  shared/      primitives reused everywhere (ui, googleClient transport, theme tokens)
   entities/    diagram (.excalidraw format: build / parse / validate),
                google/auth (OAuth token + auth interceptor),
-               google/drive (Drive REST v3 repo)
-  features/    driveGateway, sceneBridge, autosave, session, driveConnect
+               google/drive (Drive REST v3 repo + DriveFile/DiagramContent types)
+  features/    driveGateway — the background message gateway plus the typed
+               request/response contract and sendToBackground client it shares
+               with content + popup
 
 entrypoints/
-  content/     Shadow DOM panel on excalidraw.com (hooks under model/, UI under ui/)
+  content/     Shadow DOM panel on excalidraw.com (hooks + session stores under
+               model/, UI under ui/, scene bridge + autosave under lib/)
   popup/       thin status popup + Open Excalidraw shortcut
   background.ts  service worker; holds the OAuth token
 ```

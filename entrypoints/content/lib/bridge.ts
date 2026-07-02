@@ -1,4 +1,4 @@
-import { defaultSceneBridgeDeps } from "@/features/sceneBridge";
+import { defaultSceneBridgeDeps } from "./filesDb";
 
 // Single shared scene-bridge instance for the content script. Created once at
 // module scope and imported directly by every hook that needs page-storage

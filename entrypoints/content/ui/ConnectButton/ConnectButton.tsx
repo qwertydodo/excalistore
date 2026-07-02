@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { FolderNameForm } from "@/features/driveConnect";
 import { Button, Dialog } from "@/shared/ui";
+import { FolderNameForm } from "../FolderNameForm";
 
 type Props = {
   isBusy?: boolean;

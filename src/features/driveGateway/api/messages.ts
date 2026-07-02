@@ -1,21 +1,9 @@
 // Typed request/response contracts shared by content script and background.
-// Background is the only side that performs Drive/auth work.
+// Background is the only side that performs Drive/auth work. The gateway owns
+// this protocol; domain payload types (DriveFile, DiagramContent) live in
+// entities/google/drive.
 
 import type { ValueOf } from "@/shared/lib";
-
-export type DriveFileMeta = {
-  id: string;
-  name: string;
-  modifiedTime: string;
-  headRevisionId: string;
-};
-
-// drive/get response: file metadata (for the conflict guard + name) plus the
-// raw .excalidraw JSON content.
-export type DiagramContent = {
-  meta: DriveFileMeta;
-  content: string;
-};
 
 export const REQUEST_TYPE = {
   AUTH_STATUS: "auth/status",

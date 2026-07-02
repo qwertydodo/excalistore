@@ -1,6 +1,5 @@
 import { installAuthInterceptor } from "@/entities/google/auth";
-import { handleMessage, isAllowedSender } from "@/features/driveGateway";
-import type { Request } from "@/shared/api";
+import { handleMessage, isAllowedSender, type Request } from "@/features/driveGateway";
 
 export default defineBackground(() => {
   // Composition root: the single place that wires the auth side effect into the

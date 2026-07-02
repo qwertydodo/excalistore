@@ -1,7 +1,7 @@
 import { HTTPError } from "ky";
-import { type DiagramContent, googleClient } from "@/shared/api";
+import { googleClient } from "@/shared/api";
 import { DIAGRAM_MIME, DRIVE_API, DRIVE_UPLOAD, FOLDER_MIME } from "@/shared/config";
-import { DriveError, type DriveFile } from "./driveFile";
+import { type DiagramContent, DriveError, type DriveFile } from "./driveFile";
 
 const FIELDS = "id,name,modifiedTime,headRevisionId";
 
@@ -40,10 +40,15 @@ const buildMultipart = (
   `${content}\r\n--${boundary}--`;
 
 export const driveRepo = {
+  // Follows Drive's nextPageToken recursively into a shared accumulator;
+  // depth = page count (1000 files/page), so the stack is never a concern.
+  // Deliberately loads ALL pages: the panel assumes a complete list (client-
+  // side sort, active-pointer validation, full-list cache), and folders big
+  // enough to page aren't expected. If they ever are, the answer is infinite
+  // scroll + search together (see docs/features.md), not a bigger full load.
   listFolder: async (folderId: string): Promise<DriveFile[]> => {
     const out: DriveFile[] = [];
-    let pageToken: string | undefined;
-    do {
+    const listPage = async (pageToken?: string): Promise<void> => {
       const data = await driveRequest(
         googleClient
           .get(`${DRIVE_API}/files`, {
@@ -58,8 +63,9 @@ export const driveRepo = {
           .json<{ files?: DriveFile[]; nextPageToken?: string }>(),
       );
       out.push(...(data.files ?? []));
-      pageToken = data.nextPageToken;
-    } while (pageToken);
+      if (data.nextPageToken) await listPage(data.nextPageToken);
+    };
+    await listPage();
     return out;
   },
 

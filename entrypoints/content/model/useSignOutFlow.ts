@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
-import { clearScene, readScene } from "@/features/sceneBridge";
-import { clearActiveFile, clearCachedFiles } from "@/features/session";
-import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
+import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { bridge } from "../lib/bridge";
+import { clearScene, readScene } from "../lib/sceneBridge";
+import { clearActiveFile } from "./activeFileStore";
+import { clearCachedFiles } from "./fileListCache";
 import type { ActiveDiagram } from "./useActiveDiagram";
 import type { DiagramLibrary } from "./useDiagramLibrary";
 

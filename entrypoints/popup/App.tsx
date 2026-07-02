@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ConnectionStatus } from "@/shared/api";
-import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
+import type { ConnectionStatus } from "@/features/driveGateway";
+import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { EXCALIDRAW_ORIGIN } from "@/shared/config/excalidraw";
 import { PopupStatus } from "./ui/PopupStatus";
 

@@ -1,6 +1,6 @@
 import { authRepo } from "@/entities/google/auth";
 import { driveRepo } from "@/entities/google/drive";
-import type { ConnectionStatus } from "@/shared/api";
+import type { ConnectionStatus } from "../../api";
 
 // The "connection" is the link between the extension and a Drive folder:
 // whether the user has granted access and which folder diagrams live in. It is

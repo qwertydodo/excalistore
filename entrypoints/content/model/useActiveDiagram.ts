@@ -4,24 +4,14 @@ import {
   ensureExcalidrawExtension,
   parseExcalidrawFile,
 } from "@/entities/diagram";
-import { createAutosave, SAVE_STATUS, type SaveStatus } from "@/features/autosave";
-import {
-  clearScene,
-  currentSceneHash,
-  readScene,
-  readTheme,
-  writeScene,
-} from "@/features/sceneBridge";
-import {
-  clearActiveFile,
-  getActiveFile,
-  getCachedFiles,
-  setActiveFile,
-  setCachedFiles,
-} from "@/features/session";
-import type { ConnectionStatus, DiagramContent, DriveFileMeta } from "@/shared/api";
-import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
+import type { DiagramContent, DriveFile } from "@/entities/google/drive";
+import type { ConnectionStatus } from "@/features/driveGateway";
+import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
+import { createAutosave, SAVE_STATUS, type SaveStatus } from "../lib/autosaveController";
 import { bridge } from "../lib/bridge";
+import { clearScene, currentSceneHash, readScene, readTheme, writeScene } from "../lib/sceneBridge";
+import { clearActiveFile, getActiveFile, setActiveFile } from "./activeFileStore";
+import { getCachedFiles, setCachedFiles } from "./fileListCache";
 import type { DiagramLibrary } from "./useDiagramLibrary";
 
 export type UseActiveDiagramParams = Pick<
@@ -99,7 +89,7 @@ export const useActiveDiagram = ({
       getHash: () => currentSceneHash(bridge),
       save: async () => {
         const scene = await readScene(bridge);
-        const meta = await sendToBackground<DriveFileMeta>({
+        const meta = await sendToBackground<DriveFile>({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
           content: JSON.stringify(scene),
@@ -134,7 +124,7 @@ export const useActiveDiagram = ({
         // (e.g. conflict) aborts the switch so nothing is dropped silently.
         if (activeId) {
           const current = await readScene(bridge);
-          const saved = await sendToBackground<DriveFileMeta>({
+          const saved = await sendToBackground<DriveFile>({
             type: REQUEST_TYPE.DRIVE_UPDATE,
             id: activeId,
             content: JSON.stringify(current),
@@ -161,7 +151,7 @@ export const useActiveDiagram = ({
     try {
       const fileName = ensureExcalidrawExtension(name);
       const empty = buildExcalidrawFile([], { theme: readTheme(bridge) }, {});
-      const meta = await sendToBackground<DriveFileMeta>({
+      const meta = await sendToBackground<DriveFile>({
         type: REQUEST_TYPE.DRIVE_CREATE,
         name: fileName,
         content: JSON.stringify(empty),
@@ -178,7 +168,7 @@ export const useActiveDiagram = ({
       setActionError(null);
       try {
         const fileName = ensureExcalidrawExtension(name);
-        const meta = await sendToBackground<DriveFileMeta>({
+        const meta = await sendToBackground<DriveFile>({
           type: REQUEST_TYPE.DRIVE_RENAME,
           id,
           name: fileName,

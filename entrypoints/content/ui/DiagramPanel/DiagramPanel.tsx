@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { SaveStatus } from "@/features/autosave";
-import type { DriveFileMeta } from "@/shared/api";
+import type { DriveFile } from "@/entities/google/drive";
 import { Badge, Button, Heading, IconButton, Spinner, Stack, Text, type Tone } from "@/shared/ui";
+import type { SaveStatus } from "../../lib/autosaveController";
 import type { ActiveDiagram } from "../../model/useActiveDiagram";
 import { usePanelVisibility } from "../../model/usePanelVisibility";
 import { CreateDiagramForm } from "../CreateDiagramForm";
@@ -17,7 +17,7 @@ type Diagram = Pick<
 
 type DiagramPanelProps = {
   diagram: Diagram;
-  files: DriveFileMeta[];
+  files: DriveFile[];
   isLoading: boolean;
   onSignOut: () => void;
 };

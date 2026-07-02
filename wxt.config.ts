@@ -3,8 +3,8 @@ import { fileURLToPath } from "node:url";
 import babel from "@rolldown/plugin-babel";
 import { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "wxt";
-import { DRIVE_FILE_SCOPE, GOOGLE_API_ORIGIN } from "./src/shared/config/drive";
 import { EXCALIDRAW_ORIGIN } from "./src/shared/config/excalidraw";
+import { DRIVE_FILE_SCOPE, GOOGLE_API_ORIGIN } from "./src/shared/config/googleApi";
 
 const SRC_DIR = fileURLToPath(new URL("./src", import.meta.url));
 

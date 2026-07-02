@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getPanelCollapsed, setPanelCollapsed } from "@/features/session";
+import { getPanelCollapsed, setPanelCollapsed } from "./panelState";
 
 type PanelVisibility = {
   isVisible: boolean;

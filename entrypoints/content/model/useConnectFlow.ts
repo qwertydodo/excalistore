@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { setPanelCollapsed } from "@/features/session";
-import type { ConnectionStatus } from "@/shared/api";
-import { REQUEST_TYPE, sendToBackground } from "@/shared/api";
+import type { ConnectionStatus } from "@/features/driveGateway";
+import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
+import { setPanelCollapsed } from "./panelState";
 import type { DiagramLibrary } from "./useDiagramLibrary";
 
 export type UseConnectFlowParams = Pick<DiagramLibrary, "refresh" | "onStatusChange">;
