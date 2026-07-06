@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
@@ -100,6 +100,34 @@ describe("DiagramPanel", () => {
   it("shows 'No diagrams yet' when the file list is empty", async () => {
     await renderExpanded(diagramProps(), panelProps({ files: [] }));
     expect(screen.getByText("No diagrams yet")).toBeInTheDocument();
+  });
+
+  it("shows all diagrams while fewer than 3 characters are typed", async () => {
+    await renderExpanded();
+    await userEvent.type(screen.getByRole("textbox", { name: /search diagrams/i }), "al");
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+  });
+
+  it("filters the list once 3+ characters are typed", async () => {
+    await renderExpanded();
+    await userEvent.type(screen.getByRole("textbox", { name: /search diagrams/i }), "alp");
+    await waitFor(() => expect(screen.queryByText("beta")).not.toBeInTheDocument());
+    expect(screen.getByText("alpha")).toBeInTheDocument();
+  });
+
+  it("shows a no-match message when nothing matches", async () => {
+    await renderExpanded();
+    await userEvent.type(screen.getByRole("textbox", { name: /search diagrams/i }), "zzz");
+    await screen.findByText('No diagrams match "zzz"');
+  });
+
+  it("clears the filter via the clear button", async () => {
+    await renderExpanded();
+    await userEvent.type(screen.getByRole("textbox", { name: /search diagrams/i }), "alp");
+    await waitFor(() => expect(screen.queryByText("beta")).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /clear search/i }));
+    await waitFor(() => expect(screen.getByText("beta")).toBeInTheDocument());
   });
 });
 

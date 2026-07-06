@@ -1,8 +1,19 @@
 import { useState } from "react";
 import type { DriveFile } from "@/entities/google/drive";
-import { Badge, Button, Heading, IconButton, Spinner, Stack, Text, type Tone } from "@/shared/ui";
+import {
+  Badge,
+  Button,
+  Heading,
+  IconButton,
+  SearchField,
+  Spinner,
+  Stack,
+  Text,
+  type Tone,
+} from "@/shared/ui";
 import type { SaveStatus } from "../../lib/autosaveController";
 import type { ActiveDiagram } from "../../model/useActiveDiagram";
+import { useDiagramSearch } from "../../model/useDiagramSearch";
 import { usePanelVisibility } from "../../model/usePanelVisibility";
 import { CreateDiagramForm } from "../CreateDiagramForm";
 import { DiagramRow } from "../DiagramRow";
@@ -47,6 +58,7 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
   // Stable order: sort by name so saving/opening a diagram never reshuffles the
   // list (sorting by modifiedTime would jump the active item to the top).
   const ordered = [...files].sort((a, b) => a.name.localeCompare(b.name));
+  const { query, onQueryChange, results } = useDiagramSearch(ordered);
 
   // Opening or creating replaces the canvas (tab reload) — lock the rows so a
   // second action can't race it.
@@ -96,6 +108,14 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         </Stack>
       </Stack>
 
+      <SearchField
+        name="diagram-search"
+        value={query}
+        onChange={onQueryChange}
+        placeholder="Type 3+ characters to search"
+        aria-label="Search diagrams"
+      />
+
       {error ? (
         <Text as="p" size="sm" color="accent-text" role="alert" className={styles.error}>
           {error}
@@ -106,13 +126,17 @@ export const DiagramPanel = ({ diagram, files, isLoading, onSignOut }: DiagramPa
         <Stack direction="row" justify="center" padding="4">
           <Spinner />
         </Stack>
-      ) : ordered.length === 0 ? (
+      ) : files.length === 0 ? (
         <Text size="sm" color="muted">
           No diagrams yet
         </Text>
+      ) : results.length === 0 ? (
+        <Text size="sm" color="muted">
+          No diagrams match "{query}"
+        </Text>
       ) : (
         <Stack as="ul" gap="1" className={styles.list}>
-          {ordered.map((f) => (
+          {results.map((f) => (
             <DiagramRow
               key={f.id}
               file={f}
