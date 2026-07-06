@@ -1,4 +1,4 @@
-import { Cloud, FolderOpen, Minus, Pencil, Trash2 } from "lucide-react";
+import { Cloud, FolderOpen, Minus, Pencil, Search, Trash2, X } from "lucide-react";
 import type { AriaAttributes } from "react";
 
 const ICONS = {
@@ -7,6 +7,8 @@ const ICONS = {
   trash: Trash2,
   folderOpen: FolderOpen,
   cloud: Cloud,
+  search: Search,
+  x: X,
 } as const;
 
 export type IconName = keyof typeof ICONS;
