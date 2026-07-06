@@ -249,7 +249,8 @@ in isolation.
 Reusable foundation everything else is built from:
 
 - **`shared/ui`** — primitive components rendered in Shadow DOM: `Button`,
-  `Dialog`/`ConfirmDialog`, `TextField`, `ListItem`, `Badge`, `Spinner`, plus
+  `Dialog`/`ConfirmDialog`, `TextField`, `SearchField`, `ListItem`, `Badge`,
+  `Spinner`, plus
   the layout/typography primitives `Box`, `Stack`, `Text`, `Heading` (all
   polymorphic via an `as` prop; `Stack` composes `Box`, `Heading` composes
   `Text`). `Box` owns the `padding`/`border`/`radius`/`shadow` token scales —
@@ -258,6 +259,9 @@ Reusable foundation everything else is built from:
   through it instead of repeating `border`/`border-radius`/`box-shadow`
   per-component. The panel and every dialog (replace-canvas, sign-out,
   rename, conflict) are composed from these.
+- **`shared/lib`** — cross-cutting hooks and utilities: `useDebounce`,
+  `useTextSearch` (generic type-to-filter hook, used by the diagram panel's
+  search box), plus `dateFormat`/`typeUtils`.
 - **`shared/config` (`theme`)** — design tokens as CSS custom properties in
   `theme.css`, following a two-layer architecture:
   - **Primitive tokens** (`--es-color-*`) — raw hex palette values; never used
