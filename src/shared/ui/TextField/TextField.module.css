@@ -34,3 +34,28 @@
   padding: 0 var(--es-space-3);
   line-height: var(--es-interactive-height-sm);
 }
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+}
+.hasIconStart {
+  padding-left: calc(var(--es-space-2) * 2 + 14px);
+}
+.hasIconEnd {
+  padding-right: var(--es-interactive-height-sm);
+}
+.iconStart {
+  position: absolute;
+  left: var(--es-space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--es-color-text-secondary);
+  pointer-events: none;
+}
+.iconEnd {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
