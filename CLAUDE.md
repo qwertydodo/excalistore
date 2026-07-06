@@ -66,6 +66,13 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   dereference the symlink (copy the real files into `.claude/skills/<name>`,
   delete the symlink) and delete `.agents/` again.
 
+## Context7 MCP
+- `.mcp.json` registers the `context7` MCP server for this project only. For
+  library/framework/SDK/API/CLI docs (syntax, config, version migration,
+  setup) use `mcp__context7__query-docs` (resolve library ID via
+  `mcp__context7__resolve-library-id` first) instead of `WebFetch`/`WebSearch`
+  or memory — even for well-known libs, since training data can be stale.
+
 ## Architecture (FSD)
 - Follows Feature-Sliced Design v2.1 (`.claude/skills/feature-sliced-design`,
   installed via `npx skills add`) as the source of truth for where new code
@@ -136,3 +143,9 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   directory (e.g. `../excalistore-<branch>`) — keeping a single checkout makes
   debugging and editor navigation straightforward. Never work directly on
   `main` (the pre-commit hook blocks it anyway).
+- **After opening a PR, wait for all checks to finish** (CI `check` and
+  CodeRabbit review) before doing anything else with it. If the CI pipeline
+  fails or CodeRabbit raises a problem, analyze it and report the analysis to
+  the user — wait for their decision on what to do, never fix or dismiss it
+  unilaterally. If every check is green and CodeRabbit has no findings, merge
+  the PR without asking.
