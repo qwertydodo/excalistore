@@ -30,11 +30,15 @@ reviews:
         layers strictly below — never sideways, never up. Slices on the same
         layer must not import each other. entrypoints/ is the composition root
         and may import any layer. Flag any violating import.
+    - path: "src/**"
+      instructions: >
         Booleans must start with is/are/should/has (isLoading, not loading).
         Prefer `type` over `interface`. Files camelCase, React components
         PascalCase. No types.ts/utils.ts/helpers.ts — name files by domain.
         Never pass a raw useState setter across a boundary — wrap it in a
         same-shaped callback named onXChange (not handleX).
+    - path: "src/**/api/**"
+      instructions: >
         googleClient is used only in shared/api; all Drive/auth logic lives in
         entities/<provider>/<domain>/api/<domain>Repo.ts — feature code calls
         repo methods, never googleClient directly.
