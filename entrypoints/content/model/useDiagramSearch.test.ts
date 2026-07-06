@@ -66,6 +66,10 @@ describe("useDiagramSearch", () => {
     await setDiagramSearchQuery("beta");
     renderHook(() => useDiagramSearch(files));
     await flush(); // initialQuery resolves, query adopts "beta" — no onQueryChange call made
+    // A naive implementation (debouncing `query` itself) writes "" here,
+    // synchronously within this same hydration flush — catch it before its
+    // own restarted debounce timer self-corrects within the 300ms window.
+    await expect(getDiagramSearchQuery()).resolves.toBe("beta");
     act(() => {
       vi.advanceTimersByTime(300);
     });
