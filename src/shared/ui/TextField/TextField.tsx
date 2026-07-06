@@ -38,6 +38,7 @@ const renderIconSlot = (slot: IconSlot, position: "start" | "end") => {
   );
 };
 
+// className targets the <input> when icon is absent, the wrapper <div> when icon is present
 export const TextField = ({ className, size = "md", icon, ...rest }: TextFieldProps) => {
   const input = (
     <Box
