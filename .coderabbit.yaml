@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+
+reviews:
+  profile: chill                  # high-signal only, suppress nitpicks
+  request_changes_workflow: false # advisory — only the CI `check` gates main
+  high_level_summary: true
+  poem: false                     # kill decorative noise
+  sequence_diagrams: false
+  collapse_walkthrough: true      # walkthrough folded by default
+  auto_review:
+    enabled: true
+    auto_incremental_review: true # re-review only new commits
+    drafts: false                 # skip draft PRs
+
+  # never comment on generated / vendored files
+  path_filters:
+    - "!.output/**"
+    - "!.wxt/**"
+    - "!dist/**"
+    - "!.codegraph/**"
+    - "!**/*.lock"
+    - "!pnpm-lock.yaml"
+
+  # enforce excalistore's documented rules (see CLAUDE.md)
+  path_instructions:
+    - path: "src/**"
+      instructions: >
+        FSD layers: shared -> entities -> features -> widgets import ONLY from
+        layers strictly below — never sideways, never up. Slices on the same
+        layer must not import each other. entrypoints/ is the composition root
+        and may import any layer. Flag any violating import.
+        Booleans must start with is/are/should/has (isLoading, not loading).
+        Prefer `type` over `interface`. Files camelCase, React components
+        PascalCase. No types.ts/utils.ts/helpers.ts — name files by domain.
+        Never pass a raw useState setter across a boundary — wrap it in a
+        same-shaped callback named onXChange (not handleX).
+        googleClient is used only in shared/api; all Drive/auth logic lives in
+        entities/<provider>/<domain>/api/<domain>Repo.ts — feature code calls
+        repo methods, never googleClient directly.
+    - path: "src/**/ui/**/*.tsx"
+      instructions: >
+        Never use a raw <button>, <input>, or <a> when a shared/ui primitive
+        (Button, IconButton, ListItem, TextField) fits. Every IconButton needs
+        an aria-label. No inline style props except genuinely dynamic values.
+    - path: "src/**/*.module.css"
+      instructions: >
+        Consume semantic theme tokens only (var(--es-color-bg-*),
+        --es-color-text-*, --es-color-border*, --es-color-interactive-*,
+        --es-color-status-*). NEVER reference a primitive --es-color-* token or
+        raw hex — flag it. Don't re-reset UA defaults the shared reset handles.
+
+  tools:
+    biome:
+      enabled: true               # matches the project linter
+    eslint:
+      enabled: false              # project does not use ESLint
+    gitleaks:
+      enabled: true               # secret scanning
+    semgrep:
+      enabled: true
+
+# let CodeRabbit read the full rulebook, not just the path snippets
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "docs/architecture.md"
+      - "docs/security.md"
+
+chat:
+  auto_reply: true
