@@ -118,10 +118,12 @@ describe("DiagramPanel", () => {
     act(() => useDiagramLibraryStore.setState({ isQueryLoaded: false }));
     render(<DiagramPanel onSignOut={vi.fn()} />);
     await screen.findByLabelText("Excalistore diagrams"); // panel expands (panelCollapsed resolved)
+    expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: /search diagrams/i })).not.toBeInTheDocument();
 
     act(() => useDiagramLibraryStore.setState({ isQueryLoaded: true }));
     await screen.findByRole("textbox", { name: /search diagrams/i });
+    expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
     expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 

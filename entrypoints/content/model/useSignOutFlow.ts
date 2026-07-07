@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { bridge } from "../lib/bridge";
 import { clearScene, readScene } from "../lib/sceneBridge";
@@ -16,9 +17,13 @@ export type SignOutFlow = {
 // Owns the sign-out confirmation dialog state and the safe sign-out sequence
 // (flush the active diagram, clear local session state, clear the canvas).
 export const useSignOutFlow = (): SignOutFlow => {
-  const activeId = useActiveDiagramStore((s) => s.activeId);
-  const onActiveIdChange = useActiveDiagramStore((s) => s.onActiveIdChange);
-  const onActionErrorChange = useActiveDiagramStore((s) => s.onActionErrorChange);
+  const { activeId, onActiveIdChange, onActionErrorChange } = useActiveDiagramStore(
+    useShallow((s) => ({
+      activeId: s.activeId,
+      onActiveIdChange: s.onActiveIdChange,
+      onActionErrorChange: s.onActionErrorChange,
+    })),
+  );
   const onStatusChange = useDiagramLibraryStore((s) => s.onStatusChange);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { DriveFile } from "@/entities/google/drive";
-import { useDebounce, useTextSearch } from "@/shared/lib";
+import { useTextSearch } from "@/shared/lib";
 import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
 import { setDiagramSearchQuery } from "./stores/sessionStore";
 
@@ -24,13 +24,12 @@ export const useDiagramData = (): DiagramData => {
   // the list (sorting by modifiedTime would jump the active item to the top).
   const ordered = [...files].sort((a, b) => a.name.localeCompare(b.name));
 
-  const { query, onQueryChange, results } = useTextSearch(ordered, {
+  const { query, debouncedQuery, onQueryChange, results } = useTextSearch(ordered, {
     getText: (f) => f.name,
     minChars: 3,
     initialQuery,
   });
 
-  const debouncedQuery = useDebounce(query, 300);
   useEffect(() => {
     setDiagramSearchQuery(debouncedQuery);
   }, [debouncedQuery]);

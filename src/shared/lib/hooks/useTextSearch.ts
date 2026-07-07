@@ -15,6 +15,7 @@ export type UseTextSearchOptions<T> = {
 
 export type UseTextSearchResult<T> = {
   query: string;
+  debouncedQuery: string;
   onQueryChange: (value: string) => void;
   results: T[];
 };
@@ -34,5 +35,5 @@ export const useTextSearch = <T>(
       ? data
       : data.filter((item) => getText(item).toLowerCase().includes(debouncedQuery.toLowerCase()));
 
-  return { query, onQueryChange, results };
+  return { query, debouncedQuery, onQueryChange, results };
 };
