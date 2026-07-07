@@ -6,12 +6,14 @@ import "@/shared/config/reset.css";
 import "@/shared/config/theme.css";
 import { App } from "./App";
 import { scopeKeyboard } from "./lib/scopeKeyboard";
+import { syncPanelTheme } from "./lib/themeSync";
 
 export default defineContentScript({
   matches: [`${EXCALIDRAW_ORIGIN}/*`],
   cssInjectionMode: "ui",
   async main(ctx) {
     let detachKeyboard: (() => void) | undefined;
+    let detachThemeSync: (() => void) | undefined;
     const ui = await createShadowRootUi(ctx, {
       name: "excalistore-panel",
       position: "inline",
@@ -35,6 +37,9 @@ export default defineContentScript({
         // tool shortcuts don't fire while typing in the panel. Detached in
         // onRemove alongside the React root.
         detachKeyboard = scopeKeyboard(uiContainer);
+        // Mirror excalidraw's own light/dark theme onto the shadow host.
+        // Detached in onRemove alongside the React root.
+        detachThemeSync = syncPanelTheme(shadowHost);
         const root = createRoot(uiContainer);
         root.render(
           <StrictMode>
@@ -46,6 +51,8 @@ export default defineContentScript({
       onRemove(root) {
         detachKeyboard?.();
         detachKeyboard = undefined;
+        detachThemeSync?.();
+        detachThemeSync = undefined;
         root?.unmount();
       },
     });
