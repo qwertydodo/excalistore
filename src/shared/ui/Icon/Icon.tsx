@@ -15,6 +15,9 @@ export type IconName = keyof typeof ICONS;
 
 type IconSize = "sm" | "md" | "lg";
 
+// sm mirrors --es-icon-size-sm (src/shared/config/theme.css) — components
+// that lay out space for a size="sm" icon in CSS reference that token; keep
+// both in sync if either changes.
 const SIZE_PX: Record<IconSize, number> = {
   sm: 14,
   md: 20,

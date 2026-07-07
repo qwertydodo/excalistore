@@ -24,4 +24,17 @@ describe("SearchField", () => {
     await userEvent.click(screen.getByRole("button", { name: "Clear search" }));
     expect(onChange).toHaveBeenCalledWith("");
   });
+
+  it("forwards arbitrary input props, like disabled, to the underlying field", () => {
+    render(
+      <SearchField
+        name="search"
+        value=""
+        onChange={vi.fn()}
+        aria-label="Search diagrams"
+        disabled
+      />,
+    );
+    expect(screen.getByRole("textbox", { name: "Search diagrams" })).toBeDisabled();
+  });
 });

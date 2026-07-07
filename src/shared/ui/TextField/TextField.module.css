@@ -40,7 +40,7 @@
   width: 100%;
 }
 .hasIconStart {
-  padding-left: calc(var(--es-space-2) * 2 + 14px);
+  padding-left: calc(var(--es-space-2) * 2 + var(--es-icon-size-sm));
 }
 .hasIconEnd {
   padding-right: var(--es-interactive-height-sm);

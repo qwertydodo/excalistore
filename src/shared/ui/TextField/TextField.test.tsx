@@ -4,9 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 import { TextField } from "./TextField";
 
 describe("TextField", () => {
-  it("renders without a wrapper element when no icon is given", () => {
+  it("always wraps the input in a container div, even without an icon", () => {
     const { container } = render(<TextField name="q" />);
-    expect(container.firstChild).toBe(container.querySelector("input"));
+    const input = container.querySelector("input");
+    expect(input?.parentElement?.tagName).toBe("DIV");
+    expect(container.firstChild).not.toBe(input);
   });
 
   it("renders a decorative start icon, hidden from the accessibility tree", () => {
@@ -19,5 +21,10 @@ describe("TextField", () => {
     render(<TextField name="q" icon={{ end: { name: "x", onClick, "aria-label": "Clear" } }} />);
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("applies className to the wrapper, with or without an icon", () => {
+    const { container } = render(<TextField name="q" className="custom" />);
+    expect(container.querySelector("input")?.parentElement).toHaveClass("custom");
   });
 });

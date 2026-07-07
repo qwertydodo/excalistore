@@ -1,20 +1,12 @@
-import { TextField } from "../TextField";
+import { TextField, type TextFieldProps } from "../TextField";
 
-type SearchFieldProps = {
-  name: string;
+type SearchFieldProps = Omit<TextFieldProps, "icon" | "onChange" | "value"> & {
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
   "aria-label": string;
 };
 
-export const SearchField = ({
-  name,
-  value,
-  onChange,
-  placeholder,
-  "aria-label": ariaLabel,
-}: SearchFieldProps) => {
+export const SearchField = ({ value, onChange, ...rest }: SearchFieldProps) => {
   const icon = {
     start: "search" as const,
     ...(value && {
@@ -23,13 +15,6 @@ export const SearchField = ({
   };
 
   return (
-    <TextField
-      name={name}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      icon={icon}
-    />
+    <TextField {...rest} value={value} onChange={(e) => onChange(e.target.value)} icon={icon} />
   );
 };
