@@ -11,7 +11,7 @@ A Chrome extension (Manifest V3) that connects [excalidraw.com](https://excalidr
 - **Full image fidelity** — embedded images are read from IndexedDB and stored in the `.excalidraw` envelope; no silent data loss.
 - **Safe sign-out** — flushes any pending autosave, clears the local canvas, then revokes the OAuth token.
 - **Conflict guard** — if the Drive file was modified elsewhere, the save is blocked and the badge warns you; no silent overwrite.
-- **Theme mirror** — the panel follows Excalidraw's light/dark theme within ~1s.
+- **Client-side diagram search** — a search box in the panel filters the loaded diagram list by name (case-insensitive substring, 3+ characters, debounced 300ms); the query persists across the reload triggered by opening a diagram.
 
 ## Stack
 
@@ -19,8 +19,14 @@ A Chrome extension (Manifest V3) that connects [excalidraw.com](https://excalidr
 |------|---------|
 | [WXT](https://wxt.dev) | MV3 extension framework (HMR, entrypoints, build) |
 | React 19 + TypeScript (strict) | UI and type safety |
+| Zustand | Cross-hook/cross-component client state |
+| Zod | Runtime validation of `.excalidraw` payloads |
+| ky | HTTP client for the Drive REST v3 transport |
+| idb-keyval | IndexedDB access for embedded image binaries |
 | Biome | Lint + format (replaces ESLint + Prettier) |
 | Vitest + Testing Library | Unit and component tests |
+| Storybook | Isolated dev/docs for `shared/ui` primitives |
+| steiger | Feature-Sliced Design lint |
 | lefthook + commitlint | Pre-commit hooks, Conventional Commits |
 | knip | Dead-code detection |
 
@@ -38,7 +44,7 @@ All network access and OAuth token handling live exclusively in the background s
 │         │                                                         │
 │  Content script (isolated world)                                  │
 │    • Scene Bridge  (read/build/parse .excalidraw, hash, reload)   │
-│    • Panel UI  (React in Shadow DOM)  ◀── theme mirror            │
+│    • Panel UI  (React in Shadow DOM)                              │
 │    • Autosave Controller (debounce + conflict guard)              │
 │         ▲  typed messages (chrome.runtime)                        │
 └─────────┼─────────────────────────────────────────────────────────┘
@@ -133,6 +139,9 @@ npm run lint         # Biome check
 npm run lint:fix     # Biome check --write
 npm run compile      # TypeScript typecheck (tsc --noEmit)
 npm run knip         # Dead-code detection
+npm run fsd-lint     # Feature-Sliced Design lint (steiger)
+npm run storybook    # Storybook dev server for shared/ui primitives
+npm run build-storybook # Static Storybook build
 ```
 
 ## Security posture
