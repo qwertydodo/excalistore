@@ -156,7 +156,21 @@ page of diagrams list completely.
 root for excalidraw.com, split across files the same way `entrypoints/popup/`
 splits `main.tsx` from `App.tsx`. The mount wiring calls WXT's
 `createShadowRootUi` (`cssInjectionMode: "ui"`, `position: "inline"`) to
-render the panel into a Shadow DOM positioned fixed top-right. State lives in
+render the panel into a Shadow DOM positioned fixed top-right. `index.tsx`'s
+`onMount` also wires two DOM-level concerns at this same top level, each with
+a matching `onRemove` cleanup: `scopeKeyboard` stops key events from bubbling
+past the Shadow DOM, and `syncPanelTheme`
+(`entrypoints/content/lib/themeSync.ts`) mirrors Excalidraw's own light/dark
+theme onto the panel. Excalidraw exposes no public theme API, so
+`syncPanelTheme` watches the DOM directly: it finds Excalidraw's root
+`.excalidraw` container (waiting for it via a `childList`/`subtree`
+`MutationObserver` on `document.body` if the container isn't mounted yet),
+then observes that container's `class` attribute for the `theme--dark` token
+Excalidraw itself toggles, and mirrors the mapped theme onto the shadow
+host's `data-theme` attribute — the same attribute the `--es-*` CSS cascade
+already switches on. Event-driven, no polling; the initial theme is read
+synchronously before observation starts, so there's no flash of the wrong
+theme on mount. State lives in
 two zustand stores under `model/`, each read directly by whichever
 hook/component needs it instead of being threaded through `App` as
 props/params:

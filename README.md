@@ -12,6 +12,7 @@ A Chrome extension (Manifest V3) that connects [excalidraw.com](https://excalidr
 - **Safe sign-out** — flushes any pending autosave, clears the local canvas, then revokes the OAuth token.
 - **Conflict guard** — if the Drive file was modified elsewhere, the save is blocked and the badge warns you; no silent overwrite.
 - **Client-side diagram search** — a search box in the panel filters the loaded diagram list by name (case-insensitive substring, 3+ characters, debounced 300ms); the query persists across the reload triggered by opening a diagram.
+- **Live theme sync** — the panel's light/dark theme tracks Excalidraw's own theme automatically and instantly, with no manual toggle and no polling.
 
 ## Stack
 

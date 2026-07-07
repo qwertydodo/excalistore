@@ -111,3 +111,9 @@ _(Move items here as they ship, with a short behavior description.)_
   `chrome.storage.local` so it survives the tab reload that opening a
   diagram triggers. Purely local — no protocol change; works because
   `listFolder` already returns the complete list.
+- Live theme sync: the panel's own light/dark theme (`data-theme` on the
+  Shadow-DOM host) tracks excalidraw.com's theme automatically. A
+  `MutationObserver` watches the `.excalidraw` container's `class` attribute
+  for the `theme--dark` token excalidraw itself toggles — event-driven, no
+  polling — and applies the same host on mount, so there's no flash of the
+  wrong theme. No manual override; the panel always mirrors the page.
