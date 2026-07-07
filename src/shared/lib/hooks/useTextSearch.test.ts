@@ -37,6 +37,18 @@ describe("useTextSearch", () => {
     expect(result.current.results).toEqual([items[1], items[2]]);
   });
 
+  it("returns all data immediately when input drops below minChars, even before the debounce window elapses", () => {
+    const { result } = renderHook(() => useTextSearch(items, { getText: (i) => i.name }));
+    act(() => result.current.onQueryChange("alp"));
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(result.current.results).toEqual([items[1], items[2]]);
+
+    act(() => result.current.onQueryChange("a"));
+    expect(result.current.results).toEqual(items);
+  });
+
   it("seeds the query from initialQuery at construction", () => {
     const { result } = renderHook(() =>
       useTextSearch(items, { getText: (i) => i.name, initialQuery: "beta" }),
