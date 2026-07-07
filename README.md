@@ -7,10 +7,11 @@ A Chrome extension (Manifest V3) that connects [excalidraw.com](https://excalidr
 - **In-page connect** — on excalidraw.com, a "Connect Google Drive" button opens a dialog to name a Drive folder; once connected, the diagram panel opens automatically. The toolbar popup is a thin status view with an "Open Excalidraw" shortcut.
 - **Browse & open diagrams** — panel on excalidraw.com lists files from your connected Drive folder (name + modified date).
 - **Create & rename** — create new diagrams in Drive and rename them inline.
-- **Debounced autosave** — saves changes ~2.5s after you stop editing; shows idle / saving / saved / conflict status.
+- **Debounced autosave** — saves changes ~2.5s after you stop editing; shows idle / saving / saved / conflict / deleted status.
 - **Full image fidelity** — embedded images are read from IndexedDB and stored in the `.excalidraw` envelope; no silent data loss.
 - **Safe sign-out** — flushes any pending autosave, clears the local canvas, then revokes the OAuth token.
 - **Conflict guard** — if the Drive file was modified elsewhere, the save is blocked and the badge warns you; no silent overwrite.
+- **Remote-deletion handling** — if the active file gets deleted on Drive elsewhere, autosave stops retrying it, the badge says so, and its pointer/row are dropped from the panel.
 - **Client-side diagram search** — a search box in the panel filters the loaded diagram list by name (case-insensitive substring, 3+ characters, debounced 300ms); the query persists across the reload triggered by opening a diagram.
 - **Live theme sync** — the panel's light/dark theme tracks Excalidraw's own theme automatically and instantly, with no manual toggle and no polling.
 

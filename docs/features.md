@@ -117,3 +117,19 @@ _(Move items here as they ship, with a short behavior description.)_
   for the `theme--dark` token excalidraw itself toggles — event-driven, no
   polling — and applies the same host on mount, so there's no flash of the
   wrong theme. No manual override; the panel always mirrors the page.
+- Fast-paint file list with session-aware revalidation: on mount, the panel
+  paints the last-known file list from a local cache immediately (and adopts
+  the active-file highlight against it), then silently revalidates against
+  Drive in the background — no loading spinner, so switching/opening/creating
+  a diagram (which reloads the tab) never flickers. A brand new tab/browser
+  session is treated differently: since its cache could be stale (files
+  added/removed on Drive elsewhere since last time), the loading spinner
+  shows until that session's first real Drive response arrives. Tracked via a
+  `sessionStorage` flag that survives same-tab reloads but not a new tab/
+  browser session.
+- Remote-deletion handling: if autosave's write fails because the active file
+  no longer exists on Drive (`404`, classified as the `not_found` gateway
+  error code), the badge shows "Diagram deleted on Drive", the active pointer
+  and its row in the panel list are dropped, and autosave stops retrying that
+  file for good (a 404 never resolves itself, unlike a conflict) — instead of
+  silently retrying against a deleted file forever.

@@ -42,6 +42,7 @@ export type ConnectionStatus = {
 export const ERROR_CODE = {
   CONFLICT: "conflict",
   UNAUTHORIZED: "unauthorized",
+  NOT_FOUND: "not_found",
   UNKNOWN: "unknown",
 } as const;
 

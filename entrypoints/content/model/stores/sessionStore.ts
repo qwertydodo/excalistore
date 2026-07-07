@@ -64,6 +64,31 @@ export const clearCachedFiles = async (): Promise<void> => {
   }
 };
 
+const FILE_LIST_VALIDATED_KEY = "excalistore:fileListValidated";
+
+// Whether the file list has been validated against Drive at least once in
+// this tab session. Backed by window.sessionStorage (not chrome.storage.local):
+// it must survive a same-tab writeScene→reload (open/create/switch a diagram)
+// so those reloads can trust the fast-paint cache silently, but must NOT
+// survive a fresh tab/browser session — a brand new session may be looking at
+// a cache that's gone stale from Drive changes made elsewhere, so it should
+// wait for a real list before painting.
+export const hasValidatedFileListThisSession = (): boolean => {
+  try {
+    return sessionStorage.getItem(FILE_LIST_VALIDATED_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+export const markFileListValidatedThisSession = (): void => {
+  try {
+    sessionStorage.setItem(FILE_LIST_VALIDATED_KEY, "true");
+  } catch {
+    // Best-effort; worst case the next reload shows the loader again.
+  }
+};
+
 const PANEL_COLLAPSED_KEY = "panelCollapsed";
 
 // Whether the in-page panel is collapsed — persisted so the choice survives the

@@ -87,6 +87,8 @@ const classifyError = (e: unknown): Extract<Response<never>, { ok: false }> => {
     code = ERROR_CODE.CONFLICT;
   } else if (status === 401 || status === 403 || UNAUTHORIZED_MESSAGE_PATTERN.test(message)) {
     code = ERROR_CODE.UNAUTHORIZED;
+  } else if (status === 404) {
+    code = ERROR_CODE.NOT_FOUND;
   }
   return { ok: false, error: message, code };
 };

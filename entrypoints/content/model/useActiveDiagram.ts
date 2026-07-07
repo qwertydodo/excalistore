@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { DriveFile } from "@/entities/google/drive";
 import type { ConnectionStatus } from "@/features/driveGateway";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
-import { createAutosave } from "../lib/autosaveController";
+import { createAutosave, SAVE_STATUS } from "../lib/autosaveController";
 import { bridge } from "../lib/bridge";
 import { currentSceneHash, readScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
@@ -12,7 +12,23 @@ import {
   getActiveFile,
   getCachedFiles,
   setActiveFile,
+  setCachedFiles,
 } from "./stores/sessionStore";
+
+// The active file was confirmed gone from Drive (autosave got a 404) — drop
+// the local pointer and the stale row so the panel stops highlighting/
+// re-attempting saves against a diagram that no longer exists. Reads/writes
+// both stores directly via getState() (not hook-scoped) so it's callable
+// from anywhere, including standalone in tests.
+export const handleRemoteDeletion = async (deletedId: string): Promise<void> => {
+  await clearActiveFile();
+  useActiveDiagramStore.getState().onActiveIdChange(null);
+  useActiveDiagramStore.getState().onRevisionChange(null);
+  const { files, onFilesChange } = useDiagramLibraryStore.getState();
+  const next = files.filter((f) => f.id !== deletedId);
+  onFilesChange(next);
+  setCachedFiles(next);
+};
 
 // Kicks off the initial load (connection status, file list, restore the
 // active pointer) and wires the autosave loop to whichever file is active —
@@ -35,9 +51,17 @@ export const useActiveDiagram = (): void => {
       const active = await getActiveFile();
       // Paint the cached list immediately (no flicker after the reload), then
       // revalidate against Drive in the background.
+      let cached: DriveFile[] = [];
       if (s.isConnected) {
-        const cached = await getCachedFiles();
+        cached = await getCachedFiles();
         if (cached.length) onFilesChange(cached);
+      }
+      // Adopt the active pointer against the cached list right away too —
+      // otherwise the row highlight lags behind the network refresh below,
+      // even though the list itself already painted from cache.
+      if (active && cached.some((f) => f.id === active.id)) {
+        onActiveIdChange(active.id);
+        onRevisionChange(active.loadedRevision);
       }
       const list = s.isConnected ? await refresh() : [];
       if (active && list.some((f) => f.id === active.id)) {
@@ -46,6 +70,8 @@ export const useActiveDiagram = (): void => {
       } else if (active) {
         // Stale pointer (different account/folder, or deleted) — drop it.
         await clearActiveFile();
+        onActiveIdChange(null);
+        onRevisionChange(null);
       }
     };
     loadInitial();
@@ -67,7 +93,10 @@ export const useActiveDiagram = (): void => {
         onRevisionChange(meta.headRevisionId);
         await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
       },
-      onStatus: onSaveStatusChange,
+      onStatus: (status) => {
+        onSaveStatusChange(status);
+        if (status === SAVE_STATUS.DELETED) handleRemoteDeletion(activeId);
+      },
     });
     let isStopped = false;
     // Establish the saved baseline before the first tick can fire.

@@ -13,6 +13,19 @@ export const stubFetch = (handler: (request: Request) => Response | Promise<Resp
   );
 };
 
+export const stubSessionStorage = (): void => {
+  const store: Record<string, string> = {};
+  vi.stubGlobal("sessionStorage", {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+  });
+};
+
 export const stubChromeStorageLocal = (): {
   store: Record<string, unknown>;
   local: {

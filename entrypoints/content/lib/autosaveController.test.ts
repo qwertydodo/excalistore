@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { ERROR_CODE, RequestError } from "@/features/driveGateway";
 import { createAutosave } from "./autosaveController";
 
 function setup(over: Partial<Parameters<typeof createAutosave>[0]> = {}) {
@@ -52,6 +53,26 @@ describe("createAutosave", () => {
     await ctrl.tick();
     expect(statuses).toContain("conflict");
     expect(statuses).not.toContain("saved");
+  });
+
+  it("reports deleted status when save throws a not-found RequestError, and halts further retries", async () => {
+    const save = vi.fn(async () => {
+      throw new RequestError("Drive request failed: 404", ERROR_CODE.NOT_FOUND);
+    });
+    const { ctrl, statuses, advance } = setup({ getHash: vi.fn(async () => "h1"), save });
+    ctrl.markSaved("h0");
+    await ctrl.tick();
+    advance(2500);
+    await ctrl.tick(); // debounce elapsed -> save throws NOT_FOUND
+    expect(statuses).toContain("deleted");
+    expect(save).toHaveBeenCalledOnce();
+
+    // A stale timer tick (or a caller-driven flush) must not retry a save
+    // against a file that's confirmed gone.
+    advance(2500);
+    await ctrl.tick();
+    await ctrl.flush();
+    expect(save).toHaveBeenCalledOnce();
   });
 
   it("reports error status on a generic failure", async () => {
