@@ -34,3 +34,9 @@ export const WithValue: Story = { args: { defaultValue: "excalistore" } };
 export const Disabled: Story = { args: { disabled: true, defaultValue: "read-only value" } };
 
 export const Small: Story = { args: { size: "sm" } };
+
+export const WithIcons: Story = {
+  args: {
+    icon: { start: "search", end: { name: "x", onClick: () => {}, "aria-label": "Clear" } },
+  },
+};

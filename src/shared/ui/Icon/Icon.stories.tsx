@@ -6,7 +6,10 @@ const meta: Meta<typeof Icon> = {
   component: Icon,
   tags: ["autodocs"],
   argTypes: {
-    name: { control: "select", options: ["minus", "edit", "trash", "folderOpen", "cloud"] },
+    name: {
+      control: "select",
+      options: ["minus", "edit", "trash", "folderOpen", "cloud", "search", "x"],
+    },
     size: { control: "radio", options: ["sm", "md", "lg"] },
   },
   args: {
@@ -28,6 +31,10 @@ export const FolderOpen: Story = { args: { name: "folderOpen" } };
 
 export const Cloud: Story = { args: { name: "cloud" } };
 
+export const Search: Story = { args: { name: "search" } };
+
+export const Clear: Story = { args: { name: "x" } };
+
 export const AllIcons: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
@@ -36,6 +43,8 @@ export const AllIcons: Story = {
       <Icon name="trash" />
       <Icon name="folderOpen" />
       <Icon name="cloud" />
+      <Icon name="search" />
+      <Icon name="x" />
     </div>
   ),
 };

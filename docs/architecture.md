@@ -99,8 +99,8 @@ background service worker. The content script and panel never hold the OAuth
 token. Panel and background communicate over typed `chrome.runtime` messages.
 
 **Message flow (panel → gateway → auth/drive):** the in-page connect UI
-(`ConnectButton`'s dialog, driven by `useConnectFlow`) never calls Drive APIs
-directly and never holds the OAuth token. It collects a folder name from the
+(`ConnectButton`'s dialog, driven by the diagram library store's `connect`
+action) never calls Drive APIs directly and never holds the OAuth token. It collects a folder name from the
 user and sends a single typed request, `drive/connect { folderName }`, to the
 background — interactive sign-in and the find-or-create folder lookup both
 happen inside the gateway, not the page. The panel and popup otherwise send
@@ -156,22 +156,43 @@ page of diagrams list completely.
 root for excalidraw.com, split across files the same way `entrypoints/popup/`
 splits `main.tsx` from `App.tsx`. The mount wiring calls WXT's
 `createShadowRootUi` (`cssInjectionMode: "ui"`, `position: "inline"`) to
-render the panel into a Shadow DOM positioned fixed top-right. The composition component itself stays thin: each
-piece of state (file list, active-file + autosave + CRUD actions, sign-out,
-connect) lives in its own hook under `model/` over a single shared
-`SceneBridgeDeps` instance, and renders `ui/DiagramPanel`'s `DiagramPanel`,
-keeping that component presentational and FSD-clean. `files` and `isLoading`
-are passed to `DiagramPanel` as top-level props rather than folded into its
-`diagram` prop, since they belong to the file list, not to the single active
-diagram; likewise `onSignOut` is a top-level prop since sign-out is its own
-flow, not a diagram action. Whether the panel itself is shown or collapsed
-is owned entirely inside `DiagramPanel` via its own `usePanelVisibility` hook
+render the panel into a Shadow DOM positioned fixed top-right. State lives in
+two zustand stores under `model/`, each read directly by whichever
+hook/component needs it instead of being threaded through `App` as
+props/params:
+
+- **`diagramLibraryStore`** — the connected Drive file list, connection
+  status, the persisted search query's initial load, and the connect flow
+  (`isConnecting`/`connectError`/`connect`; `connect` is just another store
+  action, the same shape as `refresh`, rather than a separate hook
+  duplicating its own loading/error state). `useDiagramLibrary` (called once
+  from `App`, kicking off the search-query load) exposes only `status`,
+  since that's all the composition root needs to branch between
+  `ConnectButton` and the panel — `ConnectButton` itself reads
+  `isConnecting`/`connectError`/`connect` straight off the store (one
+  `useShallow` call), so `App` passes it no props at all.
+- **`activeDiagramStore`** — the active-file pointer (`activeId`), its save
+  `revision`, `saveStatus`, `actionError`, and the CRUD actions
+  (`onOpen`/`onCreate`/`onRename`/`onDelete`) that read/write that pointer.
+  `useActiveDiagram` (called once from `App`) is just the two effects tied to
+  React's lifecycle — the initial load (connection status, file list, restore
+  the active pointer) and the autosave loop wired to whichever file is active
+  — everything it produces lives in the store. Each consumer reads only the
+  slice it needs, directly off the store, rather than via props: `DiagramPanel`
+  reads `saveStatus`/`actionError`/`onOpen` (one `useShallow` call) since it
+  wraps `onOpen` in its own in-flight lock; `DiagramList` reads
+  `activeId`/`onRename`/`onDelete`; `CreateDiagramForm` reads `onCreate`.
+  `App` renders `<DiagramPanel onSignOut={...} />` with nothing else to pass.
+  `useSignOutFlow` likewise reads `activeId`/`onActiveIdChange`/
+  `onActionErrorChange` off `activeDiagramStore` and `onStatusChange` off
+  `diagramLibraryStore` directly, so it takes no params either.
+
+`onSignOut` stays a top-level prop on `DiagramPanel` since sign-out is its own
+flow, not a diagram action. Whether the panel itself is shown or collapsed is
+owned entirely inside `DiagramPanel` via its own `usePanelVisibility` hook
 (`entrypoints/content/model/usePanelVisibility`) — that state has no
 dependency on the active diagram or the composition root, so it isn't
-threaded through `App` at all. The active-file hook is the one that stays
-largest: `revisionRef` and `activeId` genuinely couple the open/create/
-rename actions to the autosave save callback, so splitting it further would
-just move that coupling into more prop-drilling without reducing it.
+threaded through `App` at all.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
@@ -230,26 +251,50 @@ in isolation.
   `flush()` forces an immediate save when dirty (used by sign-out); the clock
   and poll trigger are injectable, so the controller is fully unit-tested
   without real timers.
-- **session stores** (`entrypoints/content/model/` — `activeFileStore`,
-  `fileListCache`, `panelState`) — `getActiveFile`/`setActiveFile`/
+- **`sessionStore`** (`entrypoints/content/model/stores/sessionStore.ts`) —
+  plain `chrome.storage.local` get/set/clear wrappers, one file since each is
+  just a key/value pair, not real app state: `getActiveFile`/`setActiveFile`/
   `clearActiveFile` persist the `ActiveFile` pointer (`id`, `name`,
-  `loadedRevision`) in `chrome.storage.local` so it survives the
-  `writeScene`-triggered tab reload; the file-list cache and collapsed
-  state persist the same way.
+  `loadedRevision`) so it survives the `writeScene`-triggered tab reload;
+  `getCachedFiles`/`setCachedFiles`/`clearCachedFiles` (file-list cache),
+  `getPanelCollapsed`/`setPanelCollapsed` (panel collapse), and
+  `getDiagramSearchQuery`/`setDiagramSearchQuery` (search query) persist the
+  same way.
+- **zustand stores** (`entrypoints/content/model/stores/` —
+  `diagramLibraryStore`, `activeDiagramStore`) — in-memory (not persisted)
+  reactive state, alongside `sessionStore` since both are "the app's stores",
+  just different persistence models. `diagramLibraryStore` covers the
+  connected Drive file list, connection status, the persisted search query's
+  resolved initial value, and the connect flow; `activeDiagramStore` covers
+  the active-file pointer, its save revision, save status, action error, and
+  the open/create/rename/delete actions. Both are read directly by whichever
+  hook/component needs them instead of being threaded through `App.tsx` as
+  props/params.
 - **`panel`** (`entrypoints/content/ui/DiagramPanel`, React, Shadow DOM) —
-  presentational: file list (name + modified date), active-file indicator,
-  save-status badge, inline rename (each row owns its own rename-edit
-  state), and `onOpen`/`onCreate`/`onRename`/`onSignOut` callbacks. The
-  replace-canvas confirm and sign-out `ConfirmDialog` are rendered by the
-  container (`entrypoints/content/App.tsx`), not the component, since they
-  need orchestration.
+  presentational: gates on the library store's loading state (selecting
+  `saveStatus`/`actionError`/`onOpen` off `activeDiagramStore` in one
+  `useShallow` call), renders `DiagramList` (file list + search box, name +
+  modified date, active-file indicator), save-status badge, and inline
+  rename (each row owns its own rename-edit state). `DiagramList` itself
+  reads `activeId`/`onRename`/`onDelete` straight off `activeDiagramStore`
+  rather than taking them as props from `DiagramPanel` (only the panel-local
+  `areRowsLocked`/`openingId`/`onRowOpen` — derived state that wraps the
+  store's `onOpen` with an in-flight lock — are real props); `DiagramList`
+  also owns the sort + search itself via `useDiagramData` (sorts by name,
+  runs `useTextSearch` over it, persists the debounced query to
+  `sessionStore`). `CreateDiagramForm` likewise reads `onCreate` directly off
+  `activeDiagramStore` instead of taking it as a prop. The replace-canvas
+  confirm and sign-out `ConfirmDialog` are rendered by the container
+  (`entrypoints/content/App.tsx`), not the component, since they need
+  orchestration.
 
 ### Shared layer
 
 Reusable foundation everything else is built from:
 
 - **`shared/ui`** — primitive components rendered in Shadow DOM: `Button`,
-  `Dialog`/`ConfirmDialog`, `TextField`, `ListItem`, `Badge`, `Spinner`, plus
+  `Dialog`/`ConfirmDialog`, `TextField`, `SearchField`, `ListItem`, `Badge`,
+  `Spinner`, plus
   the layout/typography primitives `Box`, `Stack`, `Text`, `Heading` (all
   polymorphic via an `as` prop; `Stack` composes `Box`, `Heading` composes
   `Text`). `Box` owns the `padding`/`border`/`radius`/`shadow` token scales —
@@ -258,6 +303,9 @@ Reusable foundation everything else is built from:
   through it instead of repeating `border`/`border-radius`/`box-shadow`
   per-component. The panel and every dialog (replace-canvas, sign-out,
   rename, conflict) are composed from these.
+- **`shared/lib`** — cross-cutting hooks (under `hooks/`: `useDebounce`,
+  `useTextSearch` — generic type-to-filter hook, used by the diagram panel's
+  search box) and plain functions (`dateFormatUtils`, `typeUtils`, `testUtils`).
 - **`shared/config` (`theme`)** — design tokens as CSS custom properties in
   `theme.css`, following a two-layer architecture:
   - **Primitive tokens** (`--es-color-*`) — raw hex palette values; never used
@@ -293,8 +341,9 @@ re-implements a button, dialog, or theme lookup.
   `connectionService.connect` calls `getToken(interactive)` then
   `findOrCreateFolder(folderName)` (auth attached by the interceptor) → store
   `folderId` + `connected` in `chrome.storage.local`. No token stored (Chrome
-  caches it). On success `useConnectFlow` also sets the persisted panel state to
-  expanded, so the panel opens automatically when `App` swaps to it.
+  caches it). On success the store's `connect` action also sets the persisted
+  panel state to expanded, so the panel opens automatically when `App` swaps
+  to it.
   No folder browsing: under `drive.file` the app can only ever see folders it
   created, so naming a folder is how connect works.
 - **List:** panel mounts (connected) → gateway `drive/list` → render names +

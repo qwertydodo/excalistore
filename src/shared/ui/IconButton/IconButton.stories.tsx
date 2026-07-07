@@ -8,7 +8,7 @@ const meta: Meta<typeof IconButton> = {
   tags: ["autodocs"],
   argTypes: {
     icon: { control: "select", options: ["minus", "edit", "trash", "folderOpen", "cloud"] },
-    variant: { control: "select", options: ["ghost", "primary"] },
+    variant: { control: "select", options: ["ghost", "neutral", "subtle"] },
     size: { control: "radio", options: ["sm", "md"] },
     shape: { control: "radio", options: ["square", "circle"] },
     disabled: { control: "boolean" },
@@ -25,7 +25,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Ghost: Story = { args: { variant: "ghost" } };
 
-export const Primary: Story = { args: { variant: "primary" } };
+export const Subtle: Story = { args: { variant: "subtle" } };
 
 export const Circle: Story = { args: { shape: "circle" } };
 
@@ -37,7 +37,7 @@ export const AllVariants: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <IconButton icon="edit" aria-label="Edit (ghost)" />
-      <IconButton icon="edit" variant="primary" aria-label="Edit (primary)" />
+      <IconButton icon="edit" variant="subtle" aria-label="Edit (subtle)" />
       <IconButton icon="edit" shape="circle" aria-label="Edit (circle)" />
       <IconButton icon="edit" size="md" aria-label="Edit (md)" />
       <IconButton icon="minus" aria-label="Remove" />

@@ -11,6 +11,7 @@ export { Icon } from "./Icon";
 export type { IconButtonProps } from "./IconButton";
 export { IconButton } from "./IconButton";
 export { ListItem } from "./ListItem";
+export { SearchField } from "./SearchField";
 export { Spinner } from "./Spinner";
 export type { StackProps } from "./Stack";
 export { Stack } from "./Stack";

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
+import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
 import { connectionService } from "./connectionService";
 
 let storage: ReturnType<typeof stubChromeStorageLocal>["store"];

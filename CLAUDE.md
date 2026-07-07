@@ -57,6 +57,24 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
   control it — call the hook directly in the component that needs it. e.g. a
   panel's own open/collapsed state belongs in a hook the panel widget calls
   itself, not in `entrypoints/*/App.tsx` passed down as props.
+- **Zustand for cross-hook/cross-component state:** when a piece of state
+  needs to be read or written by more than one hook or component that isn't
+  in a direct parent/child relationship, put it in a zustand store instead of
+  lifting it into the nearest common ancestor and threading it down as props.
+  Stores live in a `stores/` subfolder of the slice's `model/` segment (e.g.
+  `entrypoints/content/model/stores/diagramLibraryStore.ts`), one file per
+  store, name `use<Domain>Store`. Any hook or component that needs a field or
+  action reads it **directly** off the store — never re-select a value in a
+  parent just to pass it down as a prop/param when the child could import the
+  store itself; that's props drilling with extra steps. When a
+  component/hook needs 2+ fields from the same store, select them in one call
+  with `useShallow` from `zustand/react/shallow`
+  (`const { a, b } = useStore(useShallow((s) => ({ a: s.a, b: s.b })))`)
+  instead of one `useStore((s) => s.x)` call per field. Plain
+  `chrome.storage.local` read/write wrappers (no in-memory reactive state) are
+  a different thing — not zustand — but still grouped one-file-per-concern
+  under `stores/` since they're conceptually "the persisted store" too (e.g.
+  `entrypoints/content/model/stores/sessionStore.ts`).
 
 ## Claude Code skills
 - `.claude/skills/` is the only source of truth for installed skills — never
@@ -100,7 +118,17 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - Module files are **camelCase** (`excalidrawFormat.ts`); React components are
   **PascalCase** (`Button.tsx`). Name files by domain, never by technical role
   (no `types.ts`/`utils.ts`/`helpers.ts` — e.g. `shared/api/driveFile.ts`, not
-  `model/types.ts`).
+  `model/types.ts`). **Exception:** a file that is genuinely cross-cutting,
+  non-domain infrastructure (no single domain owns it) is named
+  `<what>Utils.ts` — always `Utils`, never `Helpers`/`Helper` — e.g.
+  `shared/lib/typeUtils.ts` (generic TS type helpers), `shared/lib/testUtils.ts`
+  (test-only mocks/stubs shared across suites). This is a narrow exception for
+  files with no domain to be named after, not a license to reach for `utils.ts`
+  as a catch-all — most new code still belongs in a domain-named file.
+- **`lib/` segments split hooks from plain functions** when a slice's `lib/`
+  has both: React hooks (and their colocated tests) live under `lib/hooks/`
+  (e.g. `shared/lib/hooks/useDebounce.ts`); plain functions stay directly in
+  `lib/`. Don't create `lib/hooks/` in a slice that has no hooks to put there.
 - `shared/api/` contains transport layer init only — e.g. `shared/api/google/googleClient.ts` is the ky singleton. All API methods, mappings, and domain logic live in the corresponding entity slice as a **repository object** (`entities/<provider>/<domain>/api/<domain>Repo.ts`). Example: `entities/google/drive/api/driveRepo.ts` for Drive CRUD, `entities/google/auth/api/authRepo.ts` for OAuth revoke. Services and feature code call repo methods only — never `googleClient` directly. Group entity slices by provider when multiple domains share the same transport (e.g. `entities/google/drive/` and `entities/google/auth/` both use `googleClient`).
 - Theme tokens live in CSS custom properties (`src/shared/config/theme.css`),
   not JS objects — switch themes via the `data-theme` attribute, not by

@@ -1,40 +1,43 @@
 // @vitest-environment jsdom
-import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/features/driveGateway", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/driveGateway")>()),
   sendToBackground: vi.fn(async () => ({ isConnected: false })),
 }));
-vi.mock("./activeFileStore", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./activeFileStore")>()),
+vi.mock("./stores/sessionStore", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./stores/sessionStore")>()),
   getActiveFile: vi.fn(async () => null),
 }));
 
+const { sendToBackground } = await import("@/features/driveGateway");
+const { useDiagramLibraryStore } = await import("./stores/diagramLibraryStore");
+const { useActiveDiagramStore } = await import("./stores/activeDiagramStore");
 const { useActiveDiagram } = await import("./useActiveDiagram");
 
+const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
+const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
+
+beforeEach(() => {
+  useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
+  useActiveDiagramStore.setState(INITIAL_ACTIVE_STATE, true);
+  vi.mocked(sendToBackground).mockClear();
+});
+
 describe("useActiveDiagram", () => {
-  it("keeps onActiveIdChange/onActionErrorChange/onOpen/onCreate/onRename/onDelete referentially stable across re-renders", async () => {
-    // onOpen/onCreate/onRename/onDelete are passed down as props; onActiveIdChange and
-    // onActionErrorChange also feed useSignOutFlow's deps. An unstable
-    // identity here churns child re-renders (or, for onSaveStatusChange,
-    // would re-fire the autosave effect — covered separately since it's
-    // already required to stay stable for that reason).
-    const onStatusChange = vi.fn();
-    const onFilesChange = vi.fn();
-    const refresh = vi.fn(async () => []);
-    const files: never[] = [];
-    const { result, rerender } = renderHook(() =>
-      useActiveDiagram({ onStatusChange, files, onFilesChange, refresh }),
+  it("loads the connection status into the diagram library store on mount", async () => {
+    renderHook(() => useActiveDiagram());
+    await waitFor(() =>
+      expect(useDiagramLibraryStore.getState().status).toEqual({ isConnected: false }),
     );
-    const first = result.current;
+  });
+
+  it("runs the initial load effect only once across re-renders (regression: onActiveIdChange/onRevisionChange are zustand actions, always stable, so this must never loop)", async () => {
+    const { rerender } = renderHook(() => useActiveDiagram());
+    await waitFor(() => expect(sendToBackground).toHaveBeenCalledTimes(1));
     rerender();
-    const second = result.current;
-    expect(second.onActiveIdChange).toBe(first.onActiveIdChange);
-    expect(second.onActionErrorChange).toBe(first.onActionErrorChange);
-    expect(second.onOpen).toBe(first.onOpen);
-    expect(second.onCreate).toBe(first.onCreate);
-    expect(second.onRename).toBe(first.onRename);
-    expect(second.onDelete).toBe(first.onDelete);
+    rerender();
+    expect(sendToBackground).toHaveBeenCalledTimes(1);
   });
 });

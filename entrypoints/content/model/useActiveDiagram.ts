@@ -1,64 +1,33 @@
-import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
-import {
-  buildExcalidrawFile,
-  ensureExcalidrawExtension,
-  parseExcalidrawFile,
-} from "@/entities/diagram";
-import type { DiagramContent, DriveFile } from "@/entities/google/drive";
+import { useEffect } from "react";
+import type { DriveFile } from "@/entities/google/drive";
 import type { ConnectionStatus } from "@/features/driveGateway";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
-import { createAutosave, SAVE_STATUS, type SaveStatus } from "../lib/autosaveController";
+import { createAutosave } from "../lib/autosaveController";
 import { bridge } from "../lib/bridge";
-import { clearScene, currentSceneHash, readScene, readTheme, writeScene } from "../lib/sceneBridge";
-import { clearActiveFile, getActiveFile, setActiveFile } from "./activeFileStore";
-import { getCachedFiles, setCachedFiles } from "./fileListCache";
-import type { DiagramLibrary } from "./useDiagramLibrary";
+import { currentSceneHash, readScene } from "../lib/sceneBridge";
+import { useActiveDiagramStore } from "./stores/activeDiagramStore";
+import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
+import {
+  clearActiveFile,
+  getActiveFile,
+  getCachedFiles,
+  setActiveFile,
+} from "./stores/sessionStore";
 
-export type UseActiveDiagramParams = Pick<
-  DiagramLibrary,
-  "onStatusChange" | "files" | "onFilesChange" | "refresh"
->;
-
-export type ActiveDiagram = {
-  activeId: string | null;
-  onActiveIdChange: (id: string | null) => void;
-  revisionRef: RefObject<string | null>;
-  saveStatus: SaveStatus;
-  actionError: string | null;
-  onActionErrorChange: (error: string | null) => void;
-  onOpen: (id: string) => Promise<void>;
-  onCreate: (name: string) => Promise<void>;
-  onRename: (id: string, name: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-};
-
-// Owns the active-file pointer, its autosave wiring, and the CRUD action
-// handlers (open/create/rename) that all read/write that pointer.
-export const useActiveDiagram = ({
-  onStatusChange,
-  files,
-  onFilesChange,
-  refresh,
-}: UseActiveDiagramParams): ActiveDiagram => {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>(SAVE_STATUS.IDLE);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const revisionRef = useRef<string | null>(null);
-
-  // useCallback on all three below (not compiler-memoized — onOpen/onCreate/
-  // onRename further down all contain a ternary inside a catch, which bails
-  // the compiler for this whole hook; see "Known gap" in
-  // docs/development.md). onSaveStatusChange specifically is read by the
-  // autosave effect's deps just below, so it must stay stable; the other two
-  // are passed down as props, where an unstable identity just churns child
-  // re-renders.
-  const onActiveIdChange = useCallback((id: string | null) => setActiveId(id), []);
-  const onActionErrorChange = useCallback((error: string | null) => setActionError(error), []);
-  const onSaveStatusChange = useCallback((status: SaveStatus) => setSaveStatus(status), []);
+// Kicks off the initial load (connection status, file list, restore the
+// active pointer) and wires the autosave loop to whichever file is active —
+// called once from App. Everything it produces lives in activeDiagramStore,
+// read directly by whoever needs it (DiagramPanel, useSignOutFlow, ...).
+export const useActiveDiagram = (): void => {
+  const activeId = useActiveDiagramStore((s) => s.activeId);
+  const onActiveIdChange = useActiveDiagramStore((s) => s.onActiveIdChange);
+  const onRevisionChange = useActiveDiagramStore((s) => s.onRevisionChange);
+  const onSaveStatusChange = useActiveDiagramStore((s) => s.onSaveStatusChange);
 
   // Initial load: connection status, file list, restore the active pointer.
   useEffect(() => {
     const loadInitial = async () => {
+      const { onStatusChange, onFilesChange, refresh } = useDiagramLibraryStore.getState();
       const s = await sendToBackground<ConnectionStatus>({ type: REQUEST_TYPE.AUTH_STATUS }).catch(
         () => ({ isConnected: false }) as ConnectionStatus,
       );
@@ -72,15 +41,15 @@ export const useActiveDiagram = ({
       }
       const list = s.isConnected ? await refresh() : [];
       if (active && list.some((f) => f.id === active.id)) {
-        setActiveId(active.id);
-        revisionRef.current = active.loadedRevision;
+        onActiveIdChange(active.id);
+        onRevisionChange(active.loadedRevision);
       } else if (active) {
         // Stale pointer (different account/folder, or deleted) — drop it.
         await clearActiveFile();
       }
     };
     loadInitial();
-  }, [refresh, onFilesChange, onStatusChange]);
+  }, [onActiveIdChange, onRevisionChange]);
 
   // Autosave: only meaningful once a file is active.
   useEffect(() => {
@@ -93,9 +62,9 @@ export const useActiveDiagram = ({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
           content: JSON.stringify(scene),
-          prevRevision: revisionRef.current ?? "",
+          prevRevision: useActiveDiagramStore.getState().revision ?? "",
         });
-        revisionRef.current = meta.headRevisionId;
+        onRevisionChange(meta.headRevisionId);
         await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
       },
       onStatus: onSaveStatusChange,
@@ -112,109 +81,5 @@ export const useActiveDiagram = ({
       autosave.flush();
       autosave.stop();
     };
-  }, [activeId, onSaveStatusChange]);
-
-  const onOpen = useCallback(
-    async (id: string) => {
-      if (id === activeId) return; // already open
-      setActionError(null);
-      try {
-        // Opening reloads the tab, so save the current diagram first — otherwise
-        // unsaved edits since the last autosave tick are lost. A failed save
-        // (e.g. conflict) aborts the switch so nothing is dropped silently.
-        if (activeId) {
-          const current = await readScene(bridge);
-          const saved = await sendToBackground<DriveFile>({
-            type: REQUEST_TYPE.DRIVE_UPDATE,
-            id: activeId,
-            content: JSON.stringify(current),
-            prevRevision: revisionRef.current ?? "",
-          });
-          revisionRef.current = saved.headRevisionId;
-        }
-        const { meta, content } = await sendToBackground<DiagramContent>({
-          type: REQUEST_TYPE.DRIVE_GET,
-          id,
-        });
-        const file = parseExcalidrawFile(content); // validates before write
-        await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-        await writeScene(file, bridge); // reloads the tab
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to open diagram");
-      }
-    },
-    [activeId],
-  );
-
-  const onCreate = useCallback(async (name: string) => {
-    setActionError(null);
-    try {
-      const fileName = ensureExcalidrawExtension(name);
-      const empty = buildExcalidrawFile([], { theme: readTheme(bridge) }, {});
-      const meta = await sendToBackground<DriveFile>({
-        type: REQUEST_TYPE.DRIVE_CREATE,
-        name: fileName,
-        content: JSON.stringify(empty),
-      });
-      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-      await writeScene(empty, bridge); // reloads
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Failed to create diagram");
-    }
-  }, []);
-
-  const onRename = useCallback(
-    async (id: string, name: string) => {
-      setActionError(null);
-      try {
-        const fileName = ensureExcalidrawExtension(name);
-        const meta = await sendToBackground<DriveFile>({
-          type: REQUEST_TYPE.DRIVE_RENAME,
-          id,
-          name: fileName,
-        });
-        // Patch the single row in place — no full re-fetch, so the list doesn't
-        // blank to the loading spinner.
-        const next = files.map((f) => (f.id === id ? meta : f));
-        onFilesChange(next);
-        setCachedFiles(next);
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to rename diagram");
-      }
-    },
-    [files, onFilesChange],
-  );
-
-  const onDelete = useCallback(
-    async (id: string) => {
-      setActionError(null);
-      try {
-        await sendToBackground<null>({ type: REQUEST_TYPE.DRIVE_TRASH, id });
-        if (id === activeId) {
-          await clearActiveFile();
-          await clearScene(bridge); // wipes localStorage + IndexedDB, then reloads tab
-        } else {
-          const next = files.filter((f) => f.id !== id);
-          onFilesChange(next);
-          setCachedFiles(next);
-        }
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to delete diagram");
-      }
-    },
-    [activeId, files, onFilesChange],
-  );
-
-  return {
-    activeId,
-    onActiveIdChange,
-    revisionRef,
-    saveStatus,
-    actionError,
-    onActionErrorChange,
-    onOpen,
-    onCreate,
-    onRename,
-    onDelete,
-  };
+  }, [activeId, onSaveStatusChange, onRevisionChange]);
 };

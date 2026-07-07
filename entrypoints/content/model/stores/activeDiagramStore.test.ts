@@ -1,0 +1,189 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildExcalidrawFile } from "@/entities/diagram";
+import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
+import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
+import type { SceneBridgeDeps } from "../../lib/sceneBridge";
+import { getActiveFile, setActiveFile } from "./sessionStore";
+
+// Map-backed fake of the Web Storage API — same shape as sceneBridge.test.ts's
+// own fake, since activeDiagramStore drives the real readScene/writeScene/
+// clearScene/readTheme against the shared `bridge` singleton.
+function fakeStorage(seed: Record<string, string> = {}): Storage {
+  const m = new Map<string, string>(Object.entries(seed));
+  return {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+    clear: () => m.clear(),
+    key: (i: number) => Array.from(m.keys())[i] ?? null,
+    get length() {
+      return m.size;
+    },
+  } as Storage;
+}
+
+const fakeDeps: SceneBridgeDeps = {
+  storage: fakeStorage(),
+  loadFiles: vi.fn(async () => ({})),
+  saveFiles: vi.fn(async () => undefined),
+  clearFiles: vi.fn(async () => undefined),
+  reload: vi.fn(),
+};
+
+vi.mock("@/features/driveGateway", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/driveGateway")>()),
+  sendToBackground: vi.fn(),
+}));
+vi.mock("../../lib/bridge", () => ({ bridge: fakeDeps }));
+
+const { useActiveDiagramStore } = await import("./activeDiagramStore");
+const { useDiagramLibraryStore } = await import("./diagramLibraryStore");
+
+const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
+const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
+
+const meta = { id: "1", name: "beta.excalidraw", modifiedTime: "t", headRevisionId: "r2" };
+const emptyScene = buildExcalidrawFile([], {}, {});
+
+beforeEach(() => {
+  stubChromeStorageLocal();
+  useActiveDiagramStore.setState(INITIAL_ACTIVE_STATE, true);
+  useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
+  fakeDeps.storage.clear();
+  vi.mocked(sendToBackground).mockReset();
+  vi.mocked(fakeDeps.reload).mockClear();
+});
+
+describe("onOpen", () => {
+  it("opens the file, sets the active pointer, and writes the scene", async () => {
+    vi.mocked(sendToBackground).mockImplementation(async (request) => {
+      if (request.type === REQUEST_TYPE.DRIVE_GET)
+        return { meta, content: JSON.stringify(emptyScene) };
+      throw new Error(`unexpected request ${request.type}`);
+    });
+
+    await useActiveDiagramStore.getState().onOpen("1");
+
+    await expect(getActiveFile()).resolves.toEqual({
+      id: "1",
+      name: "beta.excalidraw",
+      loadedRevision: "r2",
+    });
+    expect(fakeDeps.reload).toHaveBeenCalledOnce();
+    expect(useActiveDiagramStore.getState().actionError).toBeNull();
+  });
+
+  it("flushes the current diagram before switching, using the stored revision as the conflict guard", async () => {
+    useActiveDiagramStore.setState({ activeId: "0", revision: "r0" });
+    vi.mocked(sendToBackground).mockImplementation(async (request) => {
+      if (request.type === REQUEST_TYPE.DRIVE_UPDATE) {
+        expect(request.id).toBe("0");
+        expect(request.prevRevision).toBe("r0");
+        return { ...meta, id: "0", headRevisionId: "r0b" };
+      }
+      if (request.type === REQUEST_TYPE.DRIVE_GET)
+        return { meta, content: JSON.stringify(emptyScene) };
+      throw new Error(`unexpected request ${request.type}`);
+    });
+
+    await useActiveDiagramStore.getState().onOpen("1");
+
+    // The flush's returned revision is recorded; the newly-opened file's own
+    // revision is restored post-reload by useActiveDiagram's init effect
+    // (from the ActiveFile pointer set below), not by onOpen itself.
+    expect(useActiveDiagramStore.getState().revision).toBe("r0b");
+    await expect(getActiveFile()).resolves.toEqual({
+      id: "1",
+      name: "beta.excalidraw",
+      loadedRevision: "r2",
+    });
+  });
+
+  it("is a no-op when the requested id is already active", async () => {
+    useActiveDiagramStore.setState({ activeId: "1" });
+    await useActiveDiagramStore.getState().onOpen("1");
+    expect(sendToBackground).not.toHaveBeenCalled();
+  });
+
+  it("records an error and does not reload when the fetch fails", async () => {
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
+    await useActiveDiagramStore.getState().onOpen("1");
+    expect(useActiveDiagramStore.getState().actionError).toBe("network down");
+    expect(fakeDeps.reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("onCreate", () => {
+  it("creates a blank diagram, sets it active, and writes the scene", async () => {
+    vi.mocked(sendToBackground).mockResolvedValue(meta);
+    await useActiveDiagramStore.getState().onCreate("beta");
+    await expect(getActiveFile()).resolves.toEqual({
+      id: "1",
+      name: "beta.excalidraw",
+      loadedRevision: "r2",
+    });
+    expect(fakeDeps.reload).toHaveBeenCalledOnce();
+  });
+
+  it("records an error when creation fails", async () => {
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("quota exceeded"));
+    await useActiveDiagramStore.getState().onCreate("beta");
+    expect(useActiveDiagramStore.getState().actionError).toBe("quota exceeded");
+    expect(fakeDeps.reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("onRename", () => {
+  it("patches the renamed file into the library's file list in place", async () => {
+    useDiagramLibraryStore.setState({
+      files: [{ id: "1", name: "old.excalidraw", modifiedTime: "t", headRevisionId: "r1" }],
+    });
+    const renamed = { ...meta, name: "renamed.excalidraw" };
+    vi.mocked(sendToBackground).mockResolvedValue(renamed);
+
+    await useActiveDiagramStore.getState().onRename("1", "renamed");
+
+    expect(useDiagramLibraryStore.getState().files).toEqual([renamed]);
+  });
+
+  it("records an error when rename fails", async () => {
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("name already taken"));
+    await useActiveDiagramStore.getState().onRename("1", "dup");
+    expect(useActiveDiagramStore.getState().actionError).toBe("name already taken");
+  });
+});
+
+describe("onDelete", () => {
+  it("clears the canvas when deleting the active file", async () => {
+    useActiveDiagramStore.setState({ activeId: "1" });
+    await setActiveFile({ id: "1", name: "beta.excalidraw", loadedRevision: "r2" });
+    vi.mocked(sendToBackground).mockResolvedValue(null);
+
+    await useActiveDiagramStore.getState().onDelete("1");
+
+    await expect(getActiveFile()).resolves.toBeNull();
+    expect(fakeDeps.reload).toHaveBeenCalledOnce();
+  });
+
+  it("removes the file from the library list when deleting a non-active file", async () => {
+    useActiveDiagramStore.setState({ activeId: null });
+    useDiagramLibraryStore.setState({
+      files: [
+        { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" },
+        { id: "2", name: "b.excalidraw", modifiedTime: "t", headRevisionId: "r2" },
+      ],
+    });
+    vi.mocked(sendToBackground).mockResolvedValue(null);
+
+    await useActiveDiagramStore.getState().onDelete("1");
+
+    expect(useDiagramLibraryStore.getState().files.map((f) => f.id)).toEqual(["2"]);
+    expect(fakeDeps.reload).not.toHaveBeenCalled();
+  });
+
+  it("records an error when delete fails", async () => {
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("not found"));
+    await useActiveDiagramStore.getState().onDelete("1");
+    expect(useActiveDiagramStore.getState().actionError).toBe("not found");
+  });
+});
