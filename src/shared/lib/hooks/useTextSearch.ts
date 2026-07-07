@@ -31,7 +31,7 @@ export const useTextSearch = <T>(
   const onQueryChange = (value: string) => setQuery(value);
 
   const results =
-    debouncedQuery.length < minChars
+    query.length < minChars
       ? data
       : data.filter((item) => getText(item).toLowerCase().includes(debouncedQuery.toLowerCase()));
 
