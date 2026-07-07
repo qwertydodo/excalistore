@@ -32,7 +32,7 @@ const renderIconSlot = (slot: IconSlot, position: "start" | "end") => {
       aria-label={slot["aria-label"]}
       onClick={slot.onClick}
       size="sm"
-      variant="ghost"
+      variant="subtle"
       className={positionClass}
     />
   );

@@ -8,7 +8,8 @@
   line-height: var(--es-line-height-tight);
   transition:
     background var(--es-transition-fast),
-    border-color var(--es-transition-fast);
+    border-color var(--es-transition-fast),
+    color var(--es-transition-fast);
 }
 .iconButton:disabled {
   opacity: 0.5;
@@ -50,6 +51,18 @@
 .ghost:hover:not(:disabled) {
   background: var(--es-color-bg-surface);
 }
+/* No background even on hover — just darkens the icon. For icon buttons
+   nested inside another control (e.g. a text field's clear button), where a
+   hover background box reads as its own competing surface right against the
+   field's border. */
+.subtle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--es-color-text-secondary);
+}
+.subtle:hover:not(:disabled) {
+  color: var(--es-color-text-primary);
+}
 .neutral {
   background: var(--es-color-bg-control);
   border-color: transparent;
@@ -58,17 +71,4 @@
 }
 .neutral:hover:not(:disabled) {
   background: var(--es-color-bg-surface);
-}
-.primary {
-  background: var(--es-color-interactive-primary);
-  border-color: var(--es-color-interactive-primary);
-  color: var(--es-color-text-on-interactive);
-  box-shadow: var(--es-shadow-md);
-}
-.primary:hover:not(:disabled) {
-  background: var(--es-color-interactive-primary-hover);
-  border-color: var(--es-color-interactive-primary-hover);
-}
-.primary:focus-visible {
-  outline-color: var(--es-color-text-on-interactive);
 }
