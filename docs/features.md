@@ -22,6 +22,11 @@
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.
 - Debounce the autosave poll off real edit events if Excalidraw exposes them.
+- Skeleton loaders: the panel currently shows a plain spinner while waiting
+  on async state (file list, persisted search query). A skeleton (placeholder
+  rows shaped like the eventual content) would read better than a spinner,
+  especially now that the diagram list + search field wait together on both
+  the file list and the persisted search query before mounting.
 
 ## Shipped
 _(Move items here as they ship, with a short behavior description.)_

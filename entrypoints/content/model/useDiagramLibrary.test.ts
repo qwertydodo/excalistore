@@ -1,19 +1,29 @@
 // @vitest-environment jsdom
-import { renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
+import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
+import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
+import { setDiagramSearchQuery } from "./stores/sessionStore";
 import { useDiagramLibrary } from "./useDiagramLibrary";
 
+const INITIAL_STORE_STATE = useDiagramLibraryStore.getState();
+
+beforeEach(() => {
+  stubChromeStorageLocal();
+  useDiagramLibraryStore.setState(INITIAL_STORE_STATE, true);
+});
+
 describe("useDiagramLibrary", () => {
-  it("keeps refresh/onStatusChange/onFilesChange referentially stable across re-renders", () => {
-    // useActiveDiagram's loadInitial effect depends on these three — an
-    // unstable identity here re-fires that effect every render, looping
-    // refresh() forever (the infinite-reload/hang bug).
-    const { result, rerender } = renderHook(() => useDiagramLibrary());
-    const first = result.current;
-    rerender();
-    const second = result.current;
-    expect(second.refresh).toBe(first.refresh);
-    expect(second.onStatusChange).toBe(first.onStatusChange);
-    expect(second.onFilesChange).toBe(first.onFilesChange);
+  it("loads the persisted search query into the store on mount", async () => {
+    await setDiagramSearchQuery("beta");
+    renderHook(() => useDiagramLibrary());
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryLoaded).toBe(true));
+    expect(useDiagramLibraryStore.getState().initialQuery).toBe("beta");
+  });
+
+  it("reflects the store's connection status", () => {
+    useDiagramLibraryStore.setState({ status: { isConnected: true, folderName: "Diagrams" } });
+    const { result } = renderHook(() => useDiagramLibrary());
+    expect(result.current.status).toEqual({ isConnected: true, folderName: "Diagrams" });
   });
 });

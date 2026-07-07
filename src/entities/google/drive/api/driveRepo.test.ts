@@ -1,6 +1,6 @@
 import { TimeoutError } from "ky";
 import { describe, expect, it, vi } from "vitest";
-import { jsonResponse, stubFetch } from "@/shared/lib/testHelpers";
+import { jsonResponse, stubFetch } from "@/shared/lib/testUtils";
 import { DriveError } from "./driveFile";
 import { driveRepo } from "./driveRepo";
 

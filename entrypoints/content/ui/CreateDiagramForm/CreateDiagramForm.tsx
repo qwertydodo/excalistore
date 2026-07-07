@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button, Stack, TextField } from "@/shared/ui";
+import { useActiveDiagramStore } from "../../model/stores/activeDiagramStore";
 
 type Props = {
   isDisabled: boolean;
-  onCreate: (name: string) => Promise<void>;
   onBusyChange: (isBusy: boolean) => void;
 };
 
-export const CreateDiagramForm = ({ isDisabled, onCreate, onBusyChange }: Props) => {
+export const CreateDiagramForm = ({ isDisabled, onBusyChange }: Props) => {
+  const onCreate = useActiveDiagramStore((s) => s.onCreate);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [isBusy, setIsBusy] = useState(false);

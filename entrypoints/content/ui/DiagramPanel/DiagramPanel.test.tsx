@@ -1,7 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { stubChromeStorageLocal } from "@/shared/lib/testHelpers";
+import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
+import { useActiveDiagramStore } from "../../model/stores/activeDiagramStore";
+import { useDiagramLibraryStore } from "../../model/stores/diagramLibraryStore";
 import { DiagramPanel } from "./DiagramPanel";
 
 const files = [
@@ -9,40 +11,43 @@ const files = [
   { id: "2", name: "beta.excalidraw", modifiedTime: "2026-06-18T09:00:00Z", headRevisionId: "r2" },
 ];
 
+const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
+const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
+
 // usePanelVisibility (called internally by DiagramPanel) persists through
 // chrome.storage.local — the stub's store starts empty so getPanelCollapsed
-// resolves to not-collapsed and the panel expands.
+// resolves to not-collapsed and the panel expands. The diagram list and the
+// active-diagram bits (activeId/saveStatus/error/onOpen/...) both read
+// straight off their respective stores, so each test seeds those instead of
+// passing props.
 beforeEach(() => {
   stubChromeStorageLocal();
+  useDiagramLibraryStore.setState(
+    {
+      ...INITIAL_LIBRARY_STATE,
+      files,
+      isFilesLoading: false,
+      isQueryLoaded: true,
+      initialQuery: "",
+    },
+    true,
+  );
+  useActiveDiagramStore.setState(
+    { ...INITIAL_ACTIVE_STATE, activeId: "1", saveStatus: "saved" },
+    true,
+  );
 });
 
-function diagramProps(over = {}) {
-  return {
-    activeId: "1",
-    saveStatus: "saved" as const,
-    onOpen: vi.fn(),
-    onCreate: vi.fn(),
-    onRename: vi.fn(),
-    onDelete: vi.fn(),
-    ...over,
-  };
-}
-
-function panelProps(over = {}) {
-  return {
-    files,
-    isLoading: false,
-    onSignOut: vi.fn(),
-    ...over,
-  };
-}
-
 // The panel mounts collapsed (avoids a layout-shift flash) and expands only
-// after usePanelVisibility resolves the persisted state from storage, so wait
-// for the expanded section before asserting on its contents.
-async function renderExpanded(diagram = diagramProps(), panel = panelProps()) {
-  render(<DiagramPanel diagram={diagram} {...panel} />);
-  return screen.findByLabelText("Excalistore diagrams");
+// after usePanelVisibility resolves the persisted state from storage. The
+// diagram list + search field then mount only once the library store's
+// isLoading clears — wait for the search field (always rendered by
+// DiagramList, regardless of file count) before asserting on content.
+async function renderExpanded() {
+  render(<DiagramPanel onSignOut={vi.fn()} />);
+  await screen.findByLabelText("Excalistore diagrams");
+  await screen.findByRole("textbox", { name: /search diagrams/i });
+  return screen.getByLabelText("Excalistore diagrams");
 }
 
 describe("DiagramPanel", () => {
@@ -55,14 +60,16 @@ describe("DiagramPanel", () => {
 
   it("opens a file on click", async () => {
     const onOpen = vi.fn();
-    await renderExpanded(diagramProps({ onOpen }));
+    act(() => useActiveDiagramStore.setState({ onOpen }));
+    await renderExpanded();
     await userEvent.click(screen.getByText("beta"));
     expect(onOpen).toHaveBeenCalledWith("2");
   });
 
   it("creates a new diagram with the entered name", async () => {
     const onCreate = vi.fn();
-    await renderExpanded(diagramProps({ onCreate }));
+    act(() => useActiveDiagramStore.setState({ onCreate }));
+    await renderExpanded();
     await userEvent.click(screen.getByRole("button", { name: /new/i }));
     await userEvent.type(screen.getByPlaceholderText(/name/i), "gamma");
     await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
@@ -70,19 +77,23 @@ describe("DiagramPanel", () => {
   });
 
   it("shows a conflict badge", async () => {
-    await renderExpanded(diagramProps({ saveStatus: "conflict" }));
+    act(() => useActiveDiagramStore.setState({ saveStatus: "conflict" }));
+    await renderExpanded();
     expect(screen.getByText(/conflict/i)).toBeInTheDocument();
   });
 
   it("signs out", async () => {
     const onSignOut = vi.fn();
-    await renderExpanded(diagramProps(), panelProps({ onSignOut }));
+    render(<DiagramPanel onSignOut={onSignOut} />);
+    await screen.findByLabelText("Excalistore diagrams");
+    await screen.findByRole("textbox", { name: /search diagrams/i });
     await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });
 
   it("renders an error banner when error is set", async () => {
-    await renderExpanded(diagramProps({ error: "Could not open diagram" }));
+    act(() => useActiveDiagramStore.setState({ actionError: "Could not open diagram" }));
+    await renderExpanded();
     expect(screen.getByRole("alert")).toHaveTextContent("Could not open diagram");
   });
 
@@ -98,8 +109,20 @@ describe("DiagramPanel", () => {
   });
 
   it("shows 'No diagrams yet' when the file list is empty", async () => {
-    await renderExpanded(diagramProps(), panelProps({ files: [] }));
+    act(() => useDiagramLibraryStore.setState({ files: [] }));
+    await renderExpanded();
     expect(screen.getByText("No diagrams yet")).toBeInTheDocument();
+  });
+
+  it("shows a loading spinner while the library is loading, hides once ready", async () => {
+    act(() => useDiagramLibraryStore.setState({ isQueryLoaded: false }));
+    render(<DiagramPanel onSignOut={vi.fn()} />);
+    await screen.findByLabelText("Excalistore diagrams"); // panel expands (panelCollapsed resolved)
+    expect(screen.queryByRole("textbox", { name: /search diagrams/i })).not.toBeInTheDocument();
+
+    act(() => useDiagramLibraryStore.setState({ isQueryLoaded: true }));
+    await screen.findByRole("textbox", { name: /search diagrams/i });
+    expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
   it("shows all diagrams while fewer than 3 characters are typed", async () => {

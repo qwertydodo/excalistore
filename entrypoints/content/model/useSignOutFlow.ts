@@ -2,16 +2,9 @@ import { useCallback, useState } from "react";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { bridge } from "../lib/bridge";
 import { clearScene, readScene } from "../lib/sceneBridge";
-import { clearActiveFile } from "./activeFileStore";
-import { clearCachedFiles } from "./fileListCache";
-import type { ActiveDiagram } from "./useActiveDiagram";
-import type { DiagramLibrary } from "./useDiagramLibrary";
-
-export type UseSignOutFlowParams = Pick<
-  ActiveDiagram,
-  "activeId" | "revisionRef" | "onActiveIdChange" | "onActionErrorChange"
-> &
-  Pick<DiagramLibrary, "onStatusChange">;
+import { useActiveDiagramStore } from "./stores/activeDiagramStore";
+import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
+import { clearActiveFile, clearCachedFiles } from "./stores/sessionStore";
 
 export type SignOutFlow = {
   isSignOutOpen: boolean;
@@ -22,13 +15,11 @@ export type SignOutFlow = {
 
 // Owns the sign-out confirmation dialog state and the safe sign-out sequence
 // (flush the active diagram, clear local session state, clear the canvas).
-export const useSignOutFlow = ({
-  activeId,
-  revisionRef,
-  onActiveIdChange,
-  onStatusChange,
-  onActionErrorChange,
-}: UseSignOutFlowParams): SignOutFlow => {
+export const useSignOutFlow = (): SignOutFlow => {
+  const activeId = useActiveDiagramStore((s) => s.activeId);
+  const onActiveIdChange = useActiveDiagramStore((s) => s.onActiveIdChange);
+  const onActionErrorChange = useActiveDiagramStore((s) => s.onActionErrorChange);
+  const onStatusChange = useDiagramLibraryStore((s) => s.onStatusChange);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   // useCallback (not compiler-memoized — the ternary inside the outer catch
@@ -46,7 +37,7 @@ export const useSignOutFlow = ({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
           content: JSON.stringify(scene),
-          prevRevision: revisionRef.current ?? "",
+          prevRevision: useActiveDiagramStore.getState().revision ?? "",
         });
       } catch {
         // Best-effort flush; sign-out proceeds regardless.
@@ -62,7 +53,7 @@ export const useSignOutFlow = ({
     } catch (e) {
       onActionErrorChange(e instanceof Error ? e.message : "Failed to sign out");
     }
-  }, [activeId, revisionRef, onActiveIdChange, onStatusChange, onActionErrorChange]);
+  }, [activeId, onActiveIdChange, onStatusChange, onActionErrorChange]);
 
   const openSignOut = useCallback(() => setIsSignOutOpen(true), []);
   const cancelSignOut = useCallback(() => setIsSignOutOpen(false), []);

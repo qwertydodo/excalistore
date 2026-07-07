@@ -37,17 +37,21 @@ describe("useTextSearch", () => {
     expect(result.current.results).toEqual([items[1], items[2]]);
   });
 
-  it("hydrates the query once initialQuery transitions from undefined to a value", () => {
-    const { result, rerender } = renderHook(
-      ({ initialQuery }: { initialQuery?: string }) =>
-        useTextSearch(items, {
-          getText: (i) => i.name,
-          ...(initialQuery !== undefined && { initialQuery }),
-        }),
-      { initialProps: {} },
+  it("seeds the query from initialQuery at construction", () => {
+    const { result } = renderHook(() =>
+      useTextSearch(items, { getText: (i) => i.name, initialQuery: "beta" }),
     );
-    expect(result.current.query).toBe("");
-    rerender({ initialQuery: "beta" });
     expect(result.current.query).toBe("beta");
+  });
+
+  it("does not adopt a later-changing initialQuery — it only seeds at construction", () => {
+    const { result, rerender } = renderHook(
+      ({ initialQuery }: { initialQuery: string }) =>
+        useTextSearch(items, { getText: (i) => i.name, initialQuery }),
+      { initialProps: { initialQuery: "alpha" } },
+    );
+    expect(result.current.query).toBe("alpha");
+    rerender({ initialQuery: "beta" });
+    expect(result.current.query).toBe("alpha");
   });
 });
