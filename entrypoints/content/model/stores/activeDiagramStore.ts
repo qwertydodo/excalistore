@@ -92,7 +92,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
     try {
       const meta = await sendToBackground<DriveFile>({
         type: REQUEST_TYPE.DRIVE_CREATE,
-        name,
+        name: ensureExcalidrawExtension(name),
         content,
       });
       await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });

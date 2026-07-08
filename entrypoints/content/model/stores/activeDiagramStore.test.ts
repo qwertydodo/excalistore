@@ -152,6 +152,18 @@ describe("onAutoCreate", () => {
     expect(useActiveDiagramStore.getState().actionError).toBe("quota exceeded");
     expect(useActiveDiagramStore.getState().activeId).toBeNull();
   });
+
+  it("normalizes a bare name (no .excalidraw extension) before sending it", async () => {
+    vi.mocked(sendToBackground).mockResolvedValue(meta);
+
+    await useActiveDiagramStore.getState().onAutoCreate(JSON.stringify(emptyScene), "Untitled");
+
+    expect(sendToBackground).toHaveBeenCalledWith({
+      type: REQUEST_TYPE.DRIVE_CREATE,
+      name: "Untitled.excalidraw",
+      content: JSON.stringify(emptyScene),
+    });
+  });
 });
 
 describe("onRename", () => {
