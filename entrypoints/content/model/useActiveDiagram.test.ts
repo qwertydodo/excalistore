@@ -1,6 +1,35 @@
 // @vitest-environment jsdom
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SceneBridgeDeps } from "../lib/sceneBridge";
+
+// Map-backed fake of the Web Storage API — same shape as
+// activeDiagramStore.test.ts's own fake, since useActiveDiagram drives the
+// real currentSceneHash/readScene against the shared `bridge` singleton
+// (real idb-keyval, which needs a real IndexedDB the jsdom test env doesn't
+// provide — without this fake, the autosave effect's baseline-establishment
+// promise rejects unhandled once activeId goes truthy).
+function fakeStorage(seed: Record<string, string> = {}): Storage {
+  const m = new Map<string, string>(Object.entries(seed));
+  return {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+    clear: () => m.clear(),
+    key: (i: number) => Array.from(m.keys())[i] ?? null,
+    get length() {
+      return m.size;
+    },
+  } as Storage;
+}
+
+const fakeDeps: SceneBridgeDeps = {
+  storage: fakeStorage(),
+  loadFiles: vi.fn(async () => ({})),
+  saveFiles: vi.fn(async () => undefined),
+  clearFiles: vi.fn(async () => undefined),
+  reload: vi.fn(),
+};
 
 vi.mock("@/features/driveGateway", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/driveGateway")>()),
@@ -11,6 +40,7 @@ vi.mock("./stores/sessionStore", async (importOriginal) => ({
   getActiveFile: vi.fn(async () => null),
   getCachedFiles: vi.fn(async () => []),
 }));
+vi.mock("../lib/bridge", () => ({ bridge: fakeDeps }));
 
 const { sendToBackground } = await import("@/features/driveGateway");
 const { getActiveFile, getCachedFiles } = await import("./stores/sessionStore");
@@ -25,6 +55,7 @@ beforeEach(() => {
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
   useActiveDiagramStore.setState(INITIAL_ACTIVE_STATE, true);
   vi.mocked(sendToBackground).mockClear();
+  fakeDeps.storage.clear();
 });
 
 describe("useActiveDiagram", () => {
