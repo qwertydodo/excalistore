@@ -32,6 +32,16 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - **Tests are colocated** beside the code they test (e.g. `Button/Button.test.tsx`,
   `excalidraw-format.test.ts` next to `excalidraw-format.ts`). No top-level `tests/`
   directory.
+- **Check for an existing test helper before writing new mock/fake/stub
+  scaffolding.** `src/shared/lib/testUtils.ts` holds generic, project-wide
+  test doubles (`stubFetch`, `stubChromeStorageLocal`, `stubSessionStorage`);
+  `entrypoints/content/lib/testUtils.ts` holds ones scoped to that
+  entrypoint (e.g. `createFakeSceneBridgeDeps`, since `SceneBridgeDeps` is
+  entrypoint-local and `shared/` can't import it). Before hand-rolling a fake
+  in a new `*.test.ts` file, check whether one of these two files already
+  covers it, or should gain a new export instead of the test file growing
+  its own copy — this is the same "group small helpers by domain, don't
+  duplicate" rule as everywhere else, just for tests specifically.
 - **TypeScript style:** prefer `type` over `interface` everywhere; use
   `interface` only when something specifically needs it (e.g. declaration
   merging). A component's `XProps` type must be the type of the actual root

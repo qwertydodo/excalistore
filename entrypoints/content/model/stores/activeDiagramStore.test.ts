@@ -2,33 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildExcalidrawFile } from "@/entities/diagram";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
-import type { SceneBridgeDeps } from "../../lib/sceneBridge";
+import { createFakeSceneBridgeDeps } from "../../lib/testUtils";
 import { getActiveFile, setActiveFile } from "./sessionStore";
 
-// Map-backed fake of the Web Storage API — same shape as sceneBridge.test.ts's
-// own fake, since activeDiagramStore drives the real readScene/writeScene/
-// clearScene/readTheme against the shared `bridge` singleton.
-function fakeStorage(seed: Record<string, string> = {}): Storage {
-  const m = new Map<string, string>(Object.entries(seed));
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, v),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => Array.from(m.keys())[i] ?? null,
-    get length() {
-      return m.size;
-    },
-  } as Storage;
-}
-
-const fakeDeps: SceneBridgeDeps = {
-  storage: fakeStorage(),
-  loadFiles: vi.fn(async () => ({})),
-  saveFiles: vi.fn(async () => undefined),
-  clearFiles: vi.fn(async () => undefined),
-  reload: vi.fn(),
-};
+// activeDiagramStore drives the real readScene/writeScene/clearScene/
+// readTheme against the shared `bridge` singleton, so it needs a fake
+// SceneBridgeDeps rather than a plain jest.mock.
+const fakeDeps = createFakeSceneBridgeDeps();
 
 vi.mock("@/features/driveGateway", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/driveGateway")>()),
