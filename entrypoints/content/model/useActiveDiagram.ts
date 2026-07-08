@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ensureExcalidrawExtension, nextUntitledName } from "@/entities/diagram";
 import type { DriveFile } from "@/entities/google/drive";
 import type { ConnectionStatus } from "@/features/driveGateway";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
@@ -39,6 +40,12 @@ export const useActiveDiagram = (): void => {
   const onActiveIdChange = useActiveDiagramStore((s) => s.onActiveIdChange);
   const onRevisionChange = useActiveDiagramStore((s) => s.onRevisionChange);
   const onSaveStatusChange = useActiveDiagramStore((s) => s.onSaveStatusChange);
+  const isConnected = useDiagramLibraryStore((s) => s.status.isConnected);
+  // Guards the auto-create watcher below from racing the stale-pointer
+  // reconciliation in the effect right after this one: isConnected can flip
+  // true well before that reconciliation (and the active-pointer adoption it
+  // does) has actually finished.
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
   // Initial load: connection status, file list, restore the active pointer.
   useEffect(() => {
@@ -73,6 +80,7 @@ export const useActiveDiagram = (): void => {
         onActiveIdChange(null);
         onRevisionChange(null);
       }
+      setIsInitialLoadComplete(true);
     };
     loadInitial();
   }, [onActiveIdChange, onRevisionChange]);
@@ -111,4 +119,36 @@ export const useActiveDiagram = (): void => {
       autosave.stop();
     };
   }, [activeId, onSaveStatusChange, onRevisionChange]);
+
+  // Auto-create: no active diagram yet, but the user started drawing anyway —
+  // silently promote the current scene to a new Drive file once the change
+  // has been stable for the same debounce window as regular autosave. Once
+  // that succeeds, activeId flips non-null and the effect above takes over.
+  useEffect(() => {
+    if (activeId || !isConnected || !isInitialLoadComplete) return;
+    const autosave = createAutosave({
+      getHash: () => currentSceneHash(bridge),
+      save: async () => {
+        const scene = await readScene(bridge);
+        const { files } = useDiagramLibraryStore.getState();
+        const name = ensureExcalidrawExtension(nextUntitledName(files.map((f) => f.name)));
+        await useActiveDiagramStore.getState().onAutoCreate(JSON.stringify(scene), name);
+      },
+      onStatus: onSaveStatusChange,
+    });
+    // Unlike the autosave effect above, there's no previously-saved baseline
+    // to diff against here — nothing has been written to Drive for this
+    // scene yet, so treat it as dirty from the moment the watcher mounts
+    // (an empty hash never matches a real scene hash) instead of
+    // snapshotting whatever's already on the canvas as "saved". That way
+    // content drawn before the watcher could mount (e.g. while the initial
+    // load was still reconciling) still gets picked up, not just edits made
+    // after this point.
+    autosave.markSaved("");
+    autosave.start();
+    return () => {
+      autosave.flush();
+      autosave.stop();
+    };
+  }, [activeId, isConnected, isInitialLoadComplete, onSaveStatusChange]);
 };
