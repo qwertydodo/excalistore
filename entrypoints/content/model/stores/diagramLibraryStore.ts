@@ -2,7 +2,13 @@ import { create } from "zustand";
 import type { DriveFile } from "@/entities/google/drive";
 import type { ConnectionStatus } from "@/features/driveGateway";
 import { ERROR_CODE, REQUEST_TYPE, RequestError, sendToBackground } from "@/features/driveGateway";
-import { getDiagramSearchQuery, setCachedFiles, setPanelCollapsed } from "./sessionStore";
+import {
+  getDiagramSearchQuery,
+  hasValidatedFileListThisSession,
+  markFileListValidatedThisSession,
+  setCachedFiles,
+  setPanelCollapsed,
+} from "./sessionStore";
 
 export type DiagramLibraryStore = {
   status: ConnectionStatus;
@@ -34,11 +40,19 @@ export const useDiagramLibraryStore = create<DiagramLibraryStore>((set, get) => 
   onStatusChange: (status) => set({ status }),
   onFilesChange: (files) => set({ files }),
   refresh: async () => {
-    set({ isFilesLoading: true });
+    // Only skip the full-list loader once this tab session has already
+    // validated a list against Drive at least once (e.g. right before an
+    // open/switch/create reload) — that's a silent background revalidation,
+    // don't yank the just-painted list out to show a spinner. A brand new
+    // tab session shows the loader even if a cache is already painted: that
+    // cache could be stale (files added/removed on Drive since last time),
+    // and there's no in-flight reload to protect from flicker yet.
+    if (!hasValidatedFileListThisSession()) set({ isFilesLoading: true });
     try {
       const list = await sendToBackground<DriveFile[]>({ type: REQUEST_TYPE.DRIVE_LIST });
       set({ files: list });
       setCachedFiles(list); // keep the fast-paint cache fresh
+      markFileListValidatedThisSession();
       return list;
     } catch (e) {
       if (e instanceof RequestError && e.code === ERROR_CODE.UNAUTHORIZED) {

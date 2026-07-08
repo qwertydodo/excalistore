@@ -1,3 +1,4 @@
+import { ERROR_CODE, RequestError } from "@/features/driveGateway";
 import type { ValueOf } from "@/shared/lib";
 
 export const SAVE_STATUS = {
@@ -6,6 +7,7 @@ export const SAVE_STATUS = {
   SAVED: "saved",
   ERROR: "error",
   CONFLICT: "conflict",
+  DELETED: "deleted",
 } as const;
 
 export type SaveStatus = ValueOf<typeof SAVE_STATUS>;
@@ -39,6 +41,17 @@ export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
   let dirtySince: number | null = null;
   let isSaving = false;
   let timer: ReturnType<typeof setInterval> | null = null;
+  // Set once the remote file is confirmed gone (404). Unlike a conflict, this
+  // never resolves itself — retrying just hits the same 404 forever, so stop
+  // for good instead of spamming Drive every poll tick.
+  let isDeletedRemotely = false;
+
+  const stopTimer = (): void => {
+    if (timer !== null) {
+      clearInterval(timer);
+      timer = null;
+    }
+  };
 
   const runSave = async (hash: string): Promise<void> => {
     isSaving = true;
@@ -49,16 +62,22 @@ export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
       dirtySince = null;
       opts.onStatus(SAVE_STATUS.SAVED);
     } catch (e) {
-      opts.onStatus(
-        /conflict/i.test((e as Error).message) ? SAVE_STATUS.CONFLICT : SAVE_STATUS.ERROR,
-      );
+      if (e instanceof RequestError && e.code === ERROR_CODE.NOT_FOUND) {
+        isDeletedRemotely = true;
+        stopTimer();
+        opts.onStatus(SAVE_STATUS.DELETED);
+      } else {
+        opts.onStatus(
+          /conflict/i.test((e as Error).message) ? SAVE_STATUS.CONFLICT : SAVE_STATUS.ERROR,
+        );
+      }
     } finally {
       isSaving = false;
     }
   };
 
   const tick = async (): Promise<void> => {
-    if (isSaving) return;
+    if (isSaving || isDeletedRemotely) return;
     const hash = await opts.getHash();
     if (savedHash === null) {
       savedHash = hash; // first observation = baseline
@@ -73,24 +92,19 @@ export const createAutosave = (opts: AutosaveOptions): AutosaveController => {
   };
 
   const flush = async (): Promise<void> => {
-    if (isSaving) return;
+    if (isSaving || isDeletedRemotely) return;
     const hash = await opts.getHash();
     if (savedHash !== null && hash !== savedHash) await runSave(hash);
   };
 
   return {
     start() {
-      if (timer === null)
+      if (timer === null && !isDeletedRemotely)
         timer = setInterval(() => {
           tick();
         }, pollMs);
     },
-    stop() {
-      if (timer !== null) {
-        clearInterval(timer);
-        timer = null;
-      }
-    },
+    stop: stopTimer,
     tick,
     flush,
     markSaved(hash: string) {

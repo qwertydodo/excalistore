@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
+import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUtils";
 import {
   clearActiveFile,
   clearCachedFiles,
+  clearFileListValidatedThisSession,
   getActiveFile,
   getCachedFiles,
   getDiagramSearchQuery,
   getPanelCollapsed,
+  hasValidatedFileListThisSession,
+  markFileListValidatedThisSession,
   setActiveFile,
   setCachedFiles,
   setDiagramSearchQuery,
@@ -112,6 +115,27 @@ describe("panelCollapsed", () => {
       throw new Error("context invalidated");
     });
     await expect(getPanelCollapsed()).resolves.toBe(false);
+  });
+});
+
+describe("fileListValidated", () => {
+  beforeEach(() => {
+    stubSessionStorage();
+  });
+
+  it("defaults to false when nothing is marked", () => {
+    expect(hasValidatedFileListThisSession()).toBe(false);
+  });
+
+  it("returns true once marked", () => {
+    markFileListValidatedThisSession();
+    expect(hasValidatedFileListThisSession()).toBe(true);
+  });
+
+  it("resets to false after clearing (e.g. on sign-out)", () => {
+    markFileListValidatedThisSession();
+    clearFileListValidatedThisSession();
+    expect(hasValidatedFileListThisSession()).toBe(false);
   });
 });
 

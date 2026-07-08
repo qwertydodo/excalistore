@@ -218,6 +218,19 @@ describe("error classification", () => {
     });
   });
 
+  it("classifies Drive 404 as not_found", async () => {
+    vi.mocked(driveRepo.updateFile).mockRejectedValueOnce(
+      new DriveError(404, "Drive request failed: 404"),
+    );
+    const res = await handleMessage({
+      type: "drive/update",
+      id: "1",
+      content: "{}",
+      prevRevision: "r",
+    });
+    expect(res).toMatchObject({ ok: false, code: "not_found" });
+  });
+
   it("classifies unknown errors as unknown", async () => {
     vi.mocked(driveRepo.listFolder).mockRejectedValueOnce(new Error("network timeout"));
     const res = await handleMessage({ type: "drive/list" });

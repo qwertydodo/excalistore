@@ -139,7 +139,7 @@ or a content script on `https://excalidraw.com/` (same `chrome.runtime.id`);
 anything else is rejected with `forbidden sender`. The gateway returns a typed
 `Response<T>` that `sendToBackground` unwraps, throwing a `RequestError` on
 `{ ok: false }` that carries the response's `code`
-(`"conflict" | "unauthorized" | "unknown"`) as a typed property
+(`"conflict" | "unauthorized" | "not_found" | "unknown"`) as a typed property
 (`RequestError.code`) — so callers (the panel container, the autosave save
 callback) branch on it directly, e.g. `e instanceof RequestError && e.code ===
 "unauthorized"` to distinguish an expired session from a generic failure.
@@ -148,7 +148,9 @@ callback) branch on it directly, e.g. `e instanceof RequestError && e.code ===
 `code: "unauthorized"`: the gateway's `classifyError` helper keys off the
 structured `DriveError.status` (HTTP `401`/`403`, e.g. Drive's "insufficient
 scopes") and off named message patterns for token-grant failures
-(`UNAUTHORIZED_MESSAGE_PATTERN`), rather than inline magic strings.
+(`UNAUTHORIZED_MESSAGE_PATTERN`), rather than inline magic strings. A `404`
+(the active file deleted on Drive out from under an in-flight autosave) maps
+to `code: "not_found"`, also keyed off `DriveError.status`.
 `listFolder` follows Drive's `nextPageToken`, so folders with more than one
 page of diagrams list completely.
 
@@ -261,10 +263,15 @@ in isolation.
   `createAutosave({getHash, save,
   onStatus, delayMs, pollMs, now})` polls `currentSceneHash`, and once the
   hash has been stable-but-different from the last saved hash for `delayMs`
-  (~2.5s), calls `save()` and reports `saving` → `saved`/`conflict`/`error`.
-  `flush()` forces an immediate save when dirty (used by sign-out); the clock
-  and poll trigger are injectable, so the controller is fully unit-tested
-  without real timers.
+  (~2.5s), calls `save()` and reports `saving` →
+  `saved`/`conflict`/`error`/`deleted`. A `save()` rejection with
+  `RequestError.code === "not_found"` reports `deleted` and permanently stops
+  the poll timer for that controller instance — a `404` never resolves itself
+  the way a conflict might, so retrying forever would just spam Drive with
+  requests against a file that's gone. `flush()` forces an immediate save
+  when dirty (used by sign-out) but is likewise a no-op once `deleted`; the
+  clock and poll trigger are injectable, so the controller is fully
+  unit-tested without real timers.
 - **`sessionStore`** (`entrypoints/content/model/stores/sessionStore.ts`) —
   plain `chrome.storage.local` get/set/clear wrappers, one file since each is
   just a key/value pair, not real app state: `getActiveFile`/`setActiveFile`/
@@ -273,7 +280,12 @@ in isolation.
   `getCachedFiles`/`setCachedFiles`/`clearCachedFiles` (file-list cache),
   `getPanelCollapsed`/`setPanelCollapsed` (panel collapse), and
   `getDiagramSearchQuery`/`setDiagramSearchQuery` (search query) persist the
-  same way.
+  same way. Also `hasValidatedFileListThisSession`/
+  `markFileListValidatedThisSession`, backed by `window.sessionStorage`
+  instead of `chrome.storage.local`: it must survive a same-tab
+  `writeScene`-triggered reload (so an open/switch/create doesn't re-show the
+  full-list loading spinner) but must NOT survive a fresh tab/browser session
+  (whose cached file list could be stale relative to Drive).
 - **zustand stores** (`entrypoints/content/model/stores/` —
   `diagramLibraryStore`, `activeDiagramStore`) — in-memory (not persisted)
   reactive state, alongside `sessionStore` since both are "the app's stores",
@@ -378,7 +390,12 @@ re-implements a button, dialog, or theme lookup.
   `headRevisionId` and re-persists the active-file pointer. If the remote
   `headRevisionId` no longer matches `prevRevision`, the gateway returns
   `code: "conflict"`; the badge shows "Conflict — not saved" — no silent
-  overwrite (resolution UI deferred; v1 blocks + tells the user).
+  overwrite (resolution UI deferred; v1 blocks + tells the user). If the file
+  no longer exists on Drive at all, the gateway returns `code: "not_found"`;
+  the badge shows "Diagram deleted on Drive", `useActiveDiagram`'s
+  `handleRemoteDeletion` clears the active pointer and drops the row from the
+  panel list, and the autosave controller stops polling for that file for
+  good (see `autosave` above).
 - **Rename:** inline edit → gateway `drive/rename(id, name)` → re-fetch
   `drive/list` to refresh the panel.
 

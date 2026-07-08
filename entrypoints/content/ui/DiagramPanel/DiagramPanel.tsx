@@ -22,6 +22,7 @@ const STATUS_TONE: Record<SaveStatus, Tone> = {
   saved: "success",
   error: "danger",
   conflict: "danger",
+  deleted: "danger",
 };
 
 const STATUS_LABEL: Record<SaveStatus, string> = {
@@ -30,6 +31,7 @@ const STATUS_LABEL: Record<SaveStatus, string> = {
   saved: "Saved",
   error: "Save failed",
   conflict: "Conflict — not saved",
+  deleted: "Diagram deleted on Drive",
 };
 
 export const DiagramPanel = ({ onSignOut }: DiagramPanelProps) => {

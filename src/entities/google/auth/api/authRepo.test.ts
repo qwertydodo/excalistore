@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { authRepo } from "./authRepo";
+import { ACCESS_NOT_APPROVED_MESSAGE, authRepo } from "./authRepo";
 
 const identity = {
   getAuthToken: vi.fn(),
@@ -37,6 +37,16 @@ describe("authRepo.getToken", () => {
       cb({}),
     );
     await expect(authRepo.getToken(true)).rejects.toThrow(/denied/);
+  });
+
+  it("rewrites Chrome's raw consent-denial message into user-facing copy", async () => {
+    (
+      globalThis as unknown as { chrome: { runtime: { lastError?: { message: string } } } }
+    ).chrome.runtime.lastError = { message: "The user did not approve access." };
+    identity.getAuthToken.mockImplementation((_: unknown, cb: (r: { token?: string }) => void) =>
+      cb({}),
+    );
+    await expect(authRepo.getToken(true)).rejects.toThrow(ACCESS_NOT_APPROVED_MESSAGE);
   });
 
   it("dedupes concurrent non-interactive getToken calls", async () => {
