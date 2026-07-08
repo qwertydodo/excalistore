@@ -113,6 +113,47 @@ describe("onCreate", () => {
   });
 });
 
+describe("onAutoCreate", () => {
+  it("creates the file from the given content, sets the pointer directly (no reload), and prepends it to the library list", async () => {
+    useDiagramLibraryStore.setState({
+      files: [{ id: "9", name: "existing.excalidraw", modifiedTime: "t", headRevisionId: "r9" }],
+    });
+    vi.mocked(sendToBackground).mockResolvedValue(meta);
+
+    await useActiveDiagramStore
+      .getState()
+      .onAutoCreate(JSON.stringify(emptyScene), "Untitled.excalidraw");
+
+    expect(sendToBackground).toHaveBeenCalledWith({
+      type: REQUEST_TYPE.DRIVE_CREATE,
+      name: "Untitled.excalidraw",
+      content: JSON.stringify(emptyScene),
+    });
+    await expect(getActiveFile()).resolves.toEqual({
+      id: "1",
+      name: "beta.excalidraw",
+      loadedRevision: "r2",
+    });
+    expect(useActiveDiagramStore.getState().activeId).toBe("1");
+    expect(useActiveDiagramStore.getState().revision).toBe("r2");
+    expect(fakeDeps.reload).not.toHaveBeenCalled();
+    expect(useDiagramLibraryStore.getState().files.map((f) => f.id)).toEqual(["1", "9"]);
+  });
+
+  it("records an error and rethrows when creation fails", async () => {
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("quota exceeded"));
+
+    await expect(
+      useActiveDiagramStore
+        .getState()
+        .onAutoCreate(JSON.stringify(emptyScene), "Untitled.excalidraw"),
+    ).rejects.toThrow("quota exceeded");
+
+    expect(useActiveDiagramStore.getState().actionError).toBe("quota exceeded");
+    expect(useActiveDiagramStore.getState().activeId).toBeNull();
+  });
+});
+
 describe("onRename", () => {
   it("patches the renamed file into the library's file list in place", async () => {
     useDiagramLibraryStore.setState({
