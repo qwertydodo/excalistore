@@ -53,6 +53,9 @@ export const useSignOutFlow = (): SignOutFlow => {
       }
     }
     try {
+      // Revoke token first, then flip isConnected: auto-create watcher's cleanup
+      // flush() fires onAutoCreate when isConnected goes false, but token is already
+      // revoked so the create fails harmlessly, and scene-clear reload discards it.
       await sendToBackground({ type: REQUEST_TYPE.AUTH_SIGN_OUT });
       await clearActiveFile();
       await clearCachedFiles();

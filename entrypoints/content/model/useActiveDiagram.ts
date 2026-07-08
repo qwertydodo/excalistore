@@ -142,6 +142,9 @@ export const useActiveDiagram = (): void => {
         const scene = await readScene(bridge);
         const { files } = useDiagramLibraryStore.getState();
         const name = ensureExcalidrawExtension(nextUntitledName(files.map((f) => f.name)));
+        // Unlike drive/update (idempotent, guarded by revision), failed onAutoCreate
+        // leaves dirty state untouched, so createAutosave retries drive/create on the
+        // next ~1s tick — risk of duplicate "Untitled" if failure was partial success.
         await useActiveDiagramStore.getState().onAutoCreate(JSON.stringify(scene), name);
       },
       onStatus: onSaveStatusChange,
