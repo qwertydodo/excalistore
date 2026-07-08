@@ -271,7 +271,10 @@ in isolation.
   requests against a file that's gone. `flush()` forces an immediate save
   when dirty (used by sign-out) but is likewise a no-op once `deleted`; the
   clock and poll trigger are injectable, so the controller is fully
-  unit-tested without real timers.
+  unit-tested without real timers. `useActiveDiagram` creates two independent
+  instances of it: one for regular per-file autosave, one for the
+  auto-create-on-first-stroke watcher above — same debounce semantics, two
+  different `save()` callbacks.
 - **`sessionStore`** (`entrypoints/content/model/stores/sessionStore.ts`) —
   plain `chrome.storage.local` get/set/clear wrappers, one file since each is
   just a key/value pair, not real app state: `getActiveFile`/`setActiveFile`/
@@ -396,6 +399,21 @@ re-implements a button, dialog, or theme lookup.
   `handleRemoteDeletion` clears the active pointer and drops the row from the
   panel list, and the autosave controller stops polling for that file for
   good (see `autosave` above).
+- **Auto-create on first stroke:** a third `useEffect` in `useActiveDiagram`
+  runs the opposite condition — no `activeId`, connected, and the initial
+  load/stale-pointer reconciliation already finished (a local
+  `isInitialLoadComplete` flag guards against racing that reconciliation).
+  It reuses the same `createAutosave` debounce (~2.5s stable-changed) as
+  regular autosave; once it fires, `activeDiagramStore.onAutoCreate(content,
+  name)` creates a Drive file from the *current* scene (not blank) and sets
+  `activeId`/`revision` directly — no `writeScene`, no reload, so the user's
+  drawing is never interrupted. The name comes from `nextUntitledName`
+  (`src/entities/diagram/lib/fileName.ts`): `"Untitled"`, `"Untitled 2"`, ...,
+  case-insensitive collision check against the current library list. Once
+  `activeId` flips non-null, the regular autosave effect above takes over —
+  no special handoff code. Composes with remote-deletion handling above with
+  no extra logic: if the active file gets deleted mid-session and the user
+  keeps drawing, `activeId` going back to null re-arms this same watcher.
 - **Rename:** inline edit → gateway `drive/rename(id, name)` → re-fetch
   `drive/list` to refresh the panel.
 
