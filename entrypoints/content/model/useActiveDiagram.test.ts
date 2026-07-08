@@ -197,11 +197,16 @@ describe("auto-create watcher", () => {
     vi.useFakeTimers();
     try {
       let resolveList: (v: unknown) => void = () => {};
+      let isInitialListResolved = false;
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
         if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") {
+          // Only the initial load's list call stalls; the auto-create
+          // watcher's own refresh()-before-retry call (Fix A) should resolve
+          // normally once the initial load has gone through.
+          if (isInitialListResolved) return [];
           return new Promise((resolve) => {
             resolveList = resolve;
           });
@@ -220,6 +225,7 @@ describe("auto-create watcher", () => {
         expect.objectContaining({ type: "drive/create" }),
       );
 
+      isInitialListResolved = true;
       resolveList([]); // initial load finally completes
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0); // let the mount settle
@@ -261,6 +267,102 @@ describe("auto-create watcher", () => {
       });
       await act(async () => {
         await vi.advanceTimersByTimeAsync(5000); // well past the 2.5s debounce
+      });
+
+      expect(sendToBackground).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "drive/create" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("refreshes the file list from Drive before retrying a failed create (dedupe against a lost-response partial success)", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(getActiveFile).mockResolvedValue(null);
+      vi.mocked(getCachedFiles).mockResolvedValue([]);
+      let listCallCount = 0;
+      let createCallCount = 0;
+      vi.mocked(sendToBackground).mockImplementation(async (request) => {
+        if (request.type === "auth/status") return { isConnected: true };
+        if (request.type === "drive/list") {
+          listCallCount++;
+          return [];
+        }
+        if (request.type === "drive/create") {
+          createCallCount++;
+          if (createCallCount === 1) throw new Error("network blip");
+          return { id: "1", name: "Untitled.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
+        }
+        throw new Error(`unexpected request ${request.type}`);
+      });
+      let hash = "h0";
+      vi.mocked(currentSceneHash).mockImplementation(async () => hash);
+
+      renderHook(() => useActiveDiagram());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0); // let the initial load + baseline settle
+      });
+      const listCallsAfterInitialLoad = listCallCount;
+
+      hash = "h1"; // user starts drawing
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000); // past the 2.5s debounce, first create fails
+      });
+
+      expect(createCallCount).toBe(1);
+      // The failed attempt still refreshed the list before computing its name.
+      expect(listCallCount).toBeGreaterThan(listCallsAfterInitialLoad);
+      const listCallsAfterFirstAttempt = listCallCount;
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000); // next ~1s tick retries
+      });
+
+      // The retry refreshed the list again (rather than trusting the stale
+      // local snapshot) before recomputing the name and retrying the create.
+      expect(listCallCount).toBeGreaterThan(listCallsAfterFirstAttempt);
+      expect(createCallCount).toBe(2);
+      expect(useActiveDiagramStore.getState().activeId).toBe("1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("skips the flush on cleanup when signing out, so it never fires onAutoCreate mid sign-out", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(getActiveFile).mockResolvedValue(null);
+      vi.mocked(getCachedFiles).mockResolvedValue([]);
+      vi.mocked(sendToBackground).mockImplementation(async (request) => {
+        if (request.type === "auth/status") return { isConnected: true };
+        if (request.type === "drive/list") return [];
+        if (request.type === "drive/create")
+          return { id: "1", name: "Untitled.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
+        throw new Error(`unexpected request ${request.type}`);
+      });
+      let hash = "h0";
+      vi.mocked(currentSceneHash).mockImplementation(async () => hash);
+
+      const { unmount } = renderHook(() => useActiveDiagram());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0); // let the initial load + baseline settle
+      });
+
+      hash = "h1"; // user starts drawing, well under the debounce window
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+
+      useActiveDiagramStore.getState().onSigningOutChange(true);
+      unmount(); // cleanup runs: flush() must be skipped, and the timer stopped
+
+      await act(async () => {
+        // Past the debounce window and several more ~1s ticks — if the timer
+        // weren't also stopped on cleanup, a dangling tick would eventually
+        // retrigger the save on its own even without an explicit flush.
+        await vi.advanceTimersByTimeAsync(5000);
       });
 
       expect(sendToBackground).not.toHaveBeenCalledWith(

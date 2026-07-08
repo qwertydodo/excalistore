@@ -38,6 +38,10 @@ export const useSignOutFlow = (): SignOutFlow => {
   const doSignOut = useCallback(async () => {
     setIsSignOutOpen(false);
     onActionErrorChange(null);
+    // Signal the auto-create watcher (useActiveDiagram) to skip its flush
+    // once isConnected flips false below — set before anything else so it's
+    // in place for the entire sequence, including the flush right after.
+    useActiveDiagramStore.getState().onSigningOutChange(true);
     // Flush the active file before clearing, per the safe sign-out contract.
     if (activeId) {
       try {
@@ -53,9 +57,13 @@ export const useSignOutFlow = (): SignOutFlow => {
       }
     }
     try {
-      // Revoke token first, then flip isConnected: auto-create watcher's cleanup
-      // flush() fires onAutoCreate when isConnected goes false, but token is already
-      // revoked so the create fails harmlessly, and scene-clear reload discards it.
+      // isConnected flipping false below unmounts the auto-create watcher's
+      // effect in useActiveDiagram; its cleanup checks the isSigningOut flag
+      // set above and skips flush() explicitly, rather than relying on the
+      // token revoke below happening first to make a stray create fail
+      // harmlessly. clearScene reloads the tab on success (see below), which
+      // resets isSigningOut naturally with the rest of in-memory state — the
+      // catch block below resets it explicitly for the abort path instead.
       await sendToBackground({ type: REQUEST_TYPE.AUTH_SIGN_OUT });
       await clearActiveFile();
       await clearCachedFiles();
@@ -65,6 +73,9 @@ export const useSignOutFlow = (): SignOutFlow => {
       await clearScene(bridge); // clears canvas + reloads
     } catch (e) {
       onActionErrorChange(e instanceof Error ? e.message : "Failed to sign out");
+      // Sign-out aborted — resume normal auto-create behavior instead of
+      // leaving the watcher permanently skipping its flush.
+      useActiveDiagramStore.getState().onSigningOutChange(false);
     }
   }, [activeId, onActiveIdChange, onStatusChange, onActionErrorChange]);
 

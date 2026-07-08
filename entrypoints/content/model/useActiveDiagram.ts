@@ -140,11 +140,16 @@ export const useActiveDiagram = (): void => {
       getHash: () => currentSceneHash(bridge),
       save: async () => {
         const scene = await readScene(bridge);
-        const { files } = useDiagramLibraryStore.getState();
+        // Unlike drive/update (idempotent, guarded by revision), a failed
+        // onAutoCreate leaves dirty state untouched, so createAutosave retries
+        // drive/create on the next ~1s tick. Refresh the file list from Drive
+        // first — rather than trusting the possibly-stale local snapshot — so
+        // a retry after a lost-response partial success (Drive created the
+        // file, but the response never arrived) sees that file in the fresh
+        // list and picks the next distinct name instead of colliding on an
+        // identical one.
+        const files = await useDiagramLibraryStore.getState().refresh();
         const name = ensureExcalidrawExtension(nextUntitledName(files.map((f) => f.name)));
-        // Unlike drive/update (idempotent, guarded by revision), failed onAutoCreate
-        // leaves dirty state untouched, so createAutosave retries drive/create on the
-        // next ~1s tick — risk of duplicate "Untitled" if failure was partial success.
         await useActiveDiagramStore.getState().onAutoCreate(JSON.stringify(scene), name);
       },
       onStatus: onSaveStatusChange,
@@ -160,7 +165,14 @@ export const useActiveDiagram = (): void => {
     autosave.markSaved(EMPTY_SCENE_HASH);
     autosave.start();
     return () => {
-      autosave.flush();
+      // Sign-out flips isConnected false, which unmounts this effect and would
+      // otherwise flush a create for whatever's on the canvas mid sign-out.
+      // useSignOutFlow sets this flag explicitly before it starts tearing
+      // down, so skip the flush entirely rather than relying on the OAuth
+      // token already being revoked by the time this cleanup runs. Read via
+      // getState() (not a hook dependency) so this cleanup always sees the
+      // latest value without re-running the effect.
+      if (!useActiveDiagramStore.getState().isSigningOut) autosave.flush();
       autosave.stop();
     };
   }, [activeId, isConnected, isInitialLoadComplete, onSaveStatusChange]);

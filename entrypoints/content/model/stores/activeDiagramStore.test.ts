@@ -154,6 +154,16 @@ describe("onAutoCreate", () => {
   });
 });
 
+describe("onSigningOutChange", () => {
+  it("sets the isSigningOut flag", () => {
+    expect(useActiveDiagramStore.getState().isSigningOut).toBe(false);
+    useActiveDiagramStore.getState().onSigningOutChange(true);
+    expect(useActiveDiagramStore.getState().isSigningOut).toBe(true);
+    useActiveDiagramStore.getState().onSigningOutChange(false);
+    expect(useActiveDiagramStore.getState().isSigningOut).toBe(false);
+  });
+});
+
 describe("onRename", () => {
   it("patches the renamed file into the library's file list in place", async () => {
     useDiagramLibraryStore.setState({
