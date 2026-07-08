@@ -23,6 +23,7 @@ export type ActiveDiagramStore = {
   onActionErrorChange: (error: string | null) => void;
   onOpen: (id: string) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
+  onAutoCreate: (content: string, name: string) => Promise<void>;
   onRename: (id: string, name: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 };
@@ -84,6 +85,25 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
       await writeScene(empty, bridge); // reloads
     } catch (e) {
       set({ actionError: e instanceof Error ? e.message : "Failed to create diagram" });
+    }
+  },
+  onAutoCreate: async (content, name) => {
+    set({ actionError: null });
+    try {
+      const meta = await sendToBackground<DriveFile>({
+        type: REQUEST_TYPE.DRIVE_CREATE,
+        name: ensureExcalidrawExtension(name),
+        content,
+      });
+      await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+      set({ activeId: meta.id, revision: meta.headRevisionId });
+      const { files, onFilesChange } = useDiagramLibraryStore.getState();
+      const next = [meta, ...files];
+      onFilesChange(next);
+      setCachedFiles(next);
+    } catch (e) {
+      set({ actionError: e instanceof Error ? e.message : "Failed to create diagram" });
+      throw e;
     }
   },
   onRename: async (id, name) => {

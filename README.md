@@ -14,6 +14,7 @@ A Chrome extension (Manifest V3) that connects [excalidraw.com](https://excalidr
 - **Remote-deletion handling** — if the active file gets deleted on Drive elsewhere, autosave stops retrying it, the badge says so, and its pointer/row are dropped from the panel.
 - **Client-side diagram search** — a search box in the panel filters the loaded diagram list by name (case-insensitive substring, 3+ characters, debounced 300ms); the query persists across the reload triggered by opening a diagram.
 - **Live theme sync** — the panel's light/dark theme tracks Excalidraw's own theme automatically and instantly, with no manual toggle and no polling.
+- **Auto-create on first stroke** — start drawing with no diagram open and Excalistore silently saves it to Drive as a new "Untitled" diagram once you pause, no dialog or reload.
 
 ## Stack
 

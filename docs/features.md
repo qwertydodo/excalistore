@@ -133,3 +133,12 @@ _(Move items here as they ship, with a short behavior description.)_
   and its row in the panel list are dropped, and autosave stops retrying that
   file for good (a 404 never resolves itself, unlike a conflict) — instead of
   silently retrying against a deleted file forever.
+- Auto-create on first stroke: if a connected user has no active diagram and
+  starts drawing anyway, the panel silently creates a new Drive file
+  ("Untitled", "Untitled 2", ...) from the current canvas content once the
+  change has been stable for the same ~2.5s debounce as regular autosave —
+  no dialog, no tab reload, drawing is never interrupted. From then on it
+  behaves like any other active diagram (autosaves, appears in the list,
+  can be renamed). Composes with remote-deletion handling: if the active file
+  gets deleted mid-session and the user keeps drawing, this is what silently
+  creates its replacement.
