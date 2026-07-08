@@ -330,6 +330,73 @@ describe("auto-create watcher", () => {
     }
   });
 
+  it("picks a distinct name on retry when the failed attempt actually succeeded on Drive (lost-response partial success)", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(getActiveFile).mockResolvedValue(null);
+      vi.mocked(getCachedFiles).mockResolvedValue([]);
+      // Simulates the scenario the refresh()-before-retry fix (9bd3f2f)
+      // guards against: the first drive/create actually landed on Drive,
+      // but the client never saw the response (so it retries) and the
+      // retry's refreshed list now contains the file the first attempt
+      // created under the name the retry would otherwise reuse.
+      const collidingFile = {
+        id: "1",
+        name: "Untitled.excalidraw",
+        modifiedTime: "t",
+        headRevisionId: "r1",
+      };
+      let hasFirstCreateFailed = false;
+      vi.mocked(sendToBackground).mockImplementation(async (request) => {
+        if (request.type === "auth/status") return { isConnected: true };
+        if (request.type === "drive/list") return hasFirstCreateFailed ? [collidingFile] : [];
+        if (request.type === "drive/create") {
+          if (!hasFirstCreateFailed) {
+            hasFirstCreateFailed = true;
+            throw new Error("network blip");
+          }
+          return {
+            id: "2",
+            name: "Untitled 2.excalidraw",
+            modifiedTime: "t",
+            headRevisionId: "r2",
+          };
+        }
+        throw new Error(`unexpected request ${request.type}`);
+      });
+      let hash = "h0";
+      vi.mocked(currentSceneHash).mockImplementation(async () => hash);
+
+      renderHook(() => useActiveDiagram());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0); // let the initial load + baseline settle
+      });
+
+      hash = "h1"; // user starts drawing
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000); // past the 2.5s debounce, first create fails
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000); // next ~1s tick retries
+      });
+
+      const createCalls = vi
+        .mocked(sendToBackground)
+        .mock.calls.filter(([request]) => request.type === "drive/create");
+      expect(createCalls).toHaveLength(2);
+      const [firstCreateCall, secondCreateCall] = createCalls;
+      expect(firstCreateCall?.[0]).toMatchObject({ name: "Untitled.excalidraw" });
+      // The retry must not reuse "Untitled.excalidraw" — that name is now
+      // taken on Drive's side, even though the client's own snapshot never
+      // recorded it. Only refreshing before computing the name avoids this.
+      expect(secondCreateCall?.[0]).toMatchObject({ name: "Untitled 2.excalidraw" });
+      expect(useActiveDiagramStore.getState().activeId).toBe("2");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("skips the flush on cleanup when signing out, so it never fires onAutoCreate mid sign-out", async () => {
     vi.useFakeTimers();
     try {
