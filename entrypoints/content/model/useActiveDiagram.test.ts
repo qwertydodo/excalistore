@@ -397,7 +397,7 @@ describe("auto-create watcher", () => {
     }
   });
 
-  it("skips the flush on cleanup when signing out, so it never fires onAutoCreate mid sign-out", async () => {
+  it("never fires onAutoCreate on cleanup, since nothing has been saved yet to protect with a flush", async () => {
     vi.useFakeTimers();
     try {
       vi.mocked(getActiveFile).mockResolvedValue(null);
@@ -422,8 +422,7 @@ describe("auto-create watcher", () => {
         await vi.advanceTimersByTimeAsync(500);
       });
 
-      useActiveDiagramStore.getState().onSigningOutChange(true);
-      unmount(); // cleanup runs: flush() must be skipped, and the timer stopped
+      unmount(); // cleanup runs: no flush() call exists here, and the timer is stopped
 
       await act(async () => {
         // Past the debounce window and several more ~1s ticks — if the timer

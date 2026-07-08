@@ -17,16 +17,10 @@ export type ActiveDiagramStore = {
   revision: string | null;
   saveStatus: SaveStatus;
   actionError: string | null;
-  // Set by useSignOutFlow for the duration of doSignOut, so the auto-create
-  // watcher's cleanup in useActiveDiagram can explicitly skip its flush
-  // instead of relying on the OAuth token already being revoked by the time
-  // isConnected flips false.
-  isSigningOut: boolean;
   onActiveIdChange: (id: string | null) => void;
   onRevisionChange: (revision: string | null) => void;
   onSaveStatusChange: (status: SaveStatus) => void;
   onActionErrorChange: (error: string | null) => void;
-  onSigningOutChange: (isSigningOut: boolean) => void;
   onOpen: (id: string) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
   onAutoCreate: (content: string, name: string) => Promise<void>;
@@ -44,12 +38,10 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   revision: null,
   saveStatus: SAVE_STATUS.IDLE,
   actionError: null,
-  isSigningOut: false,
   onActiveIdChange: (id) => set({ activeId: id }),
   onRevisionChange: (revision) => set({ revision }),
   onSaveStatusChange: (status) => set({ saveStatus: status }),
   onActionErrorChange: (error) => set({ actionError: error }),
-  onSigningOutChange: (isSigningOut) => set({ isSigningOut }),
   onOpen: async (id) => {
     const { activeId, revision } = get();
     if (id === activeId) return; // already open

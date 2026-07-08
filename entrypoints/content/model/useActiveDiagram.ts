@@ -165,14 +165,11 @@ export const useActiveDiagram = (): void => {
     autosave.markSaved(EMPTY_SCENE_HASH);
     autosave.start();
     return () => {
-      // Sign-out flips isConnected false, which unmounts this effect and would
-      // otherwise flush a create for whatever's on the canvas mid sign-out.
-      // useSignOutFlow sets this flag explicitly before it starts tearing
-      // down, so skip the flush entirely rather than relying on the OAuth
-      // token already being revoked by the time this cleanup runs. Read via
-      // getState() (not a hook dependency) so this cleanup always sees the
-      // latest value without re-running the effect.
-      if (!useActiveDiagramStore.getState().isSigningOut) autosave.flush();
+      // Unlike the autosave effect above, no flush() here: this watcher has
+      // never successfully saved anything by the time cleanup runs, so
+      // there's no already-saved state to protect. Every trigger for this
+      // cleanup (disconnect, sign-out, or activeId just going non-null on
+      // success) makes a create either doomed or redundant.
       autosave.stop();
     };
   }, [activeId, isConnected, isInitialLoadComplete, onSaveStatusChange]);
