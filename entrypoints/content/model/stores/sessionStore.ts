@@ -89,6 +89,17 @@ export const markFileListValidatedThisSession = (): void => {
   }
 };
 
+// Sign-out reloads the same tab, which sessionStorage survives — without
+// this, a same-tab reconnect would wrongly skip the loader using a flag left
+// over from the previous (now signed-out) session's Drive folder.
+export const clearFileListValidatedThisSession = (): void => {
+  try {
+    sessionStorage.removeItem(FILE_LIST_VALIDATED_KEY);
+  } catch {
+    // ignore
+  }
+};
+
 const PANEL_COLLAPSED_KEY = "panelCollapsed";
 
 // Whether the in-page panel is collapsed — persisted so the choice survives the
