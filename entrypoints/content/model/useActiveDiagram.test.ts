@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildExcalidrawFile, sceneHash } from "@/entities/diagram";
 import { createFakeSceneBridgeDeps } from "../lib/testUtils";
 
 // useActiveDiagram drives the real currentSceneHash/readScene against the
@@ -38,7 +39,7 @@ const { getActiveFile, getCachedFiles } = await import("./stores/sessionStore");
 const { useDiagramLibraryStore } = await import("./stores/diagramLibraryStore");
 const { useActiveDiagramStore } = await import("./stores/activeDiagramStore");
 const { useActiveDiagram } = await import("./useActiveDiagram");
-const { currentSceneHash } = await import("../lib/sceneBridge");
+const { currentSceneHash, readScene } = await import("../lib/sceneBridge");
 
 const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
 const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
@@ -227,6 +228,42 @@ describe("auto-create watcher", () => {
         await vi.advanceTimersByTimeAsync(5000);
       });
       expect(sendToBackground).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "drive/create" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never auto-creates from a genuinely blank canvas, even well past the debounce window (regression coverage for the EMPTY_SCENE_HASH baseline, commit 150b16c)", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(getActiveFile).mockResolvedValue(null);
+      vi.mocked(getCachedFiles).mockResolvedValue([]);
+      vi.mocked(sendToBackground).mockImplementation(async (request) => {
+        if (request.type === "auth/status") return { isConnected: true };
+        if (request.type === "drive/list") return [];
+        throw new Error(`unexpected request ${request.type}`);
+      });
+      // Exercise the real hashing path instead of the literal-string mock the
+      // other scenarios above use: readScene returns an actually-blank
+      // envelope, and currentSceneHash delegates to the real sceneHash over
+      // it, so this reproduces the exact EMPTY_SCENE_HASH the source module
+      // seeds the watcher's baseline with.
+      vi.mocked(readScene).mockResolvedValue(buildExcalidrawFile([], {}, {}));
+      vi.mocked(currentSceneHash).mockImplementation(async (deps) =>
+        sceneHash(await readScene(deps)),
+      );
+
+      renderHook(() => useActiveDiagram());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0); // let the initial load + baseline settle
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000); // well past the 2.5s debounce
+      });
+
+      expect(sendToBackground).not.toHaveBeenCalledWith(
         expect.objectContaining({ type: "drive/create" }),
       );
     } finally {
