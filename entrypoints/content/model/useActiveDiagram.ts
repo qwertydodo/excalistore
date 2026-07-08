@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { ensureExcalidrawExtension, nextUntitledName } from "@/entities/diagram";
+import {
+  buildExcalidrawFile,
+  ensureExcalidrawExtension,
+  nextUntitledName,
+  sceneHash,
+} from "@/entities/diagram";
 import type { DriveFile } from "@/entities/google/drive";
 import type { ConnectionStatus } from "@/features/driveGateway";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
@@ -15,6 +20,11 @@ import {
   setActiveFile,
   setCachedFiles,
 } from "./stores/sessionStore";
+
+// Canonical hash of a blank scene (no elements, no app state, no files) —
+// the baseline the auto-create watcher diffs against, so an untouched canvas
+// never registers as dirty.
+const EMPTY_SCENE_HASH = sceneHash(buildExcalidrawFile([], {}, {}));
 
 // The active file was confirmed gone from Drive (autosave got a 404) — drop
 // the local pointer and the stale row so the panel stops highlighting/
@@ -138,13 +148,13 @@ export const useActiveDiagram = (): void => {
     });
     // Unlike the autosave effect above, there's no previously-saved baseline
     // to diff against here — nothing has been written to Drive for this
-    // scene yet, so treat it as dirty from the moment the watcher mounts
-    // (an empty hash never matches a real scene hash) instead of
-    // snapshotting whatever's already on the canvas as "saved". That way
-    // content drawn before the watcher could mount (e.g. while the initial
-    // load was still reconciling) still gets picked up, not just edits made
-    // after this point.
-    autosave.markSaved("");
+    // scene yet. Seed against the canonical empty-scene hash rather than
+    // snapshotting whatever's already on the canvas as "saved": a blank
+    // canvas hashes identically to EMPTY_SCENE_HASH and correctly stays
+    // "not dirty" forever, while any real content — drawn before the watcher
+    // could mount (e.g. while the initial load was still reconciling) or
+    // after — hashes differently and gets picked up as dirty.
+    autosave.markSaved(EMPTY_SCENE_HASH);
     autosave.start();
     return () => {
       autosave.flush();
