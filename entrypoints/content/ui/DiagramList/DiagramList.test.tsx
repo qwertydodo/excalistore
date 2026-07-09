@@ -20,8 +20,7 @@ beforeEach(() => {
     {
       ...INITIAL_LIBRARY_STATE,
       files,
-      isFilesLoading: false,
-      isQueryLoaded: true,
+      isQueryReady: true,
       initialQuery: "",
     },
     true,

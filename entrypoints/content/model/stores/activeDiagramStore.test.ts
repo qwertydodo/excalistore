@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildExcalidrawFile } from "@/entities/diagram";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
-import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
+import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUtils";
 import { createFakeSceneBridgeDeps } from "../../lib/testUtils";
-import { getActiveFile, setActiveFile } from "./sessionStore";
+import {
+  getActiveFile,
+  isFirstSessionLoad,
+  markSessionLoaded,
+  setActiveFile,
+  setCachedFiles,
+} from "./sessionStore";
 
 // activeDiagramStore drives the real readScene/writeScene/clearScene/
 // readTheme against the shared `bridge` singleton, so it needs a fake
@@ -27,6 +33,7 @@ const emptyScene = buildExcalidrawFile([], {}, {});
 
 beforeEach(() => {
   stubChromeStorageLocal();
+  stubSessionStorage();
   useActiveDiagramStore.setState(INITIAL_ACTIVE_STATE, true);
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
   fakeDeps.storage.clear();
@@ -264,5 +271,94 @@ describe("onRemoteDeleted", () => {
     expect(useActiveDiagramStore.getState().activeId).toBeNull();
     expect(useActiveDiagramStore.getState().revision).toBeNull();
     expect(useDiagramLibraryStore.getState().files).toEqual([survivor]);
+  });
+});
+
+describe("loadInitial", () => {
+  const active = { id: "1", name: "a.excalidraw", loadedRevision: "r1" };
+  const activeRow = { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
+
+  it("fresh session: skips the cache, waits for Drive, then flips both flags together", async () => {
+    await setActiveFile(active);
+    await setCachedFiles([{ ...activeRow, id: "stale" }]); // must be ignored
+    vi.mocked(sendToBackground).mockResolvedValue([activeRow]);
+
+    await useActiveDiagramStore.getState().loadInitial();
+
+    expect(useDiagramLibraryStore.getState().files).toEqual([activeRow]);
+    expect(useActiveDiagramStore.getState().activeId).toBe("1");
+    expect(useActiveDiagramStore.getState().isListReady).toBe(true);
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(true);
+    expect(isFirstSessionLoad()).toBe(false); // marked loaded on success
+  });
+
+  it("navigation reload: paints the cache and flips isListReady before the network resolves", async () => {
+    markSessionLoaded();
+    await setActiveFile(active);
+    await setCachedFiles([activeRow]);
+    let resolveList: (v: unknown) => void = () => {};
+    vi.mocked(sendToBackground).mockImplementation(
+      () => new Promise((resolve) => (resolveList = resolve)),
+    );
+
+    const pending = useActiveDiagramStore.getState().loadInitial();
+    await vi.waitFor(() => {
+      expect(useActiveDiagramStore.getState().isListReady).toBe(true);
+    });
+    expect(useActiveDiagramStore.getState().activeId).toBe("1"); // adopted from cache
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(false); // network still pending
+
+    resolveList([activeRow]);
+    await pending;
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(true);
+  });
+
+  it("drops a pointer the refreshed list no longer contains", async () => {
+    markSessionLoaded();
+    await setActiveFile(active);
+    await setCachedFiles([]);
+    vi.mocked(sendToBackground).mockResolvedValue([]);
+
+    await useActiveDiagramStore.getState().loadInitial();
+
+    expect(useActiveDiagramStore.getState().activeId).toBeNull();
+    await expect(getActiveFile()).resolves.toBeNull();
+  });
+
+  it("keeps the pointer and cache when the refresh fails (never drops on a network error)", async () => {
+    markSessionLoaded();
+    await setActiveFile(active);
+    await setCachedFiles([activeRow]);
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
+
+    await useActiveDiagramStore.getState().loadInitial();
+
+    expect(useActiveDiagramStore.getState().activeId).toBe("1");
+    expect(useActiveDiagramStore.getState().isListReady).toBe(true);
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(true);
+    expect(useDiagramLibraryStore.getState().files).toEqual([activeRow]);
+  });
+
+  it("fresh-session refresh failure does not mark the session loaded", async () => {
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
+
+    await useActiveDiagramStore.getState().loadInitial();
+
+    expect(isFirstSessionLoad()).toBe(true);
+    expect(useActiveDiagramStore.getState().isListReady).toBe(true);
+  });
+
+  it("collapses concurrent calls (strict-mode double effect)", async () => {
+    vi.mocked(sendToBackground).mockResolvedValue([]);
+
+    await Promise.all([
+      useActiveDiagramStore.getState().loadInitial(),
+      useActiveDiagramStore.getState().loadInitial(),
+    ]);
+
+    const listCalls = vi
+      .mocked(sendToBackground)
+      .mock.calls.filter(([r]) => r.type === "drive/list");
+    expect(listCalls).toHaveLength(1);
   });
 });

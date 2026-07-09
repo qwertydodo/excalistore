@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { Badge, Button, Heading, IconButton, Spinner, Stack, Text, type Tone } from "@/shared/ui";
+import { Badge, Button, Heading, IconButton, Stack, Text, type Tone } from "@/shared/ui";
 import type { SaveStatus } from "../../lib/autosaveController";
 import { useActiveDiagramStore } from "../../model/stores/activeDiagramStore";
-import { useDiagramLibraryStore } from "../../model/stores/diagramLibraryStore";
 import { usePanelVisibilityStore } from "../../model/stores/panelVisibilityStore";
 import { CreateDiagramForm } from "../CreateDiagramForm";
 import { DiagramList } from "../DiagramList";
@@ -40,11 +39,6 @@ export const DiagramPanel = ({ onSignOut }: DiagramPanelProps) => {
   );
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [isCreateLoading, setIsCreateLoading] = useState(false);
-
-  // isQueryLoaded is guaranteed true by the time this panel mounts (App
-  // gates first paint on it — see useAppInit) so isFilesLoading alone is the
-  // relevant ongoing-loading indicator here.
-  const isLoading = useDiagramLibraryStore((s) => s.isFilesLoading);
 
   // Opening or creating replaces the canvas (tab reload) — lock the rows so a
   // second action can't race it.
@@ -100,13 +94,7 @@ export const DiagramPanel = ({ onSignOut }: DiagramPanelProps) => {
         </Text>
       ) : null}
 
-      {isLoading ? (
-        <Stack direction="row" justify="center" padding="4">
-          <Spinner />
-        </Stack>
-      ) : (
-        <DiagramList areRowsLocked={areRowsLocked} openingId={openingId} onRowOpen={onRowOpen} />
-      )}
+      <DiagramList areRowsLocked={areRowsLocked} openingId={openingId} onRowOpen={onRowOpen} />
 
       <Stack as="footer" gap="2" className={styles.footer}>
         <CreateDiagramForm isDisabled={areRowsLocked} onLoadingChange={onCreateLoadingChange} />

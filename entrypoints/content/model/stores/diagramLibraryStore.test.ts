@@ -32,66 +32,34 @@ describe("setFiles", () => {
 });
 
 describe("refresh", () => {
-  it("loads the file list, caches it, and clears isFilesLoading", async () => {
+  it("loads the file list and caches it", async () => {
     vi.mocked(sendToBackground).mockResolvedValue(files);
     const result = await useDiagramLibraryStore.getState().refresh();
     expect(result).toEqual(files);
     expect(useDiagramLibraryStore.getState().files).toEqual(files);
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
     await expect(getCachedFiles()).resolves.toEqual(files);
   });
 
-  it("does not flip isFilesLoading on a same-session reload once the list was already validated (background revalidation)", async () => {
-    // Simulate: this tab already validated the list once (e.g. right before
-    // an open/switch reload), and the fast-paint cache repainted it on mount.
-    vi.mocked(sendToBackground).mockResolvedValue(files);
-    await useDiagramLibraryStore.getState().refresh(); // marks the session validated
-    useDiagramLibraryStore.setState({ files });
-
-    let resolveList: (v: typeof files) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveList = resolve;
-        }),
-    );
-    const pending = useDiagramLibraryStore.getState().refresh();
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
-    resolveList(files);
-    await pending;
-  });
-
-  it("shows the loader on a fresh tab session even if a stale cached list is already painted", async () => {
-    // Cache from a previous session was painted, but this session has never
-    // validated it against Drive yet — Drive may have changed meanwhile.
-    useDiagramLibraryStore.setState({ files });
-    let resolveList: (v: typeof files) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveList = resolve;
-        }),
-    );
-    const pending = useDiagramLibraryStore.getState().refresh();
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(true);
-    resolveList(files);
-    await pending;
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
-  });
-
-  it("swallows an error and returns an empty list, clearing isFilesLoading (401 handling now lives in sendDriveRequest, see driveRequest.test.ts)", async () => {
+  it("refresh throws on failure instead of swallowing to an empty list", async () => {
+    const existingFile = {
+      id: "9",
+      name: "existing.excalidraw",
+      modifiedTime: "t",
+      headRevisionId: "r9",
+    };
+    useDiagramLibraryStore.setState({ files: [existingFile] });
     vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
-    const result = await useDiagramLibraryStore.getState().refresh();
-    expect(result).toEqual([]);
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
+
+    await expect(useDiagramLibraryStore.getState().refresh()).rejects.toThrow("network down");
+    expect(useDiagramLibraryStore.getState().files).toEqual([existingFile]); // untouched
   });
 });
 
 describe("loadInitialQuery", () => {
-  it("resolves the persisted search query and flips isQueryLoaded", async () => {
+  it("resolves the persisted search query and flips isQueryReady", async () => {
     await setDiagramSearchQuery("meeting");
     await useDiagramLibraryStore.getState().loadInitialQuery();
     expect(useDiagramLibraryStore.getState().initialQuery).toBe("meeting");
-    expect(useDiagramLibraryStore.getState().isQueryLoaded).toBe(true);
+    expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true);
   });
 });

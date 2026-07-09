@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildExcalidrawFile, sceneHash } from "@/entities/diagram";
+import { stubSessionStorage } from "@/shared/lib/testUtils";
 import { createFakeSceneBridgeDeps } from "../lib/testUtils";
 
 // useActiveDiagram drives the real currentSceneHash/readScene against the
@@ -35,7 +36,7 @@ vi.mock("../lib/sceneBridge", async (importOriginal) => ({
 }));
 
 const { sendToBackground } = await import("@/features/driveGateway");
-const { getActiveFile, getCachedFiles } = await import("./stores/sessionStore");
+const { getActiveFile, getCachedFiles, markSessionLoaded } = await import("./stores/sessionStore");
 const { useAuthStore } = await import("./stores/authStore");
 const { useDiagramLibraryStore } = await import("./stores/diagramLibraryStore");
 const { useActiveDiagramStore } = await import("./stores/activeDiagramStore");
@@ -54,6 +55,7 @@ const connectAs = (isConnected: boolean) =>
   useAuthStore.setState({ status: { isConnected }, isStatusLoaded: true });
 
 beforeEach(() => {
+  stubSessionStorage(); // fresh (never-validated) session by default each test
   useAuthStore.setState(INITIAL_AUTH_STATE, true);
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
   useActiveDiagramStore.setState(INITIAL_ACTIVE_STATE, true);
@@ -64,8 +66,8 @@ beforeEach(() => {
 });
 
 describe("useActiveDiagram", () => {
-  it("runs the initial load effect only once across re-renders (regression: onActivePointerChange is a zustand action, always stable, so this must never loop)", async () => {
-    connectAs(false);
+  it("runs the initial load effect only once across re-renders (regression: loadInitial must not re-run on every render)", async () => {
+    connectAs(true);
     const { rerender } = renderHook(() => useActiveDiagram());
     await waitFor(() => expect(getActiveFile).toHaveBeenCalledTimes(1));
     rerender();
@@ -74,6 +76,7 @@ describe("useActiveDiagram", () => {
   });
 
   it("adopts the active pointer from the cached list immediately, without waiting on the network refresh", async () => {
+    markSessionLoaded(); // navigation-reload branch: paints the cache before the network resolves
     connectAs(true);
     const cachedFile = { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
     vi.mocked(getActiveFile).mockResolvedValue({

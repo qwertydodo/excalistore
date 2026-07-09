@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import {
+  type ActiveFile,
   buildExcalidrawFile,
   ensureExcalidrawExtension,
   parseExcalidrawFile,
@@ -11,17 +12,28 @@ import { SAVE_STATUS, type SaveStatus } from "../../lib/autosaveController";
 import { bridge } from "../../lib/bridge";
 import { clearScene, readScene, readTheme, writeScene } from "../../lib/sceneBridge";
 import { useDiagramLibraryStore } from "./diagramLibraryStore";
-import { clearActiveFile, setActiveFile } from "./sessionStore";
+import {
+  clearActiveFile,
+  getActiveFile,
+  getCachedFiles,
+  isFirstSessionLoad,
+  markSessionLoaded,
+  setActiveFile,
+} from "./sessionStore";
 
 export type ActiveDiagramStore = {
   activeId: string | null;
   revision: string | null;
   saveStatus: SaveStatus;
   actionError: string | null;
+  isListReady: boolean;
+  isReconciled: boolean;
+  isLoadInFlight: boolean;
   onActivePointerChange: (activeId: string | null, revision: string | null) => void;
   onSaveStatusChange: (status: SaveStatus) => void;
   onActionErrorChange: (error: string | null) => void;
   saveActiveScene: (id: string) => Promise<void>;
+  loadInitial: () => Promise<void>;
   onOpen: (id: string) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
   onAutoCreate: (content: string, name: string) => Promise<void>;
@@ -40,6 +52,9 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   revision: null,
   saveStatus: SAVE_STATUS.IDLE,
   actionError: null,
+  isListReady: false,
+  isReconciled: false,
+  isLoadInFlight: false,
   onActivePointerChange: (activeId, revision) => set({ activeId, revision }),
   onSaveStatusChange: (status) => set({ saveStatus: status }),
   onActionErrorChange: (error) => set({ actionError: error }),
@@ -57,6 +72,57 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
     });
     set({ revision: meta.headRevisionId });
     await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+  },
+  // One-shot startup reconciliation, kicked off by useInitialDiagramLoad when
+  // isConnected flips true (and again on a reconnect after an involuntary
+  // logout — no reload happens there, so this is also what refreshes the
+  // list). Fresh tab session: the cache may be stale, so wait for Drive and
+  // flip both flags together. Navigation reload (open/create/delete-of-
+  // active/sign-out reloads; rename does NOT reload): paint the cache and let
+  // the panel mount immediately, then reconcile against Drive in the
+  // background. A failed refresh keeps the painted state and the pointer —
+  // a network error must never drop the active pointer as "stale".
+  loadInitial: async () => {
+    if (get().isLoadInFlight) return;
+    set({ isLoadInFlight: true });
+    try {
+      const adoptAgainst = (active: ActiveFile, list: DriveFile[]): boolean => {
+        if (!list.some((f) => f.id === active.id)) return false;
+        set({ activeId: active.id, revision: active.loadedRevision });
+        return true;
+      };
+      const dropPointer = async (): Promise<void> => {
+        await clearActiveFile();
+        set({ activeId: null, revision: null });
+      };
+      const active = await getActiveFile();
+      const { refresh, setFiles } = useDiagramLibraryStore.getState();
+      if (isFirstSessionLoad()) {
+        try {
+          const list = await refresh();
+          markSessionLoaded();
+          if (active && !adoptAgainst(active, list)) await dropPointer();
+        } catch {
+          // Offline first load: mount an empty panel; the session stays
+          // "first load" so the next reload tries Drive again.
+        }
+        set({ isListReady: true, isReconciled: true });
+      } else {
+        const cached = await getCachedFiles();
+        if (cached.length) setFiles(cached);
+        if (active) adoptAgainst(active, cached);
+        set({ isListReady: true });
+        try {
+          const list = await refresh();
+          if (active && !adoptAgainst(active, list)) await dropPointer();
+        } catch {
+          // Silent background revalidation failed — keep cache + pointer.
+        }
+        set({ isReconciled: true });
+      }
+    } finally {
+      set({ isLoadInFlight: false });
+    }
   },
   onOpen: async (id) => {
     const { activeId } = get();
@@ -121,8 +187,8 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
         id,
         name: fileName,
       });
-      // Patch the single row in place — no full re-fetch, so the list doesn't
-      // blank to the loading spinner.
+      // Patch the single row in place — no full re-fetch, so the list never
+      // blanks out while the rename resolves.
       const { files, setFiles } = useDiagramLibraryStore.getState();
       const next = files.map((f) => (f.id === id ? meta : f));
       setFiles(next);

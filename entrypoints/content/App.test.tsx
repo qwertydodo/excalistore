@@ -3,14 +3,16 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
 import { App } from "./App";
+import { useActiveDiagramStore } from "./model/stores/activeDiagramStore";
 import { useAuthStore } from "./model/stores/authStore";
 import { useDiagramLibraryStore } from "./model/stores/diagramLibraryStore";
 import { usePanelVisibilityStore } from "./model/stores/panelVisibilityStore";
 
 // useActiveDiagram drives real Drive/bridge calls on mount (see its own
 // test's fake-deps setup) — irrelevant to App's init-gating logic, which only
-// cares about authStore/panelVisibilityStore/diagramLibraryStore. Stub it to
-// a no-op so it doesn't interfere with the state these tests drive directly.
+// cares about authStore/panelVisibilityStore/diagramLibraryStore/
+// activeDiagramStore. Stub it to a no-op so it doesn't interfere with the
+// state these tests drive directly.
 vi.mock("./model/useActiveDiagram", () => ({ useActiveDiagram: vi.fn() }));
 
 // useAppInit's loadStatus() call (see useAppInit.ts) goes through this — leave
@@ -24,12 +26,18 @@ vi.mock("@/features/driveGateway", async (importOriginal) => ({
 const INITIAL_AUTH_STATE = useAuthStore.getState();
 const INITIAL_PANEL_STATE = usePanelVisibilityStore.getState();
 const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
+const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
 
 beforeEach(() => {
   stubChromeStorageLocal();
   useAuthStore.setState(INITIAL_AUTH_STATE, true);
   usePanelVisibilityStore.setState(INITIAL_PANEL_STATE, true);
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
+  // useActiveDiagram (which owns loadInitial) is stubbed to a no-op above, so
+  // isListReady never flips true on its own here — seed it directly since
+  // these tests are only exercising the panel-visibility/query gates, not the
+  // list-loading one (see activeDiagramStore.test.ts for that).
+  useActiveDiagramStore.setState({ ...INITIAL_ACTIVE_STATE, isListReady: true }, true);
 });
 
 describe("App", () => {
@@ -79,8 +87,8 @@ describe("App", () => {
   it("shows the diagram panel once connection status, panel visibility, and the search query all resolve", async () => {
     render(<App />);
     act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
-    await waitFor(() => expect(usePanelVisibilityStore.getState().isInitialized).toBe(true));
-    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryLoaded).toBe(true));
+    await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true));
     await screen.findByLabelText("Excalistore diagrams");
   });
 });

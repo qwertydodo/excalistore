@@ -16,7 +16,7 @@ const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
 const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
 const INITIAL_PANEL_STATE = usePanelVisibilityStore.getState();
 
-// panelVisibilityStore and diagramLibraryStore's isQueryLoaded are both
+// panelVisibilityStore and diagramLibraryStore's isQueryReady are both
 // loaded/gated once at the App level (useAppInit/App.tsx) before DiagramPanel
 // ever mounts — these tests render DiagramPanel directly, so seed them
 // pre-resolved instead of relying on those loaders. The diagram list and the
@@ -29,8 +29,7 @@ beforeEach(() => {
     {
       ...INITIAL_LIBRARY_STATE,
       files,
-      isFilesLoading: false,
-      isQueryLoaded: true,
+      isQueryReady: true,
       initialQuery: "",
     },
     true,
@@ -40,14 +39,14 @@ beforeEach(() => {
     true,
   );
   usePanelVisibilityStore.setState(
-    { ...INITIAL_PANEL_STATE, isVisible: true, isInitialized: true },
+    { ...INITIAL_PANEL_STATE, isVisible: true, isPanelReady: true },
     true,
   );
 });
 
-// The diagram list + search field mount only once the library store's
-// isFilesLoading clears — wait for the search field (always rendered by
-// DiagramList, regardless of file count) before asserting on content.
+// The diagram list + search field always render immediately (no in-panel
+// loading gate) — wait for the search field regardless of file count before
+// asserting on content.
 async function renderExpanded() {
   render(<DiagramPanel onSignOut={vi.fn()} />);
   await screen.findByLabelText("Excalistore diagrams");
@@ -117,19 +116,6 @@ describe("DiagramPanel", () => {
     act(() => useDiagramLibraryStore.setState({ files: [] }));
     await renderExpanded();
     expect(screen.getByText("No diagrams yet")).toBeInTheDocument();
-  });
-
-  it("shows a loading spinner while the library is loading, hides once ready", async () => {
-    act(() => useDiagramLibraryStore.setState({ isFilesLoading: true }));
-    render(<DiagramPanel onSignOut={vi.fn()} />);
-    await screen.findByLabelText("Excalistore diagrams");
-    expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: /search diagrams/i })).not.toBeInTheDocument();
-
-    act(() => useDiagramLibraryStore.setState({ isFilesLoading: false }));
-    await screen.findByRole("textbox", { name: /search diagrams/i });
-    expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
-    expect(screen.getByText("alpha")).toBeInTheDocument();
   });
 
   it("shows all diagrams while fewer than 3 characters are typed", async () => {
