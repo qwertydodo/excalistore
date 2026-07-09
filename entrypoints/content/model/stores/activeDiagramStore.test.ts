@@ -251,3 +251,18 @@ describe("onDelete", () => {
     expect(useActiveDiagramStore.getState().actionError).toBe("not found");
   });
 });
+
+describe("onRemoteDeleted", () => {
+  it("clears the active pointer and drops the deleted row from the library list", async () => {
+    const survivor = { id: "2", name: "b.excalidraw", modifiedTime: "t", headRevisionId: "r2" };
+    const deleted = { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
+    useDiagramLibraryStore.setState({ files: [deleted, survivor] });
+    useActiveDiagramStore.setState({ activeId: "1", revision: "r1" });
+
+    await useActiveDiagramStore.getState().onRemoteDeleted("1");
+
+    expect(useActiveDiagramStore.getState().activeId).toBeNull();
+    expect(useActiveDiagramStore.getState().revision).toBeNull();
+    expect(useDiagramLibraryStore.getState().files).toEqual([survivor]);
+  });
+});

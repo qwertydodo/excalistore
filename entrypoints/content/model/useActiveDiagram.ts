@@ -20,19 +20,6 @@ import { clearActiveFile, getActiveFile, getCachedFiles } from "./stores/session
 // never registers as dirty.
 const EMPTY_SCENE_HASH = sceneHash(buildExcalidrawFile([], {}, {}));
 
-// The active file was confirmed gone from Drive (autosave got a 404) — drop
-// the local pointer and the stale row so the panel stops highlighting/
-// re-attempting saves against a diagram that no longer exists. Reads/writes
-// both stores directly via getState() (not hook-scoped) so it's callable
-// from anywhere, including standalone in tests.
-export const handleRemoteDeletion = async (deletedId: string): Promise<void> => {
-  await clearActiveFile();
-  useActiveDiagramStore.getState().onActivePointerChange(null, null);
-  const { files, setFiles } = useDiagramLibraryStore.getState();
-  const next = files.filter((f) => f.id !== deletedId);
-  setFiles(next);
-};
-
 // Once useAppInit's loadStatus() resolves (isStatusLoaded flips true),
 // restores the active pointer and refreshes the file list, then wires the
 // autosave loop to whichever file is active — called once from useAppInit.
@@ -105,7 +92,8 @@ export const useActiveDiagram = (): void => {
       save: () => useActiveDiagramStore.getState().saveActiveScene(activeId),
       onStatus: (status) => {
         onSaveStatusChange(status);
-        if (status === SAVE_STATUS.DELETED) handleRemoteDeletion(activeId);
+        if (status === SAVE_STATUS.DELETED)
+          useActiveDiagramStore.getState().onRemoteDeleted(activeId);
       },
     });
     let isStopped = false;

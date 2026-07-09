@@ -27,6 +27,7 @@ export type ActiveDiagramStore = {
   onAutoCreate: (content: string, name: string) => Promise<void>;
   onRename: (id: string, name: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onRemoteDeleted: (deletedId: string) => Promise<void>;
 };
 
 // Owns the active-file pointer, its save revision, and the CRUD action
@@ -144,5 +145,14 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
     } catch (e) {
       set({ actionError: e instanceof Error ? e.message : "Failed to delete diagram" });
     }
+  },
+  // The active file was confirmed gone from Drive (autosave got a 404) — drop
+  // the local pointer and the stale row so the panel stops highlighting/
+  // re-attempting saves against a diagram that no longer exists.
+  onRemoteDeleted: async (deletedId) => {
+    await clearActiveFile();
+    set({ activeId: null, revision: null });
+    const { files, setFiles } = useDiagramLibraryStore.getState();
+    setFiles(files.filter((f) => f.id !== deletedId));
   },
 }));
