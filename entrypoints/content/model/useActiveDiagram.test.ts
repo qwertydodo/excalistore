@@ -13,7 +13,7 @@ const fakeDeps = createFakeSceneBridgeDeps();
 
 vi.mock("@/features/driveGateway", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/driveGateway")>()),
-  sendToBackground: vi.fn(async () => ({ isConnected: false })),
+  sendToBackground: vi.fn(),
 }));
 vi.mock("./stores/sessionStore", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./stores/sessionStore")>()),
@@ -36,38 +36,45 @@ vi.mock("../lib/sceneBridge", async (importOriginal) => ({
 
 const { sendToBackground } = await import("@/features/driveGateway");
 const { getActiveFile, getCachedFiles } = await import("./stores/sessionStore");
+const { useAuthStore } = await import("./stores/authStore");
 const { useDiagramLibraryStore } = await import("./stores/diagramLibraryStore");
 const { useActiveDiagramStore } = await import("./stores/activeDiagramStore");
 const { useActiveDiagram } = await import("./useActiveDiagram");
 const { currentSceneHash, readScene } = await import("../lib/sceneBridge");
 
+const INITIAL_AUTH_STATE = useAuthStore.getState();
 const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
 const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
 
+// useAppInit owns the loadStatus() call in production (see useAppInit.ts) —
+// useActiveDiagram only reacts to isStatusLoaded/status.isConnected once
+// they're already resolved. Since these tests render useActiveDiagram in
+// isolation (no useAppInit), seed that resolved state directly instead.
+const connectAs = (isConnected: boolean) =>
+  useAuthStore.setState({ status: { isConnected }, isStatusLoaded: true });
+
 beforeEach(() => {
+  useAuthStore.setState(INITIAL_AUTH_STATE, true);
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
   useActiveDiagramStore.setState(INITIAL_ACTIVE_STATE, true);
   vi.mocked(sendToBackground).mockClear();
+  vi.mocked(getActiveFile).mockClear();
+  vi.mocked(getCachedFiles).mockClear();
   fakeDeps.storage.clear();
 });
 
 describe("useActiveDiagram", () => {
-  it("loads the connection status into the diagram library store on mount", async () => {
-    renderHook(() => useActiveDiagram());
-    await waitFor(() =>
-      expect(useDiagramLibraryStore.getState().status).toEqual({ isConnected: false }),
-    );
-  });
-
-  it("runs the initial load effect only once across re-renders (regression: onActiveIdChange/onRevisionChange are zustand actions, always stable, so this must never loop)", async () => {
+  it("runs the initial load effect only once across re-renders (regression: onActivePointerChange is a zustand action, always stable, so this must never loop)", async () => {
+    connectAs(false);
     const { rerender } = renderHook(() => useActiveDiagram());
-    await waitFor(() => expect(sendToBackground).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getActiveFile).toHaveBeenCalledTimes(1));
     rerender();
     rerender();
-    expect(sendToBackground).toHaveBeenCalledTimes(1);
+    expect(getActiveFile).toHaveBeenCalledTimes(1);
   });
 
   it("adopts the active pointer from the cached list immediately, without waiting on the network refresh", async () => {
+    connectAs(true);
     const cachedFile = { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
     vi.mocked(getActiveFile).mockResolvedValue({
       id: "1",
@@ -76,12 +83,12 @@ describe("useActiveDiagram", () => {
     });
     vi.mocked(getCachedFiles).mockResolvedValue([cachedFile]);
     let resolveList: (v: unknown) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation((request) => {
-      if (request.type === "auth/status") return Promise.resolve({ isConnected: true });
-      return new Promise((resolve) => {
-        resolveList = resolve;
-      });
-    });
+    vi.mocked(sendToBackground).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveList = resolve;
+        }),
+    );
 
     renderHook(() => useActiveDiagram());
 
@@ -110,10 +117,10 @@ describe("auto-create watcher", () => {
   it("auto-creates a Drive file from the current scene once drawing is detected, without reloading", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") return [];
         if (request.type === "drive/create")
           return { id: "1", name: "Untitled.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
@@ -146,10 +153,10 @@ describe("auto-create watcher", () => {
   it("does not auto-create while disconnected", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(false);
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: false };
         throw new Error(`unexpected request ${request.type}`);
       });
       vi.mocked(currentSceneHash).mockImplementation(async () => "h1");
@@ -170,11 +177,11 @@ describe("auto-create watcher", () => {
   it("does not auto-create while a diagram is already active", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       useActiveDiagramStore.setState({ activeId: "existing" });
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") return [];
         return undefined;
       });
@@ -196,12 +203,12 @@ describe("auto-create watcher", () => {
   it("does not auto-create before the initial load/reconciliation finishes", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       let resolveList: (v: unknown) => void = () => {};
       let isInitialListResolved = false;
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") {
           // Only the initial load's list call stalls; the auto-create
           // watcher's own refresh()-before-retry call (Fix A) should resolve
@@ -244,10 +251,10 @@ describe("auto-create watcher", () => {
   it("never auto-creates from a genuinely blank canvas, even well past the debounce window (regression coverage for the EMPTY_SCENE_HASH baseline, commit 150b16c)", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") return [];
         throw new Error(`unexpected request ${request.type}`);
       });
@@ -280,12 +287,12 @@ describe("auto-create watcher", () => {
   it("refreshes the file list from Drive before retrying a failed create (dedupe against a lost-response partial success)", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       let listCallCount = 0;
       let createCallCount = 0;
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") {
           listCallCount++;
           return [];
@@ -333,6 +340,7 @@ describe("auto-create watcher", () => {
   it("picks a distinct name on retry when the failed attempt actually succeeded on Drive (lost-response partial success)", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       // Simulates the scenario the refresh()-before-retry fix (9bd3f2f)
@@ -348,7 +356,6 @@ describe("auto-create watcher", () => {
       };
       let hasFirstCreateFailed = false;
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") return hasFirstCreateFailed ? [collidingFile] : [];
         if (request.type === "drive/create") {
           if (!hasFirstCreateFailed) {
@@ -400,10 +407,10 @@ describe("auto-create watcher", () => {
   it("never fires onAutoCreate on cleanup, since nothing has been saved yet to protect with a flush", async () => {
     vi.useFakeTimers();
     try {
+      connectAs(true);
       vi.mocked(getActiveFile).mockResolvedValue(null);
       vi.mocked(getCachedFiles).mockResolvedValue([]);
       vi.mocked(sendToBackground).mockImplementation(async (request) => {
-        if (request.type === "auth/status") return { isConnected: true };
         if (request.type === "drive/list") return [];
         if (request.type === "drive/create")
           return { id: "1", name: "Untitled.excalidraw", modifiedTime: "t", headRevisionId: "r1" };

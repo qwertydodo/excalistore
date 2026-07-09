@@ -4,7 +4,7 @@ import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { bridge } from "../lib/bridge";
 import { clearScene, readScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
-import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
+import { useAuthStore } from "./stores/authStore";
 import {
   clearActiveFile,
   clearCachedFiles,
@@ -21,14 +21,14 @@ export type SignOutFlow = {
 // Owns the sign-out confirmation dialog state and the safe sign-out sequence
 // (flush the active diagram, clear local session state, clear the canvas).
 export const useSignOutFlow = (): SignOutFlow => {
-  const { activeId, onActiveIdChange, onActionErrorChange } = useActiveDiagramStore(
+  const { activeId, onActivePointerChange, onActionErrorChange } = useActiveDiagramStore(
     useShallow((s) => ({
       activeId: s.activeId,
-      onActiveIdChange: s.onActiveIdChange,
+      onActivePointerChange: s.onActivePointerChange,
       onActionErrorChange: s.onActionErrorChange,
     })),
   );
-  const onStatusChange = useDiagramLibraryStore((s) => s.onStatusChange);
+  const signOut = useAuthStore((s) => s.signOut);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   // useCallback (not compiler-memoized — the ternary inside the outer catch
@@ -42,6 +42,11 @@ export const useSignOutFlow = (): SignOutFlow => {
     if (activeId) {
       try {
         const scene = await readScene(bridge);
+        // getState() here, not a reactive `revision` selector — doSignOut's
+        // deps deliberately exclude revision (it changes on every autosave
+        // tick, and including it would churn this callback's identity, which
+        // is passed down as a prop). Reading fresh via getState() gets the
+        // latest value without adding that dep.
         await sendToBackground({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
@@ -53,17 +58,16 @@ export const useSignOutFlow = (): SignOutFlow => {
       }
     }
     try {
-      await sendToBackground({ type: REQUEST_TYPE.AUTH_SIGN_OUT });
+      await signOut();
       await clearActiveFile();
       await clearCachedFiles();
       clearFileListValidatedThisSession();
-      onStatusChange({ isConnected: false });
-      onActiveIdChange(null);
+      onActivePointerChange(null, null);
       await clearScene(bridge); // clears canvas + reloads
     } catch (e) {
       onActionErrorChange(e instanceof Error ? e.message : "Failed to sign out");
     }
-  }, [activeId, onActiveIdChange, onStatusChange, onActionErrorChange]);
+  }, [activeId, onActivePointerChange, signOut, onActionErrorChange]);
 
   const openSignOut = useCallback(() => setIsSignOutOpen(true), []);
   const cancelSignOut = useCallback(() => setIsSignOutOpen(false), []);

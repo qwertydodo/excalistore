@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   buildExcalidrawFile,
   ensureExcalidrawExtension,
@@ -6,12 +7,12 @@ import {
   sceneHash,
 } from "@/entities/diagram";
 import type { DriveFile } from "@/entities/google/drive";
-import type { ConnectionStatus } from "@/features/driveGateway";
 import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { createAutosave, SAVE_STATUS } from "../lib/autosaveController";
 import { bridge } from "../lib/bridge";
 import { currentSceneHash, readScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
+import { useAuthStore } from "./stores/authStore";
 import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
 import {
   clearActiveFile,
@@ -33,43 +34,59 @@ const EMPTY_SCENE_HASH = sceneHash(buildExcalidrawFile([], {}, {}));
 // from anywhere, including standalone in tests.
 export const handleRemoteDeletion = async (deletedId: string): Promise<void> => {
   await clearActiveFile();
-  useActiveDiagramStore.getState().onActiveIdChange(null);
-  useActiveDiagramStore.getState().onRevisionChange(null);
+  useActiveDiagramStore.getState().onActivePointerChange(null, null);
   const { files, onFilesChange } = useDiagramLibraryStore.getState();
   const next = files.filter((f) => f.id !== deletedId);
   onFilesChange(next);
   setCachedFiles(next);
 };
 
-// Kicks off the initial load (connection status, file list, restore the
-// active pointer) and wires the autosave loop to whichever file is active —
-// called once from App. Everything it produces lives in activeDiagramStore,
-// read directly by whoever needs it (DiagramPanel, useSignOutFlow, ...).
+// Once useAppInit's loadStatus() resolves (isStatusLoaded flips true),
+// restores the active pointer and refreshes the file list, then wires the
+// autosave loop to whichever file is active — called once from useAppInit.
+// This hook no longer triggers the connection-status check itself, it only
+// reacts to it (see useAppInit). Everything it produces lives in
+// activeDiagramStore, read directly by whoever needs it (DiagramPanel,
+// useSignOutFlow, ...).
 export const useActiveDiagram = (): void => {
-  const activeId = useActiveDiagramStore((s) => s.activeId);
-  const onActiveIdChange = useActiveDiagramStore((s) => s.onActiveIdChange);
-  const onRevisionChange = useActiveDiagramStore((s) => s.onRevisionChange);
-  const onSaveStatusChange = useActiveDiagramStore((s) => s.onSaveStatusChange);
-  const isConnected = useDiagramLibraryStore((s) => s.status.isConnected);
+  const { activeId, onActivePointerChange, onRevisionChange, onSaveStatusChange, onAutoCreate } =
+    useActiveDiagramStore(
+      useShallow((s) => ({
+        activeId: s.activeId,
+        onActivePointerChange: s.onActivePointerChange,
+        onRevisionChange: s.onRevisionChange,
+        onSaveStatusChange: s.onSaveStatusChange,
+        onAutoCreate: s.onAutoCreate,
+      })),
+    );
+  const { isConnected, isStatusLoaded, markDisconnected } = useAuthStore(
+    useShallow((s) => ({
+      isConnected: s.status.isConnected,
+      isStatusLoaded: s.isStatusLoaded,
+      markDisconnected: s.markDisconnected,
+    })),
+  );
+  const { onFilesChange, refresh } = useDiagramLibraryStore(
+    useShallow((s) => ({ onFilesChange: s.onFilesChange, refresh: s.refresh })),
+  );
   // Guards the auto-create watcher below from racing the stale-pointer
   // reconciliation in the effect right after this one: isConnected can flip
   // true well before that reconciliation (and the active-pointer adoption it
   // does) has actually finished.
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
-  // Initial load: connection status, file list, restore the active pointer.
+  // Initial load: file list, restore the active pointer — deferred until
+  // isStatusLoaded flips true (useAppInit's loadStatus() call), and guarded
+  // by isInitialLoadComplete so it runs exactly once rather than every time
+  // one of its other deps happens to change.
   useEffect(() => {
+    if (!isStatusLoaded || isInitialLoadComplete) return;
     const loadInitial = async () => {
-      const { onStatusChange, onFilesChange, refresh } = useDiagramLibraryStore.getState();
-      const s = await sendToBackground<ConnectionStatus>({ type: REQUEST_TYPE.AUTH_STATUS }).catch(
-        () => ({ isConnected: false }) as ConnectionStatus,
-      );
-      onStatusChange(s);
       const active = await getActiveFile();
       // Paint the cached list immediately (no flicker after the reload), then
       // revalidate against Drive in the background.
       let cached: DriveFile[] = [];
-      if (s.isConnected) {
+      if (isConnected) {
         cached = await getCachedFiles();
         if (cached.length) onFilesChange(cached);
       }
@@ -77,23 +94,28 @@ export const useActiveDiagram = (): void => {
       // otherwise the row highlight lags behind the network refresh below,
       // even though the list itself already painted from cache.
       if (active && cached.some((f) => f.id === active.id)) {
-        onActiveIdChange(active.id);
-        onRevisionChange(active.loadedRevision);
+        onActivePointerChange(active.id, active.loadedRevision);
       }
-      const list = s.isConnected ? await refresh() : [];
+      const list = isConnected ? await refresh(markDisconnected) : [];
       if (active && list.some((f) => f.id === active.id)) {
-        onActiveIdChange(active.id);
-        onRevisionChange(active.loadedRevision);
+        onActivePointerChange(active.id, active.loadedRevision);
       } else if (active) {
         // Stale pointer (different account/folder, or deleted) — drop it.
         await clearActiveFile();
-        onActiveIdChange(null);
-        onRevisionChange(null);
+        onActivePointerChange(null, null);
       }
       setIsInitialLoadComplete(true);
     };
     loadInitial();
-  }, [onActiveIdChange, onRevisionChange]);
+  }, [
+    isStatusLoaded,
+    isInitialLoadComplete,
+    isConnected,
+    onActivePointerChange,
+    onFilesChange,
+    markDisconnected,
+    refresh,
+  ]);
 
   // Autosave: only meaningful once a file is active.
   useEffect(() => {
@@ -102,6 +124,11 @@ export const useActiveDiagram = (): void => {
       getHash: () => currentSceneHash(bridge),
       save: async () => {
         const scene = await readScene(bridge);
+        // getState() here, not a reactive `revision` selector at the top of
+        // the hook — this effect's deps deliberately exclude revision (it
+        // changes on every successful save, and re-running the effect on
+        // that would restart the debounce timer mid-flight). Reading fresh
+        // via getState() gets the latest value without adding that dep.
         const meta = await sendToBackground<DriveFile>({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
@@ -148,9 +175,9 @@ export const useActiveDiagram = (): void => {
         // file, but the response never arrived) sees that file in the fresh
         // list and picks the next distinct name instead of colliding on an
         // identical one.
-        const files = await useDiagramLibraryStore.getState().refresh();
+        const files = await refresh(markDisconnected);
         const name = ensureExcalidrawExtension(nextUntitledName(files.map((f) => f.name)));
-        await useActiveDiagramStore.getState().onAutoCreate(JSON.stringify(scene), name);
+        await onAutoCreate(JSON.stringify(scene), name);
       },
       onStatus: onSaveStatusChange,
     });
@@ -172,5 +199,13 @@ export const useActiveDiagram = (): void => {
       // success) makes a create either doomed or redundant.
       autosave.stop();
     };
-  }, [activeId, isConnected, isInitialLoadComplete, onSaveStatusChange]);
+  }, [
+    activeId,
+    isConnected,
+    isInitialLoadComplete,
+    onSaveStatusChange,
+    refresh,
+    markDisconnected,
+    onAutoCreate,
+  ]);
 };

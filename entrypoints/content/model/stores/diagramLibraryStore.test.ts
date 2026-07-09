@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ERROR_CODE, REQUEST_TYPE, RequestError, sendToBackground } from "@/features/driveGateway";
+import { ERROR_CODE, RequestError, sendToBackground } from "@/features/driveGateway";
 import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUtils";
-import { getCachedFiles, getPanelCollapsed, setDiagramSearchQuery } from "./sessionStore";
+import { getCachedFiles, setDiagramSearchQuery } from "./sessionStore";
 
 vi.mock("@/features/driveGateway", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/driveGateway")>()),
@@ -20,11 +20,8 @@ beforeEach(() => {
   vi.mocked(sendToBackground).mockReset();
 });
 
-describe("onStatusChange / onFilesChange", () => {
-  it("set the store's status and files", () => {
-    useDiagramLibraryStore.getState().onStatusChange({ isConnected: true });
-    expect(useDiagramLibraryStore.getState().status).toEqual({ isConnected: true });
-
+describe("onFilesChange", () => {
+  it("sets the store's files", () => {
     useDiagramLibraryStore.getState().onFilesChange(files);
     expect(useDiagramLibraryStore.getState().files).toEqual(files);
   });
@@ -78,22 +75,23 @@ describe("refresh", () => {
     expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
   });
 
-  it("marks the store disconnected on an unauthorized error", async () => {
+  it("invokes onUnauthorized on a 401, so the caller can react (e.g. mark authStore disconnected)", async () => {
     vi.mocked(sendToBackground).mockRejectedValue(
       new RequestError("insufficient scopes", ERROR_CODE.UNAUTHORIZED),
     );
-    const result = await useDiagramLibraryStore.getState().refresh();
+    const onUnauthorized = vi.fn();
+    const result = await useDiagramLibraryStore.getState().refresh(onUnauthorized);
     expect(result).toEqual([]);
-    expect(useDiagramLibraryStore.getState().status).toEqual({ isConnected: false });
+    expect(onUnauthorized).toHaveBeenCalledOnce();
     expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
   });
 
-  it("leaves status untouched on a non-auth error", async () => {
-    useDiagramLibraryStore.setState({ status: { isConnected: true } });
+  it("does not invoke onUnauthorized on a non-auth error", async () => {
     vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
-    const result = await useDiagramLibraryStore.getState().refresh();
+    const onUnauthorized = vi.fn();
+    const result = await useDiagramLibraryStore.getState().refresh(onUnauthorized);
     expect(result).toEqual([]);
-    expect(useDiagramLibraryStore.getState().status).toEqual({ isConnected: true });
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });
 
@@ -103,53 +101,5 @@ describe("loadInitialQuery", () => {
     await useDiagramLibraryStore.getState().loadInitialQuery();
     expect(useDiagramLibraryStore.getState().initialQuery).toBe("meeting");
     expect(useDiagramLibraryStore.getState().isQueryLoaded).toBe(true);
-  });
-});
-
-describe("connect", () => {
-  it("connects, opens the panel, and refreshes the file list on success", async () => {
-    vi.mocked(sendToBackground).mockImplementation(async (request) => {
-      if (request.type === REQUEST_TYPE.DRIVE_CONNECT) {
-        return { isConnected: true, folderId: "F", folderName: "Diagrams" };
-      }
-      if (request.type === REQUEST_TYPE.DRIVE_LIST) return files;
-      throw new Error(`unexpected request ${request.type}`);
-    });
-
-    await useDiagramLibraryStore.getState().connect("Diagrams");
-
-    expect(useDiagramLibraryStore.getState().status).toEqual({
-      isConnected: true,
-      folderId: "F",
-      folderName: "Diagrams",
-    });
-    expect(useDiagramLibraryStore.getState().files).toEqual(files);
-    expect(useDiagramLibraryStore.getState().isConnecting).toBe(false);
-    await expect(getPanelCollapsed()).resolves.toBe(false);
-  });
-
-  it("surfaces the error and resets isConnecting on failure", async () => {
-    vi.mocked(sendToBackground).mockRejectedValue(new Error("Could not connect to Google Drive"));
-    await useDiagramLibraryStore.getState().connect("Diagrams");
-    expect(useDiagramLibraryStore.getState().connectError).toBe(
-      "Could not connect to Google Drive",
-    );
-    expect(useDiagramLibraryStore.getState().isConnecting).toBe(false);
-    expect(useDiagramLibraryStore.getState().status.isConnected).toBe(false);
-  });
-
-  it("ignores a second call while a connect is already in flight", async () => {
-    let resolveConnect: (v: { isConnected: boolean }) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveConnect = resolve;
-        }),
-    );
-    const first = useDiagramLibraryStore.getState().connect("Diagrams");
-    await useDiagramLibraryStore.getState().connect("Diagrams"); // no-op: already connecting
-    expect(sendToBackground).toHaveBeenCalledTimes(1);
-    resolveConnect({ isConnected: false });
-    await first;
   });
 });

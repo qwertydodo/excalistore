@@ -17,7 +17,7 @@ export type ActiveDiagramStore = {
   revision: string | null;
   saveStatus: SaveStatus;
   actionError: string | null;
-  onActiveIdChange: (id: string | null) => void;
+  onActivePointerChange: (activeId: string | null, revision: string | null) => void;
   onRevisionChange: (revision: string | null) => void;
   onSaveStatusChange: (status: SaveStatus) => void;
   onActionErrorChange: (error: string | null) => void;
@@ -38,7 +38,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   revision: null,
   saveStatus: SAVE_STATUS.IDLE,
   actionError: null,
-  onActiveIdChange: (id) => set({ activeId: id }),
+  onActivePointerChange: (activeId, revision) => set({ activeId, revision }),
   onRevisionChange: (revision) => set({ revision }),
   onSaveStatusChange: (status) => set({ saveStatus: status }),
   onActionErrorChange: (error) => set({ actionError: error }),

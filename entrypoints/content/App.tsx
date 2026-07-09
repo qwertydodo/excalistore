@@ -1,17 +1,27 @@
 import { ConfirmDialog } from "@/shared/ui";
-import { useActiveDiagram } from "./model/useActiveDiagram";
-import { useDiagramLibrary } from "./model/useDiagramLibrary";
-import { useSignOutFlow } from "./model/useSignOutFlow";
+import { useAppInit } from "./model/useAppInit";
 import { ConnectButton } from "./ui/ConnectButton";
 import { DiagramPanel } from "./ui/DiagramPanel";
 
 export const App = () => {
-  const { status } = useDiagramLibrary();
-  useActiveDiagram();
-  const signOut = useSignOutFlow();
+  const { isStatusLoaded, isPanelInitialized, isQueryLoaded, status, signOut } = useAppInit();
+
+  // Connection status not known yet — painting a guess here just flickers
+  // to the real branch a tick later once it resolves.
+  if (!isStatusLoaded) {
+    return null;
+  }
 
   if (!status.isConnected) {
     return <ConnectButton />;
+  }
+
+  // Connected: also need to know panel-collapsed state and the persisted
+  // search query before painting, otherwise it flickers between fab and full
+  // panel once panel-collapsed resolves, or DiagramPanel mounts its search
+  // field before the persisted query has loaded.
+  if (!isPanelInitialized || !isQueryLoaded) {
+    return null;
   }
 
   return (
