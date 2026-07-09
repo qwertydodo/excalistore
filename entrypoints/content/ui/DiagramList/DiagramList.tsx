@@ -30,16 +30,19 @@ export const DiagramList = ({ areRowsLocked, openingId, onRowOpen }: DiagramList
         placeholder="Type 3+ characters to search"
         aria-label="Search diagrams"
       />
+
       {results.length === 0 ? (
-        hasDiagrams ? (
-          <Text size="sm" color="muted">
-            No diagrams match "{query}"
-          </Text>
-        ) : (
-          <Text size="sm" color="muted">
-            No diagrams yet
-          </Text>
-        )
+        <Stack align="center">
+          {hasDiagrams ? (
+            <Text size="sm" color="muted">
+              No diagrams match "{query}"
+            </Text>
+          ) : (
+            <Text size="sm" color="muted">
+              No diagrams yet
+            </Text>
+          )}
+        </Stack>
       ) : (
         <Stack as="ul" gap="1" className={styles.list}>
           {results.map((f) => (
