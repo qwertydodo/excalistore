@@ -7,7 +7,8 @@ import {
   sceneHash,
 } from "@/entities/diagram";
 import type { DriveFile } from "@/entities/google/drive";
-import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
+import { REQUEST_TYPE } from "@/features/driveGateway";
+import { sendDriveRequest } from "../api";
 import { createAutosave, SAVE_STATUS } from "../lib/autosaveController";
 import { bridge } from "../lib/bridge";
 import { currentSceneHash, readScene } from "../lib/sceneBridge";
@@ -59,11 +60,10 @@ export const useActiveDiagram = (): void => {
         onAutoCreate: s.onAutoCreate,
       })),
     );
-  const { isConnected, isStatusLoaded, markDisconnected } = useAuthStore(
+  const { isConnected, isStatusLoaded } = useAuthStore(
     useShallow((s) => ({
       isConnected: s.status.isConnected,
       isStatusLoaded: s.isStatusLoaded,
-      markDisconnected: s.markDisconnected,
     })),
   );
   const { onFilesChange, refresh } = useDiagramLibraryStore(
@@ -96,7 +96,7 @@ export const useActiveDiagram = (): void => {
       if (active && cached.some((f) => f.id === active.id)) {
         onActivePointerChange(active.id, active.loadedRevision);
       }
-      const list = isConnected ? await refresh(markDisconnected) : [];
+      const list = isConnected ? await refresh() : [];
       if (active && list.some((f) => f.id === active.id)) {
         onActivePointerChange(active.id, active.loadedRevision);
       } else if (active) {
@@ -113,7 +113,6 @@ export const useActiveDiagram = (): void => {
     isConnected,
     onActivePointerChange,
     onFilesChange,
-    markDisconnected,
     refresh,
   ]);
 
@@ -129,7 +128,7 @@ export const useActiveDiagram = (): void => {
         // changes on every successful save, and re-running the effect on
         // that would restart the debounce timer mid-flight). Reading fresh
         // via getState() gets the latest value without adding that dep.
-        const meta = await sendToBackground<DriveFile>({
+        const meta = await sendDriveRequest<DriveFile>({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
           content: JSON.stringify(scene),
@@ -175,7 +174,7 @@ export const useActiveDiagram = (): void => {
         // file, but the response never arrived) sees that file in the fresh
         // list and picks the next distinct name instead of colliding on an
         // identical one.
-        const files = await refresh(markDisconnected);
+        const files = await refresh();
         const name = ensureExcalidrawExtension(nextUntitledName(files.map((f) => f.name)));
         await onAutoCreate(JSON.stringify(scene), name);
       },
@@ -199,13 +198,5 @@ export const useActiveDiagram = (): void => {
       // success) makes a create either doomed or redundant.
       autosave.stop();
     };
-  }, [
-    activeId,
-    isConnected,
-    isInitialLoadComplete,
-    onSaveStatusChange,
-    refresh,
-    markDisconnected,
-    onAutoCreate,
-  ]);
+  }, [activeId, isConnected, isInitialLoadComplete, onSaveStatusChange, refresh, onAutoCreate]);
 };

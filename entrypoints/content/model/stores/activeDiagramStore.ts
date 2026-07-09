@@ -5,7 +5,8 @@ import {
   parseExcalidrawFile,
 } from "@/entities/diagram";
 import type { DiagramContent, DriveFile } from "@/entities/google/drive";
-import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
+import { REQUEST_TYPE } from "@/features/driveGateway";
+import { sendDriveRequest } from "../../api";
 import { SAVE_STATUS, type SaveStatus } from "../../lib/autosaveController";
 import { bridge } from "../../lib/bridge";
 import { clearScene, readScene, readTheme, writeScene } from "../../lib/sceneBridge";
@@ -52,7 +53,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
       // (e.g. conflict) aborts the switch so nothing is dropped silently.
       if (activeId) {
         const current = await readScene(bridge);
-        const saved = await sendToBackground<DriveFile>({
+        const saved = await sendDriveRequest<DriveFile>({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
           content: JSON.stringify(current),
@@ -60,7 +61,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
         });
         set({ revision: saved.headRevisionId });
       }
-      const { meta, content } = await sendToBackground<DiagramContent>({
+      const { meta, content } = await sendDriveRequest<DiagramContent>({
         type: REQUEST_TYPE.DRIVE_GET,
         id,
       });
@@ -76,7 +77,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
     try {
       const fileName = ensureExcalidrawExtension(name);
       const empty = buildExcalidrawFile([], { theme: readTheme(bridge) }, {});
-      const meta = await sendToBackground<DriveFile>({
+      const meta = await sendDriveRequest<DriveFile>({
         type: REQUEST_TYPE.DRIVE_CREATE,
         name: fileName,
         content: JSON.stringify(empty),
@@ -90,7 +91,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   onAutoCreate: async (content, name) => {
     set({ actionError: null });
     try {
-      const meta = await sendToBackground<DriveFile>({
+      const meta = await sendDriveRequest<DriveFile>({
         type: REQUEST_TYPE.DRIVE_CREATE,
         name: ensureExcalidrawExtension(name),
         content,
@@ -110,7 +111,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
     set({ actionError: null });
     try {
       const fileName = ensureExcalidrawExtension(name);
-      const meta = await sendToBackground<DriveFile>({
+      const meta = await sendDriveRequest<DriveFile>({
         type: REQUEST_TYPE.DRIVE_RENAME,
         id,
         name: fileName,
@@ -128,7 +129,7 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   onDelete: async (id) => {
     set({ actionError: null });
     try {
-      await sendToBackground<null>({ type: REQUEST_TYPE.DRIVE_TRASH, id });
+      await sendDriveRequest<null>({ type: REQUEST_TYPE.DRIVE_TRASH, id });
       if (id === get().activeId) {
         await clearActiveFile();
         await clearScene(bridge); // wipes localStorage + IndexedDB, then reloads tab

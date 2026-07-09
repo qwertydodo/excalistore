@@ -29,9 +29,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isConnecting: false,
   connectError: null,
   onStatusChange: (status) => set({ status, isStatusLoaded: true }),
-  // Shared by every caller that reacts to a mid-session 401 from a Drive
-  // request (refresh's onUnauthorized) — one named action instead of each
-  // call site re-wrapping onStatusChange({ isConnected: false }) itself.
+  // Called by sendDriveRequest's 401 middleware (entrypoints/content/api) on
+  // any mid-session unauthorized Drive response — one named action instead of
+  // every call site re-wrapping onStatusChange({ isConnected: false }) itself.
   markDisconnected: () => set({ status: { isConnected: false }, isStatusLoaded: true }),
   // Kicks off the one-time connection-status check on app init. Returns the
   // resolved status so the caller doesn't need a follow-up getState() read.

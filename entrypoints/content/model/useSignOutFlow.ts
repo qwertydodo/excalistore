@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
+import { REQUEST_TYPE } from "@/features/driveGateway";
+import { sendDriveRequest } from "../api";
 import { bridge } from "../lib/bridge";
 import { clearScene, readScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
@@ -47,7 +48,7 @@ export const useSignOutFlow = (): SignOutFlow => {
         // tick, and including it would churn this callback's identity, which
         // is passed down as a prop). Reading fresh via getState() gets the
         // latest value without adding that dep.
-        await sendToBackground({
+        await sendDriveRequest({
           type: REQUEST_TYPE.DRIVE_UPDATE,
           id: activeId,
           content: JSON.stringify(scene),

@@ -1,4 +1,3 @@
-import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "./stores/authStore";
 import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
 import { usePanelVisibilityStore } from "./stores/panelVisibilityStore";
@@ -12,9 +11,7 @@ export type ConnectDrive = {
 // "open the panel and load the file list" instead of authStore reaching into
 // the other two stores directly.
 export const useConnectDrive = (): ConnectDrive => {
-  const { connect, markDisconnected } = useAuthStore(
-    useShallow((s) => ({ connect: s.connect, markDisconnected: s.markDisconnected })),
-  );
+  const connect = useAuthStore((s) => s.connect);
   const show = usePanelVisibilityStore((s) => s.show);
   const refresh = useDiagramLibraryStore((s) => s.refresh);
 
@@ -22,7 +19,7 @@ export const useConnectDrive = (): ConnectDrive => {
     const status = await connect(folderName);
     if (status.isConnected) {
       await show();
-      await refresh(markDisconnected);
+      await refresh();
     }
   };
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ERROR_CODE, RequestError, sendToBackground } from "@/features/driveGateway";
+import { sendToBackground } from "@/features/driveGateway";
 import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUtils";
 import { getCachedFiles, setDiagramSearchQuery } from "./sessionStore";
 
@@ -75,23 +75,11 @@ describe("refresh", () => {
     expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
   });
 
-  it("invokes onUnauthorized on a 401, so the caller can react (e.g. mark authStore disconnected)", async () => {
-    vi.mocked(sendToBackground).mockRejectedValue(
-      new RequestError("insufficient scopes", ERROR_CODE.UNAUTHORIZED),
-    );
-    const onUnauthorized = vi.fn();
-    const result = await useDiagramLibraryStore.getState().refresh(onUnauthorized);
-    expect(result).toEqual([]);
-    expect(onUnauthorized).toHaveBeenCalledOnce();
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
-  });
-
-  it("does not invoke onUnauthorized on a non-auth error", async () => {
+  it("swallows an error and returns an empty list, clearing isFilesLoading (401 handling now lives in sendDriveRequest, see driveRequest.test.ts)", async () => {
     vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
-    const onUnauthorized = vi.fn();
-    const result = await useDiagramLibraryStore.getState().refresh(onUnauthorized);
+    const result = await useDiagramLibraryStore.getState().refresh();
     expect(result).toEqual([]);
-    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
   });
 });
 

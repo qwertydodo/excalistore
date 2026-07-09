@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { DriveFile } from "@/entities/google/drive";
-import { ERROR_CODE, REQUEST_TYPE, RequestError, sendToBackground } from "@/features/driveGateway";
+import { REQUEST_TYPE } from "@/features/driveGateway";
+import { sendDriveRequest } from "../../api";
 import {
   getDiagramSearchQuery,
   hasValidatedFileListThisSession,
@@ -14,24 +15,24 @@ export type DiagramLibraryStore = {
   isFilesLoading: boolean;
   isQueryLoaded: boolean;
   onFilesChange: (files: DriveFile[]) => void;
-  refresh: (onUnauthorized?: () => void) => Promise<DriveFile[]>;
+  refresh: () => Promise<DriveFile[]>;
   loadInitialQuery: () => Promise<void>;
 };
 
 // Single source of truth for the connected Drive file list and the persisted
 // search query's initial load — connection status lives in authStore, which
-// this store never imports (see authStore's own comment): refresh() takes an
-// optional onUnauthorized callback instead, so a caller that cares about a
-// 401 mid-refresh (useActiveDiagram, ...) wires it to authStore itself. Read
-// directly by whichever component needs it (DiagramPanel, useDiagramData,
-// ...) instead of threading it all through App.tsx as props.
+// this store never imports (see authStore's own comment): refresh() goes
+// through sendDriveRequest instead, whose 401 middleware marks authStore
+// disconnected on an unauthorized error. Read directly by whichever component
+// needs it (DiagramPanel, useDiagramData, ...) instead of threading it all
+// through App.tsx as props.
 export const useDiagramLibraryStore = create<DiagramLibraryStore>((set) => ({
   files: [],
   initialQuery: "",
   isFilesLoading: false,
   isQueryLoaded: false,
   onFilesChange: (files) => set({ files }),
-  refresh: async (onUnauthorized) => {
+  refresh: async () => {
     // Only skip the full-list loader once this tab session has already
     // validated a list against Drive at least once (e.g. right before an
     // open/switch/create reload) — that's a silent background revalidation,
@@ -41,15 +42,12 @@ export const useDiagramLibraryStore = create<DiagramLibraryStore>((set) => ({
     // and there's no in-flight reload to protect from flicker yet.
     if (!hasValidatedFileListThisSession()) set({ isFilesLoading: true });
     try {
-      const list = await sendToBackground<DriveFile[]>({ type: REQUEST_TYPE.DRIVE_LIST });
+      const list = await sendDriveRequest<DriveFile[]>({ type: REQUEST_TYPE.DRIVE_LIST });
       set({ files: list });
       setCachedFiles(list); // keep the fast-paint cache fresh
       markFileListValidatedThisSession();
       return list;
-    } catch (e) {
-      if (e instanceof RequestError && e.code === ERROR_CODE.UNAUTHORIZED) {
-        onUnauthorized?.();
-      }
+    } catch {
       return [];
     } finally {
       set({ isFilesLoading: false });
