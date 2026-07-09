@@ -3,11 +3,8 @@ import { useShallow } from "zustand/react/shallow";
 import { Badge, Button, Heading, IconButton, Spinner, Stack, Text, type Tone } from "@/shared/ui";
 import type { SaveStatus } from "../../lib/autosaveController";
 import { useActiveDiagramStore } from "../../model/stores/activeDiagramStore";
-import {
-  selectIsDiagramLibraryLoading,
-  useDiagramLibraryStore,
-} from "../../model/stores/diagramLibraryStore";
-import { usePanelVisibility } from "../../model/usePanelVisibility";
+import { useDiagramLibraryStore } from "../../model/stores/diagramLibraryStore";
+import { usePanelVisibilityStore } from "../../model/stores/panelVisibilityStore";
 import { CreateDiagramForm } from "../CreateDiagramForm";
 import { DiagramList } from "../DiagramList";
 import styles from "./DiagramPanel.module.css";
@@ -38,15 +35,20 @@ export const DiagramPanel = ({ onSignOut }: DiagramPanelProps) => {
   const { saveStatus, error, onOpen } = useActiveDiagramStore(
     useShallow((s) => ({ saveStatus: s.saveStatus, error: s.actionError, onOpen: s.onOpen })),
   );
-  const { isVisible, toggleVisibility } = usePanelVisibility();
+  const { isVisible, toggleVisibility } = usePanelVisibilityStore(
+    useShallow((s) => ({ isVisible: s.isVisible, toggleVisibility: s.toggleVisibility })),
+  );
   const [openingId, setOpeningId] = useState<string | null>(null);
-  const [isCreatingBusy, setIsCreatingBusy] = useState(false);
+  const [isCreateLoading, setIsCreateLoading] = useState(false);
 
-  const isLoading = useDiagramLibraryStore(selectIsDiagramLibraryLoading);
+  // isQueryLoaded is guaranteed true by the time this panel mounts (App
+  // gates first paint on it — see useAppInit) so isFilesLoading alone is the
+  // relevant ongoing-loading indicator here.
+  const isLoading = useDiagramLibraryStore((s) => s.isFilesLoading);
 
   // Opening or creating replaces the canvas (tab reload) — lock the rows so a
   // second action can't race it.
-  const areRowsLocked = openingId !== null || isCreatingBusy;
+  const areRowsLocked = openingId !== null || isCreateLoading;
 
   const onRowOpen = async (id: string) => {
     if (openingId) return; // a switch is already in flight
@@ -58,7 +60,7 @@ export const DiagramPanel = ({ onSignOut }: DiagramPanelProps) => {
     }
   };
 
-  const onCreatingBusyChange = (isBusy: boolean) => setIsCreatingBusy(isBusy);
+  const onCreateLoadingChange = (isLoading: boolean) => setIsCreateLoading(isLoading);
 
   if (!isVisible) {
     return (
@@ -107,7 +109,7 @@ export const DiagramPanel = ({ onSignOut }: DiagramPanelProps) => {
       )}
 
       <Stack as="footer" gap="2" className={styles.footer}>
-        <CreateDiagramForm isDisabled={areRowsLocked} onBusyChange={onCreatingBusyChange} />
+        <CreateDiagramForm isDisabled={areRowsLocked} onLoadingChange={onCreateLoadingChange} />
         <Button variant="secondary" onClick={onSignOut}>
           Sign out
         </Button>

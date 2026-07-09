@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { DriveFile } from "@/entities/google/drive";
 import { useTextSearch } from "@/shared/lib";
 import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
@@ -13,12 +14,13 @@ export type DiagramData = {
 
 // Sorts the diagram list and runs the search over it, persisting the
 // debounced query. The caller must not mount this hook until the store's
-// persisted query has resolved (see useDiagramLibrary/isQueryLoaded) —
+// persisted query has resolved (see diagramLibraryStore's isQueryLoaded) —
 // useTextSearch only reads its initialQuery on first render, so a
 // later-arriving value here would never be adopted.
 export const useDiagramData = (): DiagramData => {
-  const files = useDiagramLibraryStore((s) => s.files);
-  const initialQuery = useDiagramLibraryStore((s) => s.initialQuery);
+  const { files, initialQuery } = useDiagramLibraryStore(
+    useShallow((s) => ({ files: s.files, initialQuery: s.initialQuery })),
+  );
 
   // Stable order: sort by name so saving/opening a diagram never reshuffles
   // the list (sorting by modifiedTime would jump the active item to the top).

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
 import { useActiveDiagramStore } from "../../model/stores/activeDiagramStore";
 import { useDiagramLibraryStore } from "../../model/stores/diagramLibraryStore";
+import { usePanelVisibilityStore } from "../../model/stores/panelVisibilityStore";
 import { DiagramPanel } from "./DiagramPanel";
 
 const files = [
@@ -13,10 +14,12 @@ const files = [
 
 const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
 const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
+const INITIAL_PANEL_STATE = usePanelVisibilityStore.getState();
 
-// usePanelVisibility (called internally by DiagramPanel) persists through
-// chrome.storage.local — the stub's store starts empty so getPanelCollapsed
-// resolves to not-collapsed and the panel expands. The diagram list and the
+// panelVisibilityStore and diagramLibraryStore's isQueryLoaded are both
+// loaded/gated once at the App level (useAppInit/App.tsx) before DiagramPanel
+// ever mounts — these tests render DiagramPanel directly, so seed them
+// pre-resolved instead of relying on those loaders. The diagram list and the
 // active-diagram bits (activeId/saveStatus/error/onOpen/...) both read
 // straight off their respective stores, so each test seeds those instead of
 // passing props.
@@ -36,12 +39,14 @@ beforeEach(() => {
     { ...INITIAL_ACTIVE_STATE, activeId: "1", saveStatus: "saved" },
     true,
   );
+  usePanelVisibilityStore.setState(
+    { ...INITIAL_PANEL_STATE, isVisible: true, isInitialized: true },
+    true,
+  );
 });
 
-// The panel mounts collapsed (avoids a layout-shift flash) and expands only
-// after usePanelVisibility resolves the persisted state from storage. The
-// diagram list + search field then mount only once the library store's
-// isLoading clears — wait for the search field (always rendered by
+// The diagram list + search field mount only once the library store's
+// isFilesLoading clears — wait for the search field (always rendered by
 // DiagramList, regardless of file count) before asserting on content.
 async function renderExpanded() {
   render(<DiagramPanel onSignOut={vi.fn()} />);
@@ -115,13 +120,13 @@ describe("DiagramPanel", () => {
   });
 
   it("shows a loading spinner while the library is loading, hides once ready", async () => {
-    act(() => useDiagramLibraryStore.setState({ isQueryLoaded: false }));
+    act(() => useDiagramLibraryStore.setState({ isFilesLoading: true }));
     render(<DiagramPanel onSignOut={vi.fn()} />);
-    await screen.findByLabelText("Excalistore diagrams"); // panel expands (panelCollapsed resolved)
+    await screen.findByLabelText("Excalistore diagrams");
     expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: /search diagrams/i })).not.toBeInTheDocument();
 
-    act(() => useDiagramLibraryStore.setState({ isQueryLoaded: true }));
+    act(() => useDiagramLibraryStore.setState({ isFilesLoading: false }));
     await screen.findByRole("textbox", { name: /search diagrams/i });
     expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
     expect(screen.getByText("alpha")).toBeInTheDocument();
