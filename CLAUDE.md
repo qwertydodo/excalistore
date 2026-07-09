@@ -175,15 +175,15 @@ at `docs/superpowers/specs/2026-06-17-excalistore-design.md`.
 - Commits: Conventional Commits — `type(scope): subject`; types
   `feat|fix|docs|chore|refactor|test|build|ci`. Enforced by commitlint.
 - Branches: `type/short-description` (e.g. `feat/drive-autosave`).
-- **Branch in place — never create a git worktree.** Work happens in the main
-  project folder. On task start, create a branch off `main`
-  (`git switch -c <branch>`) and work there. Never create a separate worktree
-  directory (e.g. `../excalistore-<branch>`) — keeping a single checkout makes
-  debugging and editor navigation straightforward. Never work directly on
-  `main` (the pre-commit hook blocks it anyway).
+- On task start, create a branch off `main` (`git switch -c <branch>`) and
+  work there. Never work directly on `main` (the pre-commit hook blocks it
+  anyway). Parallel work in separate worktrees is fine — see
+  `superpowers:using-git-worktrees`.
 - **After opening a PR, wait for all checks to finish** (CI `check` and
   CodeRabbit review) before doing anything else with it. If the CI pipeline
   fails or CodeRabbit raises a problem, analyze it and report the analysis to
   the user — wait for their decision on what to do, never fix or dismiss it
-  unilaterally. If every check is green and CodeRabbit has no findings, merge
-  the PR without asking.
+  unilaterally. Once every check is green and CodeRabbit has no findings, ask
+  the user for merge approval before merging — never merge automatically.
+  Only skip asking if the user has explicitly told you to bypass approval for
+  that PR.
