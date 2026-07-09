@@ -76,7 +76,7 @@ describe("onOpen", () => {
     await useActiveDiagramStore.getState().onOpen("1");
 
     // The flush's returned revision is recorded; the newly-opened file's own
-    // revision is restored post-reload by useActiveDiagram's init effect
+    // revision is restored post-reload by useInitialDiagramLoad's effect
     // (from the ActiveFile pointer set below), not by onOpen itself.
     expect(useActiveDiagramStore.getState().revision).toBe("r0b");
     await expect(getActiveFile()).resolves.toEqual({

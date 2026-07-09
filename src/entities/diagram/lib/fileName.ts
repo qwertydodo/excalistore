@@ -12,7 +12,7 @@ export const ensureExcalidrawExtension = (name: string): string => {
 };
 
 // Picks the next free "Untitled"/"Untitled N" name for a silently
-// auto-created diagram (see useActiveDiagram's auto-create watcher).
+// auto-created diagram (see useAutoCreate's auto-create watcher).
 // Case-insensitive so "untitled.excalidraw" still counts as taken.
 export const nextUntitledName = (existingNames: string[]): string => {
   const stripped = new Set(existingNames.map((n) => stripExcalidrawExtension(n).toLowerCase()));

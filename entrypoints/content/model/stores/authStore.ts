@@ -16,7 +16,7 @@ export type AuthStore = {
 
 // Single source of truth for whether the extension is connected to a Drive
 // folder — distinct from diagramLibraryStore (file list, search query) so
-// every consumer (ConnectButton, useAppInit, useActiveDiagram, ...) can read
+// every consumer (ConnectButton, useAppInit, useInitialDiagramLoad, ...) can read
 // connection state straight off this store instead of it living inside a
 // "library" store that also owns unrelated file-list concerns. A leaf store:
 // it never reaches into other stores itself — anything that needs to react

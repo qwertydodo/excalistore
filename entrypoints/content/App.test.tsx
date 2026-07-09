@@ -8,12 +8,12 @@ import { useAuthStore } from "./model/stores/authStore";
 import { useDiagramLibraryStore } from "./model/stores/diagramLibraryStore";
 import { usePanelVisibilityStore } from "./model/stores/panelVisibilityStore";
 
-// useActiveDiagram drives real Drive/bridge calls on mount (see its own
+// useInitialDiagramLoad drives real Drive/bridge calls on mount (see its own
 // test's fake-deps setup) — irrelevant to App's init-gating logic, which only
 // cares about authStore/panelVisibilityStore/diagramLibraryStore/
 // activeDiagramStore. Stub it to a no-op so it doesn't interfere with the
 // state these tests drive directly.
-vi.mock("./model/useActiveDiagram", () => ({ useActiveDiagram: vi.fn() }));
+vi.mock("./model/useInitialDiagramLoad", () => ({ useInitialDiagramLoad: vi.fn() }));
 
 // useAppInit's loadStatus() call (see useAppInit.ts) goes through this — leave
 // it permanently pending so it never resolves on its own, letting these tests
@@ -22,6 +22,8 @@ vi.mock("@/features/driveGateway", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/driveGateway")>()),
   sendToBackground: vi.fn(() => new Promise(() => {})),
 }));
+
+const { sendToBackground } = await import("@/features/driveGateway");
 
 const INITIAL_AUTH_STATE = useAuthStore.getState();
 const INITIAL_PANEL_STATE = usePanelVisibilityStore.getState();
@@ -33,10 +35,10 @@ beforeEach(() => {
   useAuthStore.setState(INITIAL_AUTH_STATE, true);
   usePanelVisibilityStore.setState(INITIAL_PANEL_STATE, true);
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
-  // useActiveDiagram (which owns loadInitial) is stubbed to a no-op above, so
-  // isListReady never flips true on its own here — seed it directly since
-  // these tests are only exercising the panel-visibility/query gates, not the
-  // list-loading one (see activeDiagramStore.test.ts for that).
+  // useInitialDiagramLoad (which owns loadInitial) is stubbed to a no-op
+  // above, so isListReady never flips true on its own here — seed it directly
+  // since these tests are only exercising the panel-visibility/query gates,
+  // not the list-loading one (see activeDiagramStore.test.ts for that).
   useActiveDiagramStore.setState({ ...INITIAL_ACTIVE_STATE, isListReady: true }, true);
 });
 
@@ -85,6 +87,36 @@ describe("App", () => {
   });
 
   it("shows the diagram panel once connection status, panel visibility, and the search query all resolve", async () => {
+    render(<App />);
+    act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
+    await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true));
+    await screen.findByLabelText("Excalistore diagrams");
+  });
+
+  it("renders the panel without the watchers mounted while isReconciled is still false", async () => {
+    useActiveDiagramStore.setState({
+      ...INITIAL_ACTIVE_STATE,
+      isListReady: true,
+      isReconciled: false,
+    });
+    render(<App />);
+    act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
+    await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true));
+    await screen.findByLabelText("Excalistore diagrams");
+    // DiagramWatchers isn't mounted yet, so no auto-create attempt can fire.
+    expect(sendToBackground).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "drive/create" }),
+    );
+  });
+
+  it("mounts the watchers once isReconciled flips true, without crashing", async () => {
+    useActiveDiagramStore.setState({
+      ...INITIAL_ACTIVE_STATE,
+      isListReady: true,
+      isReconciled: true,
+    });
     render(<App />);
     act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
     await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));

@@ -2,9 +2,11 @@ import { ConfirmDialog } from "@/shared/ui";
 import { useAppInit } from "./model/useAppInit";
 import { ConnectButton } from "./ui/ConnectButton";
 import { DiagramPanel } from "./ui/DiagramPanel";
+import { DiagramWatchers } from "./ui/DiagramWatchers";
 
 export const App = () => {
-  const { isStatusLoaded, isPanelReady, isQueryReady, isListReady, status, signOut } = useAppInit();
+  const { isStatusLoaded, isPanelReady, isQueryReady, isListReady, isReconciled, status, signOut } =
+    useAppInit();
 
   // Connection status not known yet — painting a guess here just flickers
   // to the real branch a tick later once it resolves.
@@ -25,6 +27,7 @@ export const App = () => {
   return (
     <>
       <DiagramPanel onSignOut={signOut.openSignOut} />
+      {isReconciled && <DiagramWatchers />}
       {signOut.isSignOutOpen && (
         <ConfirmDialog
           title="Sign out of Excalistore?"

@@ -45,7 +45,7 @@ export type ActiveDiagramStore = {
 // Owns the active-file pointer, its save revision, and the CRUD action
 // handlers (open/create/rename/delete) that all read/write that pointer —
 // read directly by whoever needs it (DiagramPanel, useSignOutFlow, the
-// autosave effect in useActiveDiagram, ...) instead of threading it all
+// autosave effect in useAutosave, ...) instead of threading it all
 // through App.tsx as props.
 export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   activeId: null,

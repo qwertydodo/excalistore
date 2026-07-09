@@ -190,10 +190,13 @@ props/params:
 - **`activeDiagramStore`** — the active-file pointer (`activeId`), its save
   `revision`, `saveStatus`, `actionError`, and the CRUD actions
   (`onOpen`/`onCreate`/`onRename`/`onDelete`) that read/write that pointer.
-  `useActiveDiagram` (called once from `App`) is just the two effects tied to
-  React's lifecycle — the initial load (connection status, file list, restore
-  the active pointer) and the autosave loop wired to whichever file is active
-  — everything it produces lives in the store. Each consumer reads only the
+  the store's own lifecycle effects are split across three gated hooks:
+  `useInitialDiagramLoad` (called from `useAppInit`, outside App's readiness
+  gate — kicks off `loadInitial` on the `isConnected` flip), and
+  `useAutosave`/`useAutoCreate` (called from the renderless `DiagramWatchers`,
+  which `App` mounts only once `isReconciled` — the autosave loop wired to
+  whichever file is active, and the auto-create watcher for when none is) —
+  everything they produce lives in the store. Each consumer reads only the
   slice it needs, directly off the store, rather than via props: `DiagramPanel`
   reads `saveStatus`/`actionError`/`onOpen` (one `useShallow` call) since it
   wraps `onOpen` in its own in-flight lock; `DiagramList` reads
@@ -271,10 +274,10 @@ in isolation.
   requests against a file that's gone. `flush()` forces an immediate save
   when dirty (used by sign-out) but is likewise a no-op once `deleted`; the
   clock and poll trigger are injectable, so the controller is fully
-  unit-tested without real timers. `useActiveDiagram` creates two independent
-  instances of it: one for regular per-file autosave, one for the
-  auto-create-on-first-stroke watcher above — same debounce semantics, two
-  different `save()` callbacks.
+  unit-tested without real timers. `useAutosave` and `useAutoCreate` each
+  create their own independent instance of it — one for regular per-file
+  autosave, one for the auto-create-on-first-stroke watcher below — same
+  debounce semantics, two different `save()` callbacks.
 - **`sessionStore`** (`entrypoints/content/model/stores/sessionStore.ts`) —
   plain `chrome.storage.local` get/set/clear wrappers, one file since each is
   just a key/value pair, not real app state: `getActiveFile`/`setActiveFile`/
@@ -395,14 +398,15 @@ re-implements a button, dialog, or theme lookup.
   `code: "conflict"`; the badge shows "Conflict — not saved" — no silent
   overwrite (resolution UI deferred; v1 blocks + tells the user). If the file
   no longer exists on Drive at all, the gateway returns `code: "not_found"`;
-  the badge shows "Diagram deleted on Drive", `useActiveDiagram`'s
-  `handleRemoteDeletion` clears the active pointer and drops the row from the
-  panel list, and the autosave controller stops polling for that file for
-  good (see `autosave` above).
-- **Auto-create on first stroke:** a third `useEffect` in `useActiveDiagram`
-  runs the opposite condition — no `activeId`, connected, and the initial
-  load/stale-pointer reconciliation already finished (a local
-  `isInitialLoadComplete` flag guards against racing that reconciliation).
+  the badge shows "Diagram deleted on Drive", `useAutosave` calls
+  `activeDiagramStore.onRemoteDeleted` to clear the active pointer and drop
+  the row from the panel list, and the autosave controller stops polling for
+  that file for good (see `autosave` above).
+- **Auto-create on first stroke:** `useAutoCreate` — mounted (via
+  `DiagramWatchers`) only once `App` has confirmed connected + reconciled —
+  runs the opposite condition to `useAutosave`: no `activeId`. No further
+  connection/reconcile guard is needed inside the hook itself, since
+  unmounting `DiagramWatchers` on disconnect is the cleanup path.
   It reuses the same `createAutosave` debounce (~2.5s stable-changed) as
   regular autosave; once it fires, `activeDiagramStore.onAutoCreate(content,
   name)` creates a Drive file from the *current* scene (not blank) and sets

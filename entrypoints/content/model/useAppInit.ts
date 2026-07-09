@@ -5,7 +5,7 @@ import { useActiveDiagramStore } from "./stores/activeDiagramStore";
 import { useAuthStore } from "./stores/authStore";
 import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
 import { usePanelVisibilityStore } from "./stores/panelVisibilityStore";
-import { useActiveDiagram } from "./useActiveDiagram";
+import { useInitialDiagramLoad } from "./useInitialDiagramLoad";
 import { type SignOutFlow, useSignOutFlow } from "./useSignOutFlow";
 
 export type AppInit = {
@@ -19,14 +19,15 @@ export type AppInit = {
 };
 
 // The single hook App calls: kicks off every side-effecting load the app
-// needs (connection status, panel visibility, search query, active pointer +
-// autosave, sign-out flow wiring). Exposes isStatusLoaded, isPanelReady,
-// isQueryReady, isListReady, and isReconciled separately rather than one
-// merged "ready" flag — App gates on each in turn (status first, then panel
-// visibility/query/list only once connected), since a disconnected user
-// never needs to wait on any of them.
+// needs (connection status, panel visibility, search query, active pointer,
+// sign-out flow wiring). The autosave/auto-create watchers are separate —
+// App mounts DiagramWatchers once isReconciled, rather than this hook owning
+// them. Exposes isStatusLoaded, isPanelReady, isQueryReady, isListReady, and
+// isReconciled separately rather than one merged "ready" flag — App gates on
+// each in turn (status first, then panel visibility/query/list only once
+// connected), since a disconnected user never needs to wait on any of them.
 export const useAppInit = (): AppInit => {
-  useActiveDiagram();
+  useInitialDiagramLoad();
   const signOut = useSignOutFlow();
 
   const { status, isStatusLoaded, loadStatus } = useAuthStore(
@@ -49,9 +50,10 @@ export const useAppInit = (): AppInit => {
     useShallow((s) => ({ isListReady: s.isListReady, isReconciled: s.isReconciled })),
   );
 
-  // The one-time connection-status check — useActiveDiagram used to trigger
-  // this itself, but panel visibility/search query below both need to know
-  // isConnected before they load, so it's hoisted here as the single owner.
+  // The one-time connection-status check — useInitialDiagramLoad used to
+  // trigger this itself, but panel visibility/search query below both need to
+  // know isConnected before they load, so it's hoisted here as the single
+  // owner.
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);

@@ -10,7 +10,7 @@ export type ConnectDrive = {
 // "open the panel" instead of authStore reaching into panelVisibilityStore
 // directly. The file list is no longer loaded here: activeDiagramStore's
 // loadInitial() owns that, triggered by the isConnected flip (see
-// useActiveDiagram).
+// useInitialDiagramLoad).
 export const useConnectDrive = (): ConnectDrive => {
   const connect = useAuthStore((s) => s.connect);
   const show = usePanelVisibilityStore((s) => s.show);
