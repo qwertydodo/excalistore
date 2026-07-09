@@ -20,10 +20,14 @@ beforeEach(() => {
   vi.mocked(sendToBackground).mockReset();
 });
 
-describe("onFilesChange", () => {
-  it("sets the store's files", () => {
-    useDiagramLibraryStore.getState().onFilesChange(files);
+describe("setFiles", () => {
+  it("sets the in-memory list and writes the fast-paint cache in one action", async () => {
+    const files = [{ id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" }];
+
+    useDiagramLibraryStore.getState().setFiles(files);
+
     expect(useDiagramLibraryStore.getState().files).toEqual(files);
+    await expect(getCachedFiles()).resolves.toEqual(files);
   });
 });
 

@@ -20,7 +20,6 @@ import {
   getActiveFile,
   getCachedFiles,
   setActiveFile,
-  setCachedFiles,
 } from "./stores/sessionStore";
 
 // Canonical hash of a blank scene (no elements, no app state, no files) —
@@ -36,10 +35,9 @@ const EMPTY_SCENE_HASH = sceneHash(buildExcalidrawFile([], {}, {}));
 export const handleRemoteDeletion = async (deletedId: string): Promise<void> => {
   await clearActiveFile();
   useActiveDiagramStore.getState().onActivePointerChange(null, null);
-  const { files, onFilesChange } = useDiagramLibraryStore.getState();
+  const { files, setFiles } = useDiagramLibraryStore.getState();
   const next = files.filter((f) => f.id !== deletedId);
-  onFilesChange(next);
-  setCachedFiles(next);
+  setFiles(next);
 };
 
 // Once useAppInit's loadStatus() resolves (isStatusLoaded flips true),
@@ -66,9 +64,7 @@ export const useActiveDiagram = (): void => {
       isStatusLoaded: s.isStatusLoaded,
     })),
   );
-  const { onFilesChange, refresh } = useDiagramLibraryStore(
-    useShallow((s) => ({ onFilesChange: s.onFilesChange, refresh: s.refresh })),
-  );
+  const refresh = useDiagramLibraryStore((s) => s.refresh);
   // Guards the auto-create watcher below from racing the stale-pointer
   // reconciliation in the effect right after this one: isConnected can flip
   // true well before that reconciliation (and the active-pointer adoption it
@@ -88,7 +84,7 @@ export const useActiveDiagram = (): void => {
       let cached: DriveFile[] = [];
       if (isConnected) {
         cached = await getCachedFiles();
-        if (cached.length) onFilesChange(cached);
+        if (cached.length) useDiagramLibraryStore.getState().setFiles(cached);
       }
       // Adopt the active pointer against the cached list right away too —
       // otherwise the row highlight lags behind the network refresh below,
@@ -107,14 +103,7 @@ export const useActiveDiagram = (): void => {
       setIsInitialLoadComplete(true);
     };
     loadInitial();
-  }, [
-    isStatusLoaded,
-    isInitialLoadComplete,
-    isConnected,
-    onActivePointerChange,
-    onFilesChange,
-    refresh,
-  ]);
+  }, [isStatusLoaded, isInitialLoadComplete, isConnected, onActivePointerChange, refresh]);
 
   // Autosave: only meaningful once a file is active.
   useEffect(() => {

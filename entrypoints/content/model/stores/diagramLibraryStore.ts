@@ -14,7 +14,7 @@ export type DiagramLibraryStore = {
   initialQuery: string;
   isFilesLoading: boolean;
   isQueryLoaded: boolean;
-  onFilesChange: (files: DriveFile[]) => void;
+  setFiles: (files: DriveFile[]) => void;
   refresh: () => Promise<DriveFile[]>;
   loadInitialQuery: () => Promise<void>;
 };
@@ -26,12 +26,18 @@ export type DiagramLibraryStore = {
 // disconnected on an unauthorized error. Read directly by whichever component
 // needs it (DiagramPanel, useDiagramData, ...) instead of threading it all
 // through App.tsx as props.
-export const useDiagramLibraryStore = create<DiagramLibraryStore>((set) => ({
+export const useDiagramLibraryStore = create<DiagramLibraryStore>((set, get) => ({
   files: [],
   initialQuery: "",
   isFilesLoading: false,
   isQueryLoaded: false,
-  onFilesChange: (files) => set({ files }),
+  // The one write path for the file list: state and the fast-paint cache
+  // (chrome.storage.local) always move together, so no caller can update one
+  // and forget the other.
+  setFiles: (files) => {
+    set({ files });
+    setCachedFiles(files);
+  },
   refresh: async () => {
     // Only skip the full-list loader once this tab session has already
     // validated a list against Drive at least once (e.g. right before an
@@ -43,8 +49,7 @@ export const useDiagramLibraryStore = create<DiagramLibraryStore>((set) => ({
     if (!hasValidatedFileListThisSession()) set({ isFilesLoading: true });
     try {
       const list = await sendDriveRequest<DriveFile[]>({ type: REQUEST_TYPE.DRIVE_LIST });
-      set({ files: list });
-      setCachedFiles(list); // keep the fast-paint cache fresh
+      get().setFiles(list);
       markFileListValidatedThisSession();
       return list;
     } catch {

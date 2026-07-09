@@ -11,7 +11,7 @@ import { SAVE_STATUS, type SaveStatus } from "../../lib/autosaveController";
 import { bridge } from "../../lib/bridge";
 import { clearScene, readScene, readTheme, writeScene } from "../../lib/sceneBridge";
 import { useDiagramLibraryStore } from "./diagramLibraryStore";
-import { clearActiveFile, setActiveFile, setCachedFiles } from "./sessionStore";
+import { clearActiveFile, setActiveFile } from "./sessionStore";
 
 export type ActiveDiagramStore = {
   activeId: string | null;
@@ -98,10 +98,9 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
       });
       await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
       set({ activeId: meta.id, revision: meta.headRevisionId });
-      const { files, onFilesChange } = useDiagramLibraryStore.getState();
+      const { files, setFiles } = useDiagramLibraryStore.getState();
       const next = [meta, ...files];
-      onFilesChange(next);
-      setCachedFiles(next);
+      setFiles(next);
     } catch (e) {
       set({ actionError: e instanceof Error ? e.message : "Failed to create diagram" });
       throw e;
@@ -118,10 +117,9 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
       });
       // Patch the single row in place — no full re-fetch, so the list doesn't
       // blank to the loading spinner.
-      const { files, onFilesChange } = useDiagramLibraryStore.getState();
+      const { files, setFiles } = useDiagramLibraryStore.getState();
       const next = files.map((f) => (f.id === id ? meta : f));
-      onFilesChange(next);
-      setCachedFiles(next);
+      setFiles(next);
     } catch (e) {
       set({ actionError: e instanceof Error ? e.message : "Failed to rename diagram" });
     }
@@ -134,10 +132,9 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
         await clearActiveFile();
         await clearScene(bridge); // wipes localStorage + IndexedDB, then reloads tab
       } else {
-        const { files, onFilesChange } = useDiagramLibraryStore.getState();
+        const { files, setFiles } = useDiagramLibraryStore.getState();
         const next = files.filter((f) => f.id !== id);
-        onFilesChange(next);
-        setCachedFiles(next);
+        setFiles(next);
       }
     } catch (e) {
       set({ actionError: e instanceof Error ? e.message : "Failed to delete diagram" });
