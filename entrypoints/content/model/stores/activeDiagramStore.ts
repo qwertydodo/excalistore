@@ -19,9 +19,9 @@ export type ActiveDiagramStore = {
   saveStatus: SaveStatus;
   actionError: string | null;
   onActivePointerChange: (activeId: string | null, revision: string | null) => void;
-  onRevisionChange: (revision: string | null) => void;
   onSaveStatusChange: (status: SaveStatus) => void;
   onActionErrorChange: (error: string | null) => void;
+  saveActiveScene: (id: string) => Promise<void>;
   onOpen: (id: string) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
   onAutoCreate: (content: string, name: string) => Promise<void>;
@@ -40,27 +40,32 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   saveStatus: SAVE_STATUS.IDLE,
   actionError: null,
   onActivePointerChange: (activeId, revision) => set({ activeId, revision }),
-  onRevisionChange: (revision) => set({ revision }),
   onSaveStatusChange: (status) => set({ saveStatus: status }),
   onActionErrorChange: (error) => set({ actionError: error }),
+  // The one implementation of "write what's on the canvas to Drive file `id`
+  // with the stored revision as the conflict guard" — used by onOpen's
+  // pre-switch flush, the autosave loop, and sign-out's best-effort flush.
+  // Throws on failure so each caller keeps its own error policy.
+  saveActiveScene: async (id) => {
+    const scene = await readScene(bridge);
+    const meta = await sendDriveRequest<DriveFile>({
+      type: REQUEST_TYPE.DRIVE_UPDATE,
+      id,
+      content: JSON.stringify(scene),
+      prevRevision: get().revision ?? "",
+    });
+    set({ revision: meta.headRevisionId });
+    await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
+  },
   onOpen: async (id) => {
-    const { activeId, revision } = get();
+    const { activeId } = get();
     if (id === activeId) return; // already open
     set({ actionError: null });
     try {
       // Opening reloads the tab, so save the current diagram first — otherwise
       // unsaved edits since the last autosave tick are lost. A failed save
       // (e.g. conflict) aborts the switch so nothing is dropped silently.
-      if (activeId) {
-        const current = await readScene(bridge);
-        const saved = await sendDriveRequest<DriveFile>({
-          type: REQUEST_TYPE.DRIVE_UPDATE,
-          id: activeId,
-          content: JSON.stringify(current),
-          prevRevision: revision ?? "",
-        });
-        set({ revision: saved.headRevisionId });
-      }
+      if (activeId) await get().saveActiveScene(activeId);
       const { meta, content } = await sendDriveRequest<DiagramContent>({
         type: REQUEST_TYPE.DRIVE_GET,
         id,

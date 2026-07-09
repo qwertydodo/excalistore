@@ -93,6 +93,37 @@ describe("onOpen", () => {
   });
 });
 
+describe("saveActiveScene", () => {
+  it("saves the scene with the stored revision as conflict guard, then records the new revision and pointer", async () => {
+    useActiveDiagramStore.setState({ activeId: "1", revision: "r1" });
+    vi.mocked(sendToBackground).mockImplementation(async (request) => {
+      if (request.type === REQUEST_TYPE.DRIVE_UPDATE) {
+        expect(request.id).toBe("1");
+        expect(request.prevRevision).toBe("r1");
+        return { ...meta, id: "1", headRevisionId: "r2" };
+      }
+      throw new Error(`unexpected request ${request.type}`);
+    });
+
+    await useActiveDiagramStore.getState().saveActiveScene("1");
+
+    expect(useActiveDiagramStore.getState().revision).toBe("r2");
+    await expect(getActiveFile()).resolves.toEqual({
+      id: "1",
+      name: "beta.excalidraw",
+      loadedRevision: "r2",
+    });
+  });
+
+  it("propagates a failed save to the caller and leaves the revision untouched", async () => {
+    useActiveDiagramStore.setState({ activeId: "1", revision: "r1" });
+    vi.mocked(sendToBackground).mockRejectedValue(new Error("conflict"));
+
+    await expect(useActiveDiagramStore.getState().saveActiveScene("1")).rejects.toThrow("conflict");
+    expect(useActiveDiagramStore.getState().revision).toBe("r1");
+  });
+});
+
 describe("onCreate", () => {
   it("creates a blank diagram, sets it active, and writes the scene", async () => {
     vi.mocked(sendToBackground).mockResolvedValue(meta);

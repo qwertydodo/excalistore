@@ -7,20 +7,13 @@ import {
   sceneHash,
 } from "@/entities/diagram";
 import type { DriveFile } from "@/entities/google/drive";
-import { REQUEST_TYPE } from "@/features/driveGateway";
-import { sendDriveRequest } from "../api";
 import { createAutosave, SAVE_STATUS } from "../lib/autosaveController";
 import { bridge } from "../lib/bridge";
 import { currentSceneHash, readScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
 import { useAuthStore } from "./stores/authStore";
 import { useDiagramLibraryStore } from "./stores/diagramLibraryStore";
-import {
-  clearActiveFile,
-  getActiveFile,
-  getCachedFiles,
-  setActiveFile,
-} from "./stores/sessionStore";
+import { clearActiveFile, getActiveFile, getCachedFiles } from "./stores/sessionStore";
 
 // Canonical hash of a blank scene (no elements, no app state, no files) —
 // the baseline the auto-create watcher diffs against, so an untouched canvas
@@ -48,12 +41,11 @@ export const handleRemoteDeletion = async (deletedId: string): Promise<void> => 
 // activeDiagramStore, read directly by whoever needs it (DiagramPanel,
 // useSignOutFlow, ...).
 export const useActiveDiagram = (): void => {
-  const { activeId, onActivePointerChange, onRevisionChange, onSaveStatusChange, onAutoCreate } =
+  const { activeId, onActivePointerChange, onSaveStatusChange, onAutoCreate } =
     useActiveDiagramStore(
       useShallow((s) => ({
         activeId: s.activeId,
         onActivePointerChange: s.onActivePointerChange,
-        onRevisionChange: s.onRevisionChange,
         onSaveStatusChange: s.onSaveStatusChange,
         onAutoCreate: s.onAutoCreate,
       })),
@@ -110,22 +102,7 @@ export const useActiveDiagram = (): void => {
     if (!activeId) return;
     const autosave = createAutosave({
       getHash: () => currentSceneHash(bridge),
-      save: async () => {
-        const scene = await readScene(bridge);
-        // getState() here, not a reactive `revision` selector at the top of
-        // the hook — this effect's deps deliberately exclude revision (it
-        // changes on every successful save, and re-running the effect on
-        // that would restart the debounce timer mid-flight). Reading fresh
-        // via getState() gets the latest value without adding that dep.
-        const meta = await sendDriveRequest<DriveFile>({
-          type: REQUEST_TYPE.DRIVE_UPDATE,
-          id: activeId,
-          content: JSON.stringify(scene),
-          prevRevision: useActiveDiagramStore.getState().revision ?? "",
-        });
-        onRevisionChange(meta.headRevisionId);
-        await setActiveFile({ id: meta.id, name: meta.name, loadedRevision: meta.headRevisionId });
-      },
+      save: () => useActiveDiagramStore.getState().saveActiveScene(activeId),
       onStatus: (status) => {
         onSaveStatusChange(status);
         if (status === SAVE_STATUS.DELETED) handleRemoteDeletion(activeId);
@@ -143,7 +120,7 @@ export const useActiveDiagram = (): void => {
       autosave.flush();
       autosave.stop();
     };
-  }, [activeId, onSaveStatusChange, onRevisionChange]);
+  }, [activeId, onSaveStatusChange]);
 
   // Auto-create: no active diagram yet, but the user started drawing anyway —
   // silently promote the current scene to a new Drive file once the change
