@@ -3,10 +3,12 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUtils";
 import { createFakeSceneBridgeDeps } from "../lib/testUtils";
-import { useActiveDiagramStore } from "./stores/activeDiagramStore";
-import { useAuthStore } from "./stores/authStore";
-import { useSignOutFlow } from "./useSignOutFlow";
 
+// fakeDeps must be assigned before any (possibly transitive) import of
+// "../lib/bridge" resolves — static imports of activeDiagramStore/authStore
+// here would import bridge before this const runs (vi.mock factories are
+// hoisted above imports, but this file's own top-level statements are not),
+// so every store/hook below is loaded dynamically, after the mocks are set.
 const fakeDeps = createFakeSceneBridgeDeps();
 
 vi.mock("../lib/bridge", () => ({ bridge: fakeDeps }));
@@ -15,6 +17,9 @@ vi.mock("../lib/sceneBridge", async (importOriginal) => ({
   clearScene: vi.fn(async () => undefined),
 }));
 
+const { useActiveDiagramStore } = await import("./stores/activeDiagramStore");
+const { useAuthStore } = await import("./stores/authStore");
+const { useSignOutFlow } = await import("./useSignOutFlow");
 const { clearScene } = await import("../lib/sceneBridge");
 
 const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
