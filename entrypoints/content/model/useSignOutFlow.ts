@@ -4,11 +4,7 @@ import { bridge } from "../lib/bridge";
 import { clearScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
 import { useAuthStore } from "./stores/authStore";
-import {
-  clearActiveFile,
-  clearCachedFiles,
-  clearFileListValidatedThisSession,
-} from "./stores/sessionStore";
+import { clearActiveFile, clearCachedFiles, clearSessionLoaded } from "./stores/sessionStore";
 
 export type SignOutFlow = {
   isSignOutOpen: boolean;
@@ -49,7 +45,7 @@ export const useSignOutFlow = (): SignOutFlow => {
       await signOut();
       await clearActiveFile();
       await clearCachedFiles();
-      clearFileListValidatedThisSession();
+      clearSessionLoaded();
       onActivePointerChange(null, null);
       await clearScene(bridge); // clears canvas + reloads
     } catch (e) {

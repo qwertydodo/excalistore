@@ -4,8 +4,8 @@ import { REQUEST_TYPE } from "@/features/driveGateway";
 import { sendDriveRequest } from "../../api";
 import {
   getDiagramSearchQuery,
-  hasValidatedFileListThisSession,
-  markFileListValidatedThisSession,
+  isFirstSessionLoad,
+  markSessionLoaded,
   setCachedFiles,
 } from "./sessionStore";
 
@@ -46,11 +46,11 @@ export const useDiagramLibraryStore = create<DiagramLibraryStore>((set, get) => 
     // tab session shows the loader even if a cache is already painted: that
     // cache could be stale (files added/removed on Drive since last time),
     // and there's no in-flight reload to protect from flicker yet.
-    if (!hasValidatedFileListThisSession()) set({ isFilesLoading: true });
+    if (isFirstSessionLoad()) set({ isFilesLoading: true });
     try {
       const list = await sendDriveRequest<DriveFile[]>({ type: REQUEST_TYPE.DRIVE_LIST });
       get().setFiles(list);
-      markFileListValidatedThisSession();
+      markSessionLoaded();
       return list;
     } catch {
       return [];
