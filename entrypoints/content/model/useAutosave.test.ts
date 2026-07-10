@@ -67,6 +67,42 @@ describe("useAutosave", () => {
     }
   });
 
+  it("reports an error status instead of rejecting unhandled when the baseline hash fails", async () => {
+    useActiveDiagramStore.setState({ activeId: "1", revision: "r1" });
+    vi.mocked(currentSceneHash).mockRejectedValue(new Error("bridge gone"));
+
+    renderHook(() => useAutosave());
+    await act(async () => {
+      await Promise.resolve(); // let the rejected baseline promise settle
+    });
+
+    expect(useActiveDiagramStore.getState().saveStatus).toBe("error");
+    expect(sendToBackground).not.toHaveBeenCalled();
+  });
+
+  it("reports an error status when the unmount flush's hash read fails", async () => {
+    vi.useFakeTimers();
+    try {
+      useActiveDiagramStore.setState({ activeId: "1", revision: "r1" });
+      vi.mocked(currentSceneHash).mockResolvedValue("h0");
+
+      const { unmount } = renderHook(() => useAutosave());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0); // baseline established
+      });
+
+      vi.mocked(currentSceneHash).mockRejectedValue(new Error("bridge gone"));
+      unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0); // let the flush settle
+      });
+
+      expect(useActiveDiagramStore.getState().saveStatus).toBe("error");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("flushes a pending dirty change on unmount", async () => {
     vi.useFakeTimers();
     try {

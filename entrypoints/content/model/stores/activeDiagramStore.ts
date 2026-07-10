@@ -84,7 +84,10 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   // a network error must never drop the active pointer as "stale".
   loadInitial: async () => {
     if (get().isLoadInFlight) return;
-    set({ isLoadInFlight: true });
+    // Reset readiness on re-entry (a reconnect after an involuntary logout):
+    // the flags from the previous connected stretch must not mount the panel/
+    // watchers against state the new load hasn't confirmed yet.
+    set({ isLoadInFlight: true, isListReady: false, isReconciled: false });
     try {
       const adoptAgainst = (active: ActiveFile, list: DriveFile[]): boolean => {
         if (!list.some((f) => f.id === active.id)) return false;
@@ -102,11 +105,15 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
           const list = await refresh();
           markSessionLoaded();
           if (active && !adoptAgainst(active, list)) await dropPointer();
+          set({ isListReady: true, isReconciled: true });
         } catch {
           // Offline first load: mount an empty panel; the session stays
-          // "first load" so the next reload tries Drive again.
+          // "first load" so the next reload tries Drive again. isReconciled
+          // stays false — Drive was never observed, so the watchers must not
+          // arm (auto-create could fork a duplicate of the diagram the
+          // retained pointer refers to).
+          set({ isListReady: true });
         }
-        set({ isListReady: true, isReconciled: true });
       } else {
         const cached = await getCachedFiles();
         if (cached.length) setFiles(cached);
@@ -216,8 +223,13 @@ export const useActiveDiagramStore = create<ActiveDiagramStore>((set, get) => ({
   // the local pointer and the stale row so the panel stops highlighting/
   // re-attempting saves against a diagram that no longer exists.
   onRemoteDeleted: async (deletedId) => {
-    await clearActiveFile();
-    set({ activeId: null, revision: null });
+    // A late DELETED status (e.g. a slow cleanup flush from a previous
+    // autosave instance) may land after another file became active — only
+    // clear the pointer if it still refers to the deleted file.
+    if (get().activeId === deletedId) {
+      await clearActiveFile();
+      set({ activeId: null, revision: null });
+    }
     const { files, setFiles } = useDiagramLibraryStore.getState();
     setFiles(files.filter((f) => f.id !== deletedId));
   },

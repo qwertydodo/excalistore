@@ -272,6 +272,21 @@ describe("onRemoteDeleted", () => {
     expect(useActiveDiagramStore.getState().revision).toBeNull();
     expect(useDiagramLibraryStore.getState().files).toEqual([survivor]);
   });
+
+  it("keeps the pointer when a late deletion reports a file that is no longer active, but still drops its row", async () => {
+    const current = { id: "2", name: "b.excalidraw", modifiedTime: "t", headRevisionId: "r2" };
+    const stale = { id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" };
+    useDiagramLibraryStore.setState({ files: [stale, current] });
+    useActiveDiagramStore.setState({ activeId: "2", revision: "r2" });
+    await setActiveFile({ id: "2", name: "b.excalidraw", loadedRevision: "r2" });
+
+    await useActiveDiagramStore.getState().onRemoteDeleted("1");
+
+    expect(useActiveDiagramStore.getState().activeId).toBe("2");
+    expect(useActiveDiagramStore.getState().revision).toBe("r2");
+    await expect(getActiveFile()).resolves.not.toBeNull();
+    expect(useDiagramLibraryStore.getState().files).toEqual([current]);
+  });
 });
 
 describe("loadInitial", () => {
@@ -339,13 +354,36 @@ describe("loadInitial", () => {
     expect(useDiagramLibraryStore.getState().files).toEqual([activeRow]);
   });
 
-  it("fresh-session refresh failure does not mark the session loaded", async () => {
+  it("fresh-session refresh failure does not mark the session loaded and keeps the watchers gated", async () => {
     vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
 
     await useActiveDiagramStore.getState().loadInitial();
 
     expect(isFirstSessionLoad()).toBe(true);
     expect(useActiveDiagramStore.getState().isListReady).toBe(true);
+    // Drive was never observed this session, so auto-create must not arm:
+    // it could fork a duplicate of the diagram the retained pointer refers to.
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(false);
+  });
+
+  it("reconnect: resets both readiness flags before reconciling again", async () => {
+    markSessionLoaded();
+    useActiveDiagramStore.setState({ isListReady: true, isReconciled: true });
+    let resolveList: (v: unknown) => void = () => {};
+    vi.mocked(sendToBackground).mockImplementation(
+      () => new Promise((resolve) => (resolveList = resolve)),
+    );
+
+    const pending = useActiveDiagramStore.getState().loadInitial();
+    expect(useActiveDiagramStore.getState().isListReady).toBe(false);
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(false);
+
+    await vi.waitFor(() => {
+      expect(useActiveDiagramStore.getState().isListReady).toBe(true);
+    });
+    resolveList([]);
+    await pending;
+    expect(useActiveDiagramStore.getState().isReconciled).toBe(true);
   });
 
   it("collapses concurrent calls (strict-mode double effect)", async () => {

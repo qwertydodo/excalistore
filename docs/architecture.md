@@ -181,7 +181,8 @@ The content script's model layer is store-centric: the zustand stores under
 `model/stores/` don't just hold state, they own the orchestration that acts
 on it, and every hook/component reads the slice it needs directly off the
 relevant store instead of it being threaded through `App` as props/params.
-All content-side Drive calls — not just `drive/list` — go through
+All mid-session diagram Drive calls (list, get, create, update, rename,
+trash) go through
 `entrypoints/content/api/driveRequest.ts`'s `sendDriveRequest`, a thin 401
 middleware wrapping `sendToBackground`: on a `RequestError` with
 `code === "unauthorized"` it calls `useAuthStore.getState().markDisconnected()`
@@ -492,7 +493,7 @@ re-implements a button, dialog, or theme lookup.
 - **Involuntary logout (token expired or revoked externally):** the auth
   interceptor first transparently retries a single `401` with a refreshed
   token; only if that retry also fails does the error surface. Every
-  content-side Drive call goes through `sendDriveRequest`
+  mid-session diagram Drive call goes through `sendDriveRequest`
   (`entrypoints/content/api/driveRequest.ts`), which catches any
   `RequestError` with `code === "unauthorized"` and calls
   `authStore.markDisconnected()` before rethrowing — so list, open, rename,

@@ -78,7 +78,7 @@ _(Move items here as they ship, with a short behavior description.)_
 - Create diagram: names a new file, creates a blank `.excalidraw` scene in
   Drive, writes it locally, and reloads, becoming the active file.
 - Rename diagram: inline rename in the panel updates the Drive file name and
-  refreshes the list.
+  patches the row in place — no full list re-fetch and no page reload.
 - Debounced autosave: edits are hashed and, once stable-but-changed for
   ~2.5s, written to Drive via `drive/update` with the loaded revision as the
   conflict guard. If the remote `headRevisionId` no longer matches, the save

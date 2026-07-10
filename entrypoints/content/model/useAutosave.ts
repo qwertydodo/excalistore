@@ -23,15 +23,23 @@ export const useAutosave = (): void => {
       },
     });
     let isStopped = false;
-    // Establish the saved baseline before the first tick can fire.
-    currentSceneHash(bridge).then((h) => {
-      if (isStopped) return;
-      autosave.markSaved(h);
-      autosave.start();
-    });
+    // Establish the saved baseline before the first tick can fire. A failed
+    // hash read surfaces as an error badge instead of an unhandled rejection
+    // (with autosave silently never starting).
+    currentSceneHash(bridge)
+      .then((h) => {
+        if (isStopped) return;
+        autosave.markSaved(h);
+        autosave.start();
+      })
+      .catch(() => {
+        if (!isStopped) onSaveStatusChange(SAVE_STATUS.ERROR);
+      });
     return () => {
       isStopped = true;
-      autosave.flush();
+      // flush() only rejects if the hash read fails (a failed save is already
+      // classified to a status by the controller) — surface that too.
+      autosave.flush().catch(() => onSaveStatusChange(SAVE_STATUS.ERROR));
       autosave.stop();
     };
   }, [activeId]);
