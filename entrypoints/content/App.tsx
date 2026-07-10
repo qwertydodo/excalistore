@@ -2,9 +2,11 @@ import { ConfirmDialog } from "@/shared/ui";
 import { useAppInit } from "./model/useAppInit";
 import { ConnectButton } from "./ui/ConnectButton";
 import { DiagramPanel } from "./ui/DiagramPanel";
+import { DiagramWatchers } from "./ui/DiagramWatchers";
 
 export const App = () => {
-  const { isStatusLoaded, isPanelInitialized, isQueryLoaded, status, signOut } = useAppInit();
+  const { isStatusLoaded, isPanelReady, isQueryReady, isListReady, isReconciled, status, signOut } =
+    useAppInit();
 
   // Connection status not known yet — painting a guess here just flickers
   // to the real branch a tick later once it resolves.
@@ -16,17 +18,16 @@ export const App = () => {
     return <ConnectButton />;
   }
 
-  // Connected: also need to know panel-collapsed state and the persisted
-  // search query before painting, otherwise it flickers between fab and full
-  // panel once panel-collapsed resolves, or DiagramPanel mounts its search
-  // field before the persisted query has loaded.
-  if (!isPanelInitialized || !isQueryLoaded) {
+  // Fresh session: wait for the first real Drive list (cache is only trusted
+  // across same-tab navigation reloads). Reload sessions pass instantly.
+  if (!isPanelReady || !isQueryReady || !isListReady) {
     return null;
   }
 
   return (
     <>
       <DiagramPanel onSignOut={signOut.openSignOut} />
+      {isReconciled && <DiagramWatchers />}
       {signOut.isSignOutOpen && (
         <ConfirmDialog
           title="Sign out of Excalistore?"

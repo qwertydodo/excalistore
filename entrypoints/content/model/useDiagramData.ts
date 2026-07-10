@@ -14,7 +14,7 @@ export type DiagramData = {
 
 // Sorts the diagram list and runs the search over it, persisting the
 // debounced query. The caller must not mount this hook until the store's
-// persisted query has resolved (see diagramLibraryStore's isQueryLoaded) —
+// persisted query has resolved (see diagramLibraryStore's isQueryReady) —
 // useTextSearch only reads its initialQuery on first render, so a
 // later-arriving value here would never be adopted.
 export const useDiagramData = (): DiagramData => {

@@ -22,11 +22,12 @@
 - Cross-browser (Edge / Firefox via PKCE).
 - Playwright E2E.
 - Debounce the autosave poll off real edit events if Excalidraw exposes them.
-- Skeleton loaders: the panel currently shows a plain spinner while waiting
-  on async state (file list, persisted search query). A skeleton (placeholder
-  rows shaped like the eventual content) would read better than a spinner,
-  especially now that the diagram list + search field wait together on both
-  the file list and the persisted search query before mounting.
+- Skeleton loaders: on a fresh tab/browser session, the panel currently
+  renders nothing at all until the file list and the persisted search query
+  have both resolved — a blank gap before it appears, rather than a spinner or
+  placeholder. A skeleton (placeholder rows shaped like the eventual content)
+  would read better than a bare gap; a navigation reload never hits this case
+  at all, since it paints the cache instantly.
 
 ## Shipped
 _(Move items here as they ship, with a short behavior description.)_
@@ -77,7 +78,7 @@ _(Move items here as they ship, with a short behavior description.)_
 - Create diagram: names a new file, creates a blank `.excalidraw` scene in
   Drive, writes it locally, and reloads, becoming the active file.
 - Rename diagram: inline rename in the panel updates the Drive file name and
-  refreshes the list.
+  patches the row in place — no full list re-fetch and no page reload.
 - Debounced autosave: edits are hashed and, once stable-but-changed for
   ~2.5s, written to Drive via `drive/update` with the loaded revision as the
   conflict guard. If the remote `headRevisionId` no longer matches, the save
@@ -96,10 +97,15 @@ _(Move items here as they ship, with a short behavior description.)_
   clears the local canvas (storage + IndexedDB binaries) and reloads, then
   revokes the cached OAuth token and clears the stored connection + active
   file.
-- Involuntary-logout handling: an auth failure from the gateway — a Drive
-  `401`/`403` (e.g. "insufficient scopes") or a failed silent token refresh,
-  classified as `unauthorized` — marks the panel disconnected without touching
-  the local canvas, distinct from explicit sign-out, which clears it.
+- Involuntary-logout handling: an auth failure — a Drive `401`/`403` (e.g.
+  "insufficient scopes") or a failed silent token refresh, classified as
+  `unauthorized` — marks the panel disconnected without touching the local
+  canvas, distinct from explicit sign-out, which clears it. Centralized in one
+  place (the content script's Drive-request middleware), so a `401` from *any*
+  Drive call marks the panel disconnected the same way — including one
+  surfacing mid-session from an autosave tick, not just from loading the file
+  list — instead of leaving a stale "connected" panel while saves silently
+  fail.
 - Persisted panel collapse: the panel's collapsed/expanded state is stored in
   `chrome.storage.local` and restored on load, so collapsing the panel sticks
   across the writeScene-triggered reloads from opening/creating/renaming a
@@ -117,16 +123,16 @@ _(Move items here as they ship, with a short behavior description.)_
   for the `theme--dark` token excalidraw itself toggles — event-driven, no
   polling — and applies the same host on mount, so there's no flash of the
   wrong theme. No manual override; the panel always mirrors the page.
-- Fast-paint file list with session-aware revalidation: on mount, the panel
+- Fast-paint file list with session-aware revalidation: on a same-tab
+  navigation reload (switching/opening/creating/deleting a diagram), the panel
   paints the last-known file list from a local cache immediately (and adopts
   the active-file highlight against it), then silently revalidates against
-  Drive in the background — no loading spinner, so switching/opening/creating
-  a diagram (which reloads the tab) never flickers. A brand new tab/browser
+  Drive in the background — never flickers or waits. A brand new tab/browser
   session is treated differently: since its cache could be stale (files
-  added/removed on Drive elsewhere since last time), the loading spinner
-  shows until that session's first real Drive response arrives. Tracked via a
-  `sessionStorage` flag that survives same-tab reloads but not a new tab/
-  browser session.
+  added/removed on Drive elsewhere since last time), the panel renders
+  nothing at all until that session's first real Drive response arrives,
+  rather than trusting a possibly-stale cache. Tracked via a `sessionStorage`
+  flag that survives same-tab reloads but not a new tab/browser session.
 - Remote-deletion handling: if autosave's write fails because the active file
   no longer exists on Drive (`404`, classified as the `not_found` gateway
   error code), the badge shows "Diagram deleted on Drive", the active pointer

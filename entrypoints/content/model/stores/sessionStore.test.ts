@@ -3,13 +3,13 @@ import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUti
 import {
   clearActiveFile,
   clearCachedFiles,
-  clearFileListValidatedThisSession,
+  clearSessionLoaded,
   getActiveFile,
   getCachedFiles,
   getDiagramSearchQuery,
   getPanelCollapsed,
-  hasValidatedFileListThisSession,
-  markFileListValidatedThisSession,
+  isFirstSessionLoad,
+  markSessionLoaded,
   setActiveFile,
   setCachedFiles,
   setDiagramSearchQuery,
@@ -123,19 +123,19 @@ describe("fileListValidated", () => {
     stubSessionStorage();
   });
 
-  it("defaults to false when nothing is marked", () => {
-    expect(hasValidatedFileListThisSession()).toBe(false);
+  it("defaults to true when nothing is marked", () => {
+    expect(isFirstSessionLoad()).toBe(true);
   });
 
-  it("returns true once marked", () => {
-    markFileListValidatedThisSession();
-    expect(hasValidatedFileListThisSession()).toBe(true);
+  it("returns false once marked", () => {
+    markSessionLoaded();
+    expect(isFirstSessionLoad()).toBe(false);
   });
 
-  it("resets to false after clearing (e.g. on sign-out)", () => {
-    markFileListValidatedThisSession();
-    clearFileListValidatedThisSession();
-    expect(hasValidatedFileListThisSession()).toBe(false);
+  it("resets to true after clearing (e.g. on sign-out)", () => {
+    markSessionLoaded();
+    clearSessionLoaded();
+    expect(isFirstSessionLoad()).toBe(true);
   });
 });
 

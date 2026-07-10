@@ -3,7 +3,7 @@ import { getPanelCollapsed, setPanelCollapsed } from "./sessionStore";
 
 export type PanelVisibilityStore = {
   isVisible: boolean;
-  isInitialized: boolean;
+  isPanelReady: boolean;
   toggleVisibility: () => Promise<void>;
   show: () => Promise<void>;
   loadPanelVisibility: () => Promise<void>;
@@ -12,14 +12,14 @@ export type PanelVisibilityStore = {
 // Owns the panel's visible/collapsed state — persisted across the
 // writeScene→reload, independent of which diagram (if any) is active. A
 // store (not a hook-local useState) so useAppInit can gate the whole App's
-// initial render on isInitialized without DiagramPanel threading isVisible
+// initial render on isPanelReady without DiagramPanel threading isVisible
 // back up as a prop.
 export const usePanelVisibilityStore = create<PanelVisibilityStore>((set, get) => ({
   isVisible: false,
-  isInitialized: false,
+  isPanelReady: false,
   loadPanelVisibility: async () => {
     const isCollapsed = await getPanelCollapsed();
-    set({ isVisible: !isCollapsed, isInitialized: true });
+    set({ isVisible: !isCollapsed, isPanelReady: true });
   },
   toggleVisibility: async () => {
     const next = !get().isVisible;

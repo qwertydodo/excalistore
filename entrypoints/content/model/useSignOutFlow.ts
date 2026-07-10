@@ -1,15 +1,10 @@
 import { useCallback, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { REQUEST_TYPE, sendToBackground } from "@/features/driveGateway";
 import { bridge } from "../lib/bridge";
-import { clearScene, readScene } from "../lib/sceneBridge";
+import { clearScene } from "../lib/sceneBridge";
 import { useActiveDiagramStore } from "./stores/activeDiagramStore";
 import { useAuthStore } from "./stores/authStore";
-import {
-  clearActiveFile,
-  clearCachedFiles,
-  clearFileListValidatedThisSession,
-} from "./stores/sessionStore";
+import { clearActiveFile, clearCachedFiles, clearSessionLoaded } from "./stores/sessionStore";
 
 export type SignOutFlow = {
   isSignOutOpen: boolean;
@@ -41,18 +36,7 @@ export const useSignOutFlow = (): SignOutFlow => {
     // Flush the active file before clearing, per the safe sign-out contract.
     if (activeId) {
       try {
-        const scene = await readScene(bridge);
-        // getState() here, not a reactive `revision` selector — doSignOut's
-        // deps deliberately exclude revision (it changes on every autosave
-        // tick, and including it would churn this callback's identity, which
-        // is passed down as a prop). Reading fresh via getState() gets the
-        // latest value without adding that dep.
-        await sendToBackground({
-          type: REQUEST_TYPE.DRIVE_UPDATE,
-          id: activeId,
-          content: JSON.stringify(scene),
-          prevRevision: useActiveDiagramStore.getState().revision ?? "",
-        });
+        await useActiveDiagramStore.getState().saveActiveScene(activeId);
       } catch {
         // Best-effort flush; sign-out proceeds regardless.
       }
@@ -61,7 +45,7 @@ export const useSignOutFlow = (): SignOutFlow => {
       await signOut();
       await clearActiveFile();
       await clearCachedFiles();
-      clearFileListValidatedThisSession();
+      clearSessionLoaded();
       onActivePointerChange(null, null);
       await clearScene(bridge); // clears canvas + reloads
     } catch (e) {

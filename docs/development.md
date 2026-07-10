@@ -46,10 +46,10 @@ memoization happened — if a returned function/value is read by another
 hook's `useEffect` deps array, verify its identity is actually stable (test
 with `renderHook` + `rerender()` + `toBe`) before relying on the compiler;
 wrap in `useCallback`/`useMemo` explicitly if the hook contains a `finally`.
-This caused a real infinite-reload hang once (`useDiagramLibrary`'s
-`refresh`/`onStatusChange`/`onFilesChange` feeding `useActiveDiagram`'s
-`loadInitial` effect deps) — re-check this section once upstream fixes
-#34131.
+This caused a real infinite-reload hang once (the since-removed
+`useDiagramLibrary` hook's callbacks feeding what is now
+`useInitialDiagramLoad`'s `loadInitial` effect deps) — re-check this section
+once upstream fixes #34131.
 
 ## Google OAuth (needed from Plan 2 on)
 - Create a Google Cloud project, enable the Drive API.

@@ -10,3 +10,5 @@ storybook-static/
 .env
 .keys/
 .codegraph/
+docs/superpowers/
+.superpowers/

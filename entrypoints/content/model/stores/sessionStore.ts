@@ -66,22 +66,21 @@ export const clearCachedFiles = async (): Promise<void> => {
 
 const FILE_LIST_VALIDATED_KEY = "excalistore:fileListValidated";
 
-// Whether the file list has been validated against Drive at least once in
-// this tab session. Backed by window.sessionStorage (not chrome.storage.local):
-// it must survive a same-tab writeScene→reload (open/create/switch a diagram)
-// so those reloads can trust the fast-paint cache silently, but must NOT
-// survive a fresh tab/browser session — a brand new session may be looking at
-// a cache that's gone stale from Drive changes made elsewhere, so it should
-// wait for a real list before painting.
-export const hasValidatedFileListThisSession = (): boolean => {
+// Whether this tab session has already loaded a real file list from Drive.
+// Backed by window.sessionStorage (not chrome.storage.local): the answer must
+// survive a same-tab writeScene→reload (open/create/delete-of-active) so
+// those reloads can trust the fast-paint cache, but must NOT survive a fresh
+// tab/browser session — a brand new session may be looking at a cache gone
+// stale from Drive changes made elsewhere, so it must wait for a real list.
+export const isFirstSessionLoad = (): boolean => {
   try {
-    return sessionStorage.getItem(FILE_LIST_VALIDATED_KEY) === "true";
+    return sessionStorage.getItem(FILE_LIST_VALIDATED_KEY) !== "true";
   } catch {
-    return false;
+    return true;
   }
 };
 
-export const markFileListValidatedThisSession = (): void => {
+export const markSessionLoaded = (): void => {
   try {
     sessionStorage.setItem(FILE_LIST_VALIDATED_KEY, "true");
   } catch {
@@ -90,9 +89,9 @@ export const markFileListValidatedThisSession = (): void => {
 };
 
 // Sign-out reloads the same tab, which sessionStorage survives — without
-// this, a same-tab reconnect would wrongly skip the loader using a flag left
-// over from the previous (now signed-out) session's Drive folder.
-export const clearFileListValidatedThisSession = (): void => {
+// this, a same-tab reconnect would wrongly skip the real load using a flag
+// left over from the previous (now signed-out) session's Drive folder.
+export const clearSessionLoaded = (): void => {
   try {
     sessionStorage.removeItem(FILE_LIST_VALIDATED_KEY);
   } catch {

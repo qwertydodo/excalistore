@@ -3,15 +3,27 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubChromeStorageLocal } from "@/shared/lib/testUtils";
 import { App } from "./App";
+import { useActiveDiagramStore } from "./model/stores/activeDiagramStore";
 import { useAuthStore } from "./model/stores/authStore";
 import { useDiagramLibraryStore } from "./model/stores/diagramLibraryStore";
 import { usePanelVisibilityStore } from "./model/stores/panelVisibilityStore";
 
-// useActiveDiagram drives real Drive/bridge calls on mount (see its own
+// useInitialDiagramLoad drives real Drive/bridge calls on mount (see its own
 // test's fake-deps setup) — irrelevant to App's init-gating logic, which only
-// cares about authStore/panelVisibilityStore/diagramLibraryStore. Stub it to
-// a no-op so it doesn't interfere with the state these tests drive directly.
-vi.mock("./model/useActiveDiagram", () => ({ useActiveDiagram: vi.fn() }));
+// cares about authStore/panelVisibilityStore/diagramLibraryStore/
+// activeDiagramStore. Stub it to a no-op so it doesn't interfere with the
+// state these tests drive directly.
+vi.mock("./model/useInitialDiagramLoad", () => ({ useInitialDiagramLoad: vi.fn() }));
+
+// DiagramWatchers mounts a real 1s reconciliation interval against the real
+// bridge — irrelevant to App's mount-gating logic under test here (whether
+// isReconciled gates the watchers rendering at all). Replace it with a marker
+// element so the gate tests can assert presence/absence directly instead of
+// relying on a debounced side effect that can't fire within a millisecond-
+// scale test.
+vi.mock("./ui/DiagramWatchers", () => ({
+  DiagramWatchers: () => <div data-testid="diagram-watchers" />,
+}));
 
 // useAppInit's loadStatus() call (see useAppInit.ts) goes through this — leave
 // it permanently pending so it never resolves on its own, letting these tests
@@ -24,12 +36,18 @@ vi.mock("@/features/driveGateway", async (importOriginal) => ({
 const INITIAL_AUTH_STATE = useAuthStore.getState();
 const INITIAL_PANEL_STATE = usePanelVisibilityStore.getState();
 const INITIAL_LIBRARY_STATE = useDiagramLibraryStore.getState();
+const INITIAL_ACTIVE_STATE = useActiveDiagramStore.getState();
 
 beforeEach(() => {
   stubChromeStorageLocal();
   useAuthStore.setState(INITIAL_AUTH_STATE, true);
   usePanelVisibilityStore.setState(INITIAL_PANEL_STATE, true);
   useDiagramLibraryStore.setState(INITIAL_LIBRARY_STATE, true);
+  // useInitialDiagramLoad (which owns loadInitial) is stubbed to a no-op
+  // above, so isListReady never flips true on its own here — seed it directly
+  // since these tests are only exercising the panel-visibility/query gates,
+  // not the list-loading one (see activeDiagramStore.test.ts for that).
+  useActiveDiagramStore.setState({ ...INITIAL_ACTIVE_STATE, isListReady: true }, true);
 });
 
 describe("App", () => {
@@ -79,8 +97,36 @@ describe("App", () => {
   it("shows the diagram panel once connection status, panel visibility, and the search query all resolve", async () => {
     render(<App />);
     act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
-    await waitFor(() => expect(usePanelVisibilityStore.getState().isInitialized).toBe(true));
-    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryLoaded).toBe(true));
+    await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true));
     await screen.findByLabelText("Excalistore diagrams");
+  });
+
+  it("renders the panel without mounting DiagramWatchers while isReconciled is still false", async () => {
+    useActiveDiagramStore.setState({
+      ...INITIAL_ACTIVE_STATE,
+      isListReady: true,
+      isReconciled: false,
+    });
+    render(<App />);
+    act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
+    await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true));
+    await screen.findByLabelText("Excalistore diagrams");
+    expect(screen.queryByTestId("diagram-watchers")).not.toBeInTheDocument();
+  });
+
+  it("mounts DiagramWatchers once isReconciled flips true", async () => {
+    useActiveDiagramStore.setState({
+      ...INITIAL_ACTIVE_STATE,
+      isListReady: true,
+      isReconciled: true,
+    });
+    render(<App />);
+    act(() => useAuthStore.getState().onStatusChange({ isConnected: true }));
+    await waitFor(() => expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true));
+    await waitFor(() => expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true));
+    await screen.findByLabelText("Excalistore diagrams");
+    expect(await screen.findByTestId("diagram-watchers")).toBeInTheDocument();
   });
 });

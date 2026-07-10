@@ -13,9 +13,9 @@ beforeEach(() => {
 
 describe("panelVisibilityStore", () => {
   it("starts uninitialized, then resolves isVisible once the persisted state loads", async () => {
-    expect(usePanelVisibilityStore.getState().isInitialized).toBe(false);
+    expect(usePanelVisibilityStore.getState().isPanelReady).toBe(false);
     await act(() => usePanelVisibilityStore.getState().loadPanelVisibility());
-    expect(usePanelVisibilityStore.getState().isInitialized).toBe(true);
+    expect(usePanelVisibilityStore.getState().isPanelReady).toBe(true);
     expect(usePanelVisibilityStore.getState().isVisible).toBe(true);
   });
 

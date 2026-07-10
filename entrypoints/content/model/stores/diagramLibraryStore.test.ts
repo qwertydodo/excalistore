@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ERROR_CODE, RequestError, sendToBackground } from "@/features/driveGateway";
+import { sendToBackground } from "@/features/driveGateway";
 import { stubChromeStorageLocal, stubSessionStorage } from "@/shared/lib/testUtils";
 import { getCachedFiles, setDiagramSearchQuery } from "./sessionStore";
 
@@ -20,86 +20,46 @@ beforeEach(() => {
   vi.mocked(sendToBackground).mockReset();
 });
 
-describe("onFilesChange", () => {
-  it("sets the store's files", () => {
-    useDiagramLibraryStore.getState().onFilesChange(files);
+describe("setFiles", () => {
+  it("sets the in-memory list and writes the fast-paint cache in one action", async () => {
+    const files = [{ id: "1", name: "a.excalidraw", modifiedTime: "t", headRevisionId: "r1" }];
+
+    useDiagramLibraryStore.getState().setFiles(files);
+
     expect(useDiagramLibraryStore.getState().files).toEqual(files);
+    await expect(getCachedFiles()).resolves.toEqual(files);
   });
 });
 
 describe("refresh", () => {
-  it("loads the file list, caches it, and clears isFilesLoading", async () => {
+  it("loads the file list and caches it", async () => {
     vi.mocked(sendToBackground).mockResolvedValue(files);
     const result = await useDiagramLibraryStore.getState().refresh();
     expect(result).toEqual(files);
     expect(useDiagramLibraryStore.getState().files).toEqual(files);
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
     await expect(getCachedFiles()).resolves.toEqual(files);
   });
 
-  it("does not flip isFilesLoading on a same-session reload once the list was already validated (background revalidation)", async () => {
-    // Simulate: this tab already validated the list once (e.g. right before
-    // an open/switch reload), and the fast-paint cache repainted it on mount.
-    vi.mocked(sendToBackground).mockResolvedValue(files);
-    await useDiagramLibraryStore.getState().refresh(); // marks the session validated
-    useDiagramLibraryStore.setState({ files });
-
-    let resolveList: (v: typeof files) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveList = resolve;
-        }),
-    );
-    const pending = useDiagramLibraryStore.getState().refresh();
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
-    resolveList(files);
-    await pending;
-  });
-
-  it("shows the loader on a fresh tab session even if a stale cached list is already painted", async () => {
-    // Cache from a previous session was painted, but this session has never
-    // validated it against Drive yet — Drive may have changed meanwhile.
-    useDiagramLibraryStore.setState({ files });
-    let resolveList: (v: typeof files) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveList = resolve;
-        }),
-    );
-    const pending = useDiagramLibraryStore.getState().refresh();
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(true);
-    resolveList(files);
-    await pending;
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
-  });
-
-  it("invokes onUnauthorized on a 401, so the caller can react (e.g. mark authStore disconnected)", async () => {
-    vi.mocked(sendToBackground).mockRejectedValue(
-      new RequestError("insufficient scopes", ERROR_CODE.UNAUTHORIZED),
-    );
-    const onUnauthorized = vi.fn();
-    const result = await useDiagramLibraryStore.getState().refresh(onUnauthorized);
-    expect(result).toEqual([]);
-    expect(onUnauthorized).toHaveBeenCalledOnce();
-    expect(useDiagramLibraryStore.getState().isFilesLoading).toBe(false);
-  });
-
-  it("does not invoke onUnauthorized on a non-auth error", async () => {
+  it("refresh throws on failure instead of swallowing to an empty list", async () => {
+    const existingFile = {
+      id: "9",
+      name: "existing.excalidraw",
+      modifiedTime: "t",
+      headRevisionId: "r9",
+    };
+    useDiagramLibraryStore.setState({ files: [existingFile] });
     vi.mocked(sendToBackground).mockRejectedValue(new Error("network down"));
-    const onUnauthorized = vi.fn();
-    const result = await useDiagramLibraryStore.getState().refresh(onUnauthorized);
-    expect(result).toEqual([]);
-    expect(onUnauthorized).not.toHaveBeenCalled();
+
+    await expect(useDiagramLibraryStore.getState().refresh()).rejects.toThrow("network down");
+    expect(useDiagramLibraryStore.getState().files).toEqual([existingFile]); // untouched
   });
 });
 
 describe("loadInitialQuery", () => {
-  it("resolves the persisted search query and flips isQueryLoaded", async () => {
+  it("resolves the persisted search query and flips isQueryReady", async () => {
     await setDiagramSearchQuery("meeting");
     await useDiagramLibraryStore.getState().loadInitialQuery();
     expect(useDiagramLibraryStore.getState().initialQuery).toBe("meeting");
-    expect(useDiagramLibraryStore.getState().isQueryLoaded).toBe(true);
+    expect(useDiagramLibraryStore.getState().isQueryReady).toBe(true);
   });
 });

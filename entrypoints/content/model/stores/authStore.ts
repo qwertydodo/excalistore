@@ -16,7 +16,7 @@ export type AuthStore = {
 
 // Single source of truth for whether the extension is connected to a Drive
 // folder — distinct from diagramLibraryStore (file list, search query) so
-// every consumer (ConnectButton, useAppInit, useActiveDiagram, ...) can read
+// every consumer (ConnectButton, useAppInit, useInitialDiagramLoad, ...) can read
 // connection state straight off this store instead of it living inside a
 // "library" store that also owns unrelated file-list concerns. A leaf store:
 // it never reaches into other stores itself — anything that needs to react
@@ -29,9 +29,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isConnecting: false,
   connectError: null,
   onStatusChange: (status) => set({ status, isStatusLoaded: true }),
-  // Shared by every caller that reacts to a mid-session 401 from a Drive
-  // request (refresh's onUnauthorized) — one named action instead of each
-  // call site re-wrapping onStatusChange({ isConnected: false }) itself.
+  // Called by sendDriveRequest's 401 middleware (entrypoints/content/api) on
+  // any mid-session unauthorized Drive response — one named action instead of
+  // every call site re-wrapping onStatusChange({ isConnected: false }) itself.
   markDisconnected: () => set({ status: { isConnected: false }, isStatusLoaded: true }),
   // Kicks off the one-time connection-status check on app init. Returns the
   // resolved status so the caller doesn't need a follow-up getState() read.
