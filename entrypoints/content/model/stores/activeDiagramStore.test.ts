@@ -284,7 +284,11 @@ describe("onRemoteDeleted", () => {
 
     expect(useActiveDiagramStore.getState().activeId).toBe("2");
     expect(useActiveDiagramStore.getState().revision).toBe("r2");
-    await expect(getActiveFile()).resolves.not.toBeNull();
+    await expect(getActiveFile()).resolves.toEqual({
+      id: "2",
+      name: "b.excalidraw",
+      loadedRevision: "r2",
+    });
     expect(useDiagramLibraryStore.getState().files).toEqual([current]);
   });
 });
@@ -369,20 +373,16 @@ describe("loadInitial", () => {
   it("reconnect: resets both readiness flags before reconciling again", async () => {
     markSessionLoaded();
     useActiveDiagramStore.setState({ isListReady: true, isReconciled: true });
-    let resolveList: (v: unknown) => void = () => {};
-    vi.mocked(sendToBackground).mockImplementation(
-      () => new Promise((resolve) => (resolveList = resolve)),
-    );
+    vi.mocked(sendToBackground).mockResolvedValue([]);
 
+    // The reset is synchronous, so it's observable before the load resolves;
+    // the cache-paint mid-flight ordering has its own test above.
     const pending = useActiveDiagramStore.getState().loadInitial();
     expect(useActiveDiagramStore.getState().isListReady).toBe(false);
     expect(useActiveDiagramStore.getState().isReconciled).toBe(false);
 
-    await vi.waitFor(() => {
-      expect(useActiveDiagramStore.getState().isListReady).toBe(true);
-    });
-    resolveList([]);
     await pending;
+    expect(useActiveDiagramStore.getState().isListReady).toBe(true);
     expect(useActiveDiagramStore.getState().isReconciled).toBe(true);
   });
 
