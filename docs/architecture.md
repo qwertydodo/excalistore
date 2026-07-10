@@ -50,15 +50,17 @@ src/
 entrypoints/
   content/    mounts the panel in a Shadow DOM on excalidraw.com; split into
               mount wiring (index.tsx) and a composition root (App.tsx) at
-              the entrypoint root, one hook per concern under model/ (file list, active-file + autosave + CRUD actions,
-              panel visibility, sign-out, connect) plus the chrome.storage
-              session stores (active-file pointer, file-list cache, panel
-              state), page-local components
+              the entrypoint root, zustand stores under model/stores/ (auth,
+              diagram library, active-diagram, panel visibility) that own
+              both state and orchestration, plus chrome.storage/
+              sessionStorage wrappers (session store) alongside them, gated
+              lifecycle hooks per concern (initial load, autosave,
+              auto-create, sign-out, connect) that read those stores, the
+              401-middleware Drive client under api/, page-local components
               under ui/ (ConnectButton + its FolderNameForm connect dialog,
-              DiagramPanel + its
-              DiagramRow/CreateDiagramForm sub-components), and the scene
-              bridge, its IndexedDB adapter, and the autosave controller
-              under lib/
+              DiagramPanel + its DiagramRow/CreateDiagramForm sub-components,
+              the renderless DiagramWatchers), and the scene bridge, its
+              IndexedDB adapter, and the autosave controller under lib/
   popup/      extension popup; composition root (App.tsx) + PopupStatus
               under ui/ (status + Open Excalidraw shortcut)
   background.ts  service worker; the only place holding the OAuth token
@@ -99,8 +101,9 @@ background service worker. The content script and panel never hold the OAuth
 token. Panel and background communicate over typed `chrome.runtime` messages.
 
 **Message flow (panel → gateway → auth/drive):** the in-page connect UI
-(`ConnectButton`'s dialog, driven by the diagram library store's `connect`
-action) never calls Drive APIs directly and never holds the OAuth token. It collects a folder name from the
+(`ConnectButton`'s dialog, driven by `authStore`'s `connect` action via the
+`useConnectDrive` hook) never calls Drive APIs directly and never holds the
+OAuth token. It collects a folder name from the
 user and sends a single typed request, `drive/connect { folderName }`, to the
 background — interactive sign-in and the find-or-create folder lookup both
 happen inside the gateway, not the page. The panel and popup otherwise send
@@ -172,46 +175,85 @@ Excalidraw itself toggles, and mirrors the mapped theme onto the shadow
 host's `data-theme` attribute — the same attribute the `--es-*` CSS cascade
 already switches on. Event-driven, no polling; the initial theme is read
 synchronously before observation starts, so there's no flash of the wrong
-theme on mount. State lives in
-two zustand stores under `model/`, each read directly by whichever
-hook/component needs it instead of being threaded through `App` as
-props/params:
+theme on mount.
 
-- **`diagramLibraryStore`** — the connected Drive file list, connection
-  status, the persisted search query's initial load, and the connect flow
-  (`isConnecting`/`connectError`/`connect`; `connect` is just another store
-  action, the same shape as `refresh`, rather than a separate hook
-  duplicating its own loading/error state). `useDiagramLibrary` (called once
-  from `App`, kicking off the search-query load) exposes only `status`,
-  since that's all the composition root needs to branch between
-  `ConnectButton` and the panel — `ConnectButton` itself reads
-  `isConnecting`/`connectError`/`connect` straight off the store (one
-  `useShallow` call), so `App` passes it no props at all.
+The content script's model layer is store-centric: the zustand stores under
+`model/stores/` don't just hold state, they own the orchestration that acts
+on it, and every hook/component reads the slice it needs directly off the
+relevant store instead of it being threaded through `App` as props/params.
+All content-side Drive calls — not just `drive/list` — go through
+`entrypoints/content/api/driveRequest.ts`'s `sendDriveRequest`, a thin 401
+middleware wrapping `sendToBackground`: on a `RequestError` with
+`code === "unauthorized"` it calls `useAuthStore.getState().markDisconnected()`
+before rethrowing, so "the session is no longer valid" flips the panel to
+disconnected in exactly one place regardless of which action triggered it
+(list, open, rename, delete, or an autosave tick). Store actions call
+`sendDriveRequest`; `authStore`'s own connect/status/sign-out calls stay on
+raw `sendToBackground`, since those *are* the auth flow rather than a
+Drive read/write that could be mid-session-invalidated.
+
+Four zustand stores under `model/stores/`:
+
+- **`authStore`** — the connection status (`status`/`isStatusLoaded`) and the
+  connect flow (`isConnecting`/`connectError`/`connect`; `connect` is just
+  another store action, the same shape as `diagramLibraryStore`'s `refresh`,
+  rather than a separate hook duplicating its own loading/error state), plus
+  `signOut` and `markDisconnected` — the single action `sendDriveRequest`'s
+  401 middleware (and explicit sign-out) funnels through. A leaf store: it
+  never reaches into the other stores itself, so reacting to a connect/
+  sign-out (opening the panel, loading the file list) is orchestrated by the
+  calling hook (`useConnectDrive`, `useSignOutFlow`, `useInitialDiagramLoad`)
+  instead of being baked into `authStore`. `ConnectButton` reads
+  `isConnecting`/`connectError` off it directly (one `useShallow` call) and
+  calls `useConnectDrive`'s `onConnect`, so `App` passes it no props at all.
+- **`diagramLibraryStore`** — the connected Drive file list (`files`) and the
+  persisted search query's initial load (`initialQuery`/`isQueryReady`).
+  `setFiles` is the single write path: every action that mutates the list
+  (`refresh`, and `activeDiagramStore`'s `onRename`/`onDelete`/`onAutoCreate`/
+  `onRemoteDeleted`) calls it instead of writing `files` directly, so state
+  and the fast-paint `chrome.storage.local` cache always move together.
+  `refresh()` is a dumb fetch — it throws on failure and leaves retry/fallback
+  policy to the caller (`loadInitial` catches and keeps the cache;
+  `useAutoCreate`'s watcher lets the throw abort the tick).
 - **`activeDiagramStore`** — the active-file pointer (`activeId`), its save
   `revision`, `saveStatus`, `actionError`, and the CRUD actions
-  (`onOpen`/`onCreate`/`onRename`/`onDelete`) that read/write that pointer.
-  the store's own lifecycle effects are split across three gated hooks:
-  `useInitialDiagramLoad` (called from `useAppInit`, outside App's readiness
-  gate — kicks off `loadInitial` on the `isConnected` flip), and
-  `useAutosave`/`useAutoCreate` (called from the renderless `DiagramWatchers`,
-  which `App` mounts only once `isReconciled` — the autosave loop wired to
-  whichever file is active, and the auto-create watcher for when none is) —
-  everything they produce lives in the store. Each consumer reads only the
-  slice it needs, directly off the store, rather than via props: `DiagramPanel`
-  reads `saveStatus`/`actionError`/`onOpen` (one `useShallow` call) since it
-  wraps `onOpen` in its own in-flight lock; `DiagramList` reads
-  `activeId`/`onRename`/`onDelete`; `CreateDiagramForm` reads `onCreate`.
-  `App` renders `<DiagramPanel onSignOut={...} />` with nothing else to pass.
-  `useSignOutFlow` likewise reads `activeId`/`onActiveIdChange`/
-  `onActionErrorChange` off `activeDiagramStore` and `onStatusChange` off
-  `diagramLibraryStore` directly, so it takes no params either.
+  (`onOpen`/`onCreate`/`onRename`/`onDelete`/`onAutoCreate`/`onRemoteDeleted`)
+  that read/write that pointer. `saveActiveScene(id)` is the one
+  implementation of "write the canvas to Drive file `id` with the stored
+  revision as the conflict guard," shared by `onOpen`'s pre-switch flush, the
+  autosave loop, and sign-out's best-effort flush — it throws on failure so
+  each caller keeps its own error policy. `loadInitial()` is the session-aware
+  startup reconciliation (see Data Flow below), tracked via
+  `isListReady`/`isReconciled`/`isLoadInFlight`. The store's own lifecycle
+  effects are split across three gated hooks: `useInitialDiagramLoad` (called
+  from `useAppInit`, outside `App`'s readiness gate — kicks off `loadInitial`
+  on the `isConnected` flip), and `useAutosave`/`useAutoCreate` (called from
+  the renderless `DiagramWatchers`, which `App` mounts only once
+  `isReconciled` — the autosave loop wired to whichever file is active, and
+  the auto-create watcher for when none is) — everything they produce lives
+  in the store, and neither hook carries a connection/reconcile guard of its
+  own since unmounting `DiagramWatchers` on disconnect is the guard. Each
+  consumer reads only the slice it needs, directly off the store, rather than
+  via props: `DiagramPanel` reads `saveStatus`/`actionError`/`onOpen` (one
+  `useShallow` call) since it wraps `onOpen` in its own in-flight lock;
+  `DiagramList` reads `activeId`/`onRename`/`onDelete`; `CreateDiagramForm`
+  reads `onCreate`. `App` renders `<DiagramPanel onSignOut={...} />` with
+  nothing else to pass. `useSignOutFlow` likewise reads
+  `activeId`/`onActivePointerChange`/`onActionErrorChange` off
+  `activeDiagramStore` and `signOut` off `authStore` directly, so it takes no
+  params either.
+- **`panelVisibilityStore`** — whether the panel itself is shown or collapsed
+  (`isVisible`), persisted across the `writeScene`→reload independent of which
+  diagram (if any) is active. A store rather than a hook-local `useState` so
+  `useAppInit` can gate `App`'s initial render on `isPanelReady` without
+  `DiagramPanel` threading `isVisible` back up as a prop.
 
 `onSignOut` stays a top-level prop on `DiagramPanel` since sign-out is its own
-flow, not a diagram action. Whether the panel itself is shown or collapsed is
-owned entirely inside `DiagramPanel` via its own `usePanelVisibility` hook
-(`entrypoints/content/model/usePanelVisibility`) — that state has no
-dependency on the active diagram or the composition root, so it isn't
-threaded through `App` at all.
+flow, not a diagram action. Readiness is gated once, at the top: `App` mounts
+`DiagramPanel` on `isPanelReady && isQueryReady && isListReady` and the
+renderless `DiagramWatchers` (autosave + auto-create) on `isReconciled` —
+`useAppInit` is the single hook `App` calls, and it's the one place these
+flags from four different stores are read together.
 
 Excalidraw.com exposes no public JS API on the page. The scene is read from and
 written to its `localStorage` (`excalidraw` elements, `excalidraw-state`
@@ -286,26 +328,34 @@ in isolation.
   `getCachedFiles`/`setCachedFiles`/`clearCachedFiles` (file-list cache),
   `getPanelCollapsed`/`setPanelCollapsed` (panel collapse), and
   `getDiagramSearchQuery`/`setDiagramSearchQuery` (search query) persist the
-  same way. Also `hasValidatedFileListThisSession`/
-  `markFileListValidatedThisSession`, backed by `window.sessionStorage`
-  instead of `chrome.storage.local`: it must survive a same-tab
-  `writeScene`-triggered reload (so an open/switch/create doesn't re-show the
-  full-list loading spinner) but must NOT survive a fresh tab/browser session
-  (whose cached file list could be stale relative to Drive).
-- **zustand stores** (`entrypoints/content/model/stores/` —
-  `diagramLibraryStore`, `activeDiagramStore`) — in-memory (not persisted)
-  reactive state, alongside `sessionStore` since both are "the app's stores",
-  just different persistence models. `diagramLibraryStore` covers the
-  connected Drive file list, connection status, the persisted search query's
-  resolved initial value, and the connect flow; `activeDiagramStore` covers
-  the active-file pointer, its save revision, save status, action error, and
-  the open/create/rename/delete actions. Both are read directly by whichever
-  hook/component needs them instead of being threaded through `App.tsx` as
-  props/params.
+  same way. Also `isFirstSessionLoad`/`markSessionLoaded`/`clearSessionLoaded`,
+  backed by `window.sessionStorage` instead of `chrome.storage.local`: the
+  flag must survive a same-tab `writeScene`-triggered reload (so an
+  open/switch/create trusts the fast-paint cache and doesn't wait on Drive
+  again) but must NOT survive a fresh tab/browser session (whose cached file
+  list could be stale relative to Drive, so `loadInitial` waits for a real
+  response instead). `clearSessionLoaded` runs on sign-out, since a same-tab
+  reconnect must not skip the real load using a flag left over from the
+  previous session's Drive folder.
+- **zustand stores** (`entrypoints/content/model/stores/` — `authStore`,
+  `diagramLibraryStore`, `activeDiagramStore`, `panelVisibilityStore`) —
+  in-memory (not persisted) reactive state, alongside `sessionStore` since
+  both are "the app's stores", just different persistence models. `authStore`
+  covers connection status and the connect/sign-out flow; `diagramLibraryStore`
+  covers the connected Drive file list and the persisted search query's
+  resolved initial value; `activeDiagramStore` covers the active-file pointer,
+  its save revision/status, action error, startup reconciliation
+  (`loadInitial`), the single save implementation (`saveActiveScene`), and the
+  CRUD actions; `panelVisibilityStore` covers the panel's shown/collapsed
+  state. All are read directly by whichever hook/component needs them instead
+  of being threaded through `App.tsx` as props/params. See "Content-script
+  mount" above for the full breakdown.
 - **`panel`** (`entrypoints/content/ui/DiagramPanel`, React, Shadow DOM) —
-  presentational: gates on the library store's loading state (selecting
-  `saveStatus`/`actionError`/`onOpen` off `activeDiagramStore` in one
-  `useShallow` call), renders `DiagramList` (file list + search box, name +
+  presentational: no loading gate of its own (`App` only mounts it once
+  `isPanelReady && isQueryReady && isListReady`, so it never renders before it
+  has data), selecting `saveStatus`/`actionError`/`onOpen` off
+  `activeDiagramStore` in one `useShallow` call, and renders `DiagramList`
+  (file list + search box, name +
   modified date, active-file indicator), save-status badge, and inline
   rename (each row owns its own rename-edit state). `DiagramList` itself
   reads `activeId`/`onRename`/`onDelete` straight off `activeDiagramStore`
@@ -373,13 +423,16 @@ re-implements a button, dialog, or theme lookup.
   `connectionService.connect` calls `getToken(interactive)` then
   `findOrCreateFolder(folderName)` (auth attached by the interceptor) → store
   `folderId` + `connected` in `chrome.storage.local`. No token stored (Chrome
-  caches it). On success the store's `connect` action also sets the persisted
-  panel state to expanded, so the panel opens automatically when `App` swaps
-  to it.
+  caches it). On success, `useConnectDrive` — which wires `authStore`'s
+  `connect` to `panelVisibilityStore`'s `show` — also expands the panel, so it
+  opens automatically when `App` swaps to it.
   No folder browsing: under `drive.file` the app can only ever see folders it
   created, so naming a folder is how connect works.
-- **List:** panel mounts (connected) → gateway `drive/list` → render names +
-  modified dates; a `401` here flips the panel to disconnected without
+- **List:** `activeDiagramStore.loadInitial()` (fresh session) or its
+  background revalidation (navigation reload) calls
+  `diagramLibraryStore.refresh()` → gateway `drive/list` → `setFiles` renders
+  names + modified dates. Every Drive call — this one included — goes through
+  `sendDriveRequest`, so a `401` here flips the panel to disconnected without
   touching the canvas (see Involuntary logout below).
 - **Open diagram:** click file → gateway `drive/get(id)` → `parseExcalidrawFile`
   validates the envelope → `setActiveFile({id, name, loadedRevision:
@@ -418,8 +471,10 @@ re-implements a button, dialog, or theme lookup.
   no special handoff code. Composes with remote-deletion handling above with
   no extra logic: if the active file gets deleted mid-session and the user
   keeps drawing, `activeId` going back to null re-arms this same watcher.
-- **Rename:** inline edit → gateway `drive/rename(id, name)` → re-fetch
-  `drive/list` to refresh the panel.
+- **Rename:** inline edit → gateway `drive/rename(id, name)` → patches the
+  single row in place via `diagramLibraryStore.setFiles` (no full re-fetch, so
+  the list never blanks out while the rename resolves) — and, unlike
+  open/create/delete, never touches the canvas or reloads the tab.
 
 ## Auth / Session Lifecycle
 
@@ -436,10 +491,13 @@ re-implements a button, dialog, or theme lookup.
   localStorage + IndexedDB binaries and reloads the tab.
 - **Involuntary logout (token expired or revoked externally):** the auth
   interceptor first transparently retries a single `401` with a refreshed
-  token; only if that retry also fails does the error surface. Any
-  `sendToBackground` call that throws a `RequestError` with `code ===
-  "unauthorized"` (the panel's `refresh()` checks this on `drive/list`
-  failures) flips the panel to disconnected **without** clearing or reloading
-  the local scene — deliberately distinct from explicit sign-out, which
-  clears. The active-file pointer in `chrome.storage.local` is left intact so
-  re-connecting can resume where the user left off.
+  token; only if that retry also fails does the error surface. Every
+  content-side Drive call goes through `sendDriveRequest`
+  (`entrypoints/content/api/driveRequest.ts`), which catches any
+  `RequestError` with `code === "unauthorized"` and calls
+  `authStore.markDisconnected()` before rethrowing — so list, open, rename,
+  delete, and an in-flight autosave tick all flip the panel to disconnected
+  the same way, **without** clearing or reloading the local scene —
+  deliberately distinct from explicit sign-out, which clears. The active-file
+  pointer in `chrome.storage.local` is left intact so re-connecting can resume
+  where the user left off.
